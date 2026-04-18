@@ -7,8 +7,8 @@ This file provides instructions for the AGI (or Synthetic General Intelligence -
 The system operates as a central **Broadcast Center** (Hub) with **Specialized Actors** (Spokes) communicating over an asynchronous **Message Bus**.
 
 ### The Actor Pattern
-- Modules must work in parallel. The Hub broadcasts a goal, and multiple actors (e.g., Symbolic Reasoner, Coding Module) work simultaneously. The Hub selects the best result.
-- **Implementation**: Actors must operate in isolated processes. Use frameworks like **Ray**, **Celery**, or **gRPC** microservices to ensure CPU-bound tasks in the Spokes do not block the central Message Bus.
+- **Parallel Execution**: Modules operate as autonomous, concurrent units. The Hub broadcasts objectives to specialized actors (e.g., Symbolic Reasoner, Coding Module) and synthesizes the optimal response.
+- **Implementation**: Utilize **Ray** as the primary distributed orchestrator. Actors must run in isolated processes to prevent CPU-heavy workloads from blocking the central Message Bus. Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
 
 ### The Cognitive Heartbeat
 - The system runs a **Heartbeat Loop** to maintain proactivity.
