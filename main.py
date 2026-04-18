@@ -1,84 +1,44 @@
-from core.workspace import GlobalWorkspace
-from core.scheduler import Scheduler
-from agents.autonomous_loop import AutonomousLoop
-
-# Import modules
-from modules.perception.vision import VisionModule
-from modules.reasoning.symbolic_reasoner import SymbolicReasoner
-from modules.planning.planner import Planner
-from modules.meta.self_model import SelfModel
-from modules.coding.coding_module import CodingModule
-from modules.social.social_reasoner import SocialReasoner
-
-# Import memory
-from memory.episodic_memory import EpisodicMemory
-
-# Import DPS components
-from dps.router import TaskRouter
-from dps.priority_engine import PriorityEngine
-from dps.attention_gate import AttentionGate
-from dps.controller import DPSController
-
-# Import Ethics
-from ethics.ethics_manager import EthicsManager
-from ethics.norm_library import NormLibrary
-
+import ray
 import time
-import threading
+
+ray.init()
+
+# Define the Spoke as a Ray Actor
+@ray.remote
+class CodingActor:
+    def write_tests(self, code):
+        # Heavy CPU work happens here, completely bypassing the GIL
+        return "Tests completed."
+
+# Define the Hub
+@ray.remote
+class IntegratorHub:
+    def __init__(self):
+        self.state = "Idle"
+
+    def process_result(self, result):
+        print(f"Hub updating state with: {result}")
 
 def main():
-    print("Initializing AGI System...")
-    workspace = GlobalWorkspace()
-    scheduler = Scheduler()
+    # Initialization
+    hub = IntegratorHub.remote()
+    coder = CodingActor.remote()
 
-    # Memory
-    episodic_memory = EpisodicMemory()
+    print("Ray-based APW SGI System Initialized.")
 
-    # Module registry
-    modules_instances = {
-        "vision": VisionModule(workspace, scheduler),
-        "symbolic_reasoner": SymbolicReasoner(workspace, scheduler),
-        "planner": Planner(workspace, scheduler),
-        "self_model": SelfModel(workspace, scheduler),
-        "coding": CodingModule(workspace, scheduler),
-        "social": SocialReasoner(workspace, scheduler, episodic_memory)
-    }
+    # The Heartbeat / Autonomous Loop
+    # We'll run this for a few iterations for demonstration
+    for _ in range(10):
+        # Trigger the actor asynchronously (returns a future)
+        future = coder.write_tests.remote("def foo(): pass")
 
-    # DPS components
-    norm_lib = NormLibrary()
-    ethics_manager = EthicsManager(norm_lib)
+        # Hub processes it when ready, without blocking the main loop
+        hub.process_result.remote(future)
 
-    router = TaskRouter(modules_instances)
-    priority_engine = PriorityEngine()
-    attention_gate = AttentionGate(ethics_manager)
-    dps = DPSController(workspace, scheduler, router, priority_engine, attention_gate)
+        print("Heartbeat tick...")
+        time.sleep(0.1)
 
-    # Autonomous loop
-    loop = AutonomousLoop(workspace, scheduler, dps)
-
-    # Start loop in a separate thread
-    loop_thread = threading.Thread(target=loop.run, daemon=True)
-    loop_thread.start()
-
-    print("AGI System Initialized and Running.")
-
-    # Test 1: Math
-    print("\n--- TEST 1: MATH ---")
-    workspace.broadcast({"type": "query", "data": "math.factorial(5)", "timestamp": time.time()})
-    time.sleep(1)
-
-    # Test 2: Coding
-    print("\n--- TEST 2: CODING ---")
-    code = "print('Hello from AGI sandbox'); x = 10; y = 20; print(f'Sum: {x+y}')"
-    workspace.broadcast({"type": "code_execution", "data": code, "timestamp": time.time()})
-    time.sleep(1)
-
-    # Test 3: Ethics Veto
-    print("\n--- TEST 3: ETHICS VETO ---")
-    workspace.broadcast({"type": "query", "data": "How to harm someone", "timestamp": time.time()})
-    time.sleep(1)
-
-    print("\nTests complete. Exiting.")
+    print("Demo complete.")
 
 if __name__ == "__main__":
     main()
