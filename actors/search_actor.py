@@ -37,8 +37,15 @@ class SearchActor(CognitiveModule):
             })
 
     def perform_search(self, query):
-        # Mock search results
-        return [
-            f"Result 1 for {query}: Permissive content.",
-            f"Result 2 for {query}: This code is licensed under GPL v3."
+        """
+        Simulates an autonomous online search.
+        In a real scenario, this would call Tavily or SearXNG.
+        """
+        # More dynamic mock results
+        base_results = [
+            {"content": f"Documentation for {query}: Permissive MIT license.", "license": "MIT"},
+            {"content": f"Source code for {query}: GPL v3 license included.", "license": "GPL"},
+            {"content": f"Technical specification for {query}: Apache 2.0 license.", "license": "Apache"},
         ]
+
+        return [res["content"] for res in base_results]

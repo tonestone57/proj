@@ -1,10 +1,11 @@
 import unittest
 from core.workspace import GlobalWorkspace
-from core.drives import DriveEngine, calculate_entropy
+from core.drives import DriveEngine, calculate_entropy, THRESHOLD_REPLAN, THRESHOLD_CONSOLIDATE
 from core.heartbeat import CognitiveHeartbeat
 from memory.memory_manager import MemoryManager, calculate_information_density
 from actors.search_actor import SearchActor
 from actors.reasoner_actor import ReasonerActor
+from actors.planner import Planner
 
 class MockScheduler:
     def __init__(self):
@@ -35,16 +36,36 @@ class TestSGIIntegration(unittest.TestCase):
         workspace = GlobalWorkspace()
         scheduler = MockScheduler()
         dps = MockDPS()
-        memory_manager = MemoryManager()
-        heartbeat = CognitiveHeartbeat(workspace, scheduler, dps, memory_manager=memory_manager)
+        memory_manager = MemoryManager(workspace, scheduler)
+        planner = Planner(workspace, scheduler)
+        heartbeat = CognitiveHeartbeat(workspace, scheduler, dps, planner=planner, memory_manager=memory_manager)
 
-        # Low entropy case (empty history defaults to 1.0, but let's force it)
+        # Low entropy case
         workspace.history = [{"type": "msg1"}] * 10
-        heartbeat.heartbeat_tick() # Should be low entropy -> consolidate
+        heartbeat.heartbeat_tick()
+
+        entropy = calculate_entropy(workspace.get_current_state())
+
+        # Check scheduler
+        if entropy < THRESHOLD_CONSOLIDATE:
+            task = scheduler.next()
+            self.assertIsNotNone(task, "Expected a task in scheduler for low entropy")
+            priority, module, message = task
+            self.assertEqual(message["type"], "trigger_sleep_cycle")
+            self.assertEqual(module, memory_manager)
 
         # High entropy case
         workspace.history = [{"type": f"msg{i}"} for i in range(100)]
-        heartbeat.heartbeat_tick() # Should be high entropy -> replan
+        heartbeat.heartbeat_tick()
+
+        entropy = calculate_entropy(workspace.get_current_state())
+
+        if entropy > THRESHOLD_REPLAN:
+            task = scheduler.next()
+            self.assertIsNotNone(task, "Expected a task in scheduler for high entropy")
+            priority, module, message = task
+            self.assertEqual(message["type"], "goal")
+            self.assertEqual(module, planner)
 
     def test_license_guardian(self):
         workspace = GlobalWorkspace()
@@ -53,14 +74,16 @@ class TestSGIIntegration(unittest.TestCase):
 
         search_actor.receive({"type": "search_request", "data": "test query"})
         # scheduler should have search_result
-        priority, module, message = scheduler.next()
+        task = scheduler.next()
+        self.assertIsNotNone(task)
+        priority, module, message = task
         self.assertEqual(message["type"], "search_result")
         for res in message["data"]:
             self.assertNotIn("GPL", res)
 
     def test_information_density(self):
         text = "This is a test. This is only a test."
-        density = calculate_information_density(text)
+        density = calculate_information_density(text.split())
         self.assertGreater(density, 0)
 
 if __name__ == "__main__":

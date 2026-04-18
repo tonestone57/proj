@@ -1,16 +1,13 @@
 import math
+from core.base import CognitiveModule
 
 CONTEXT_SALIENCY_FLOOR = 0.5
 MAX_LIMIT = 8192
 
-def calculate_information_density(context):
+def calculate_information_density(words):
     """
-    Computes token-level entropy of the provided text.
+    Computes token-level entropy of the provided list of words.
     """
-    if not context:
-        return 0.0
-
-    words = context.split()
     if not words:
         return 0.0
 
@@ -24,12 +21,16 @@ def calculate_information_density(context):
         p = count / total
         entropy -= p * math.log2(p)
 
-    # Normalize by log2 of unique words if needed, but here we'll return raw bits per word
     return entropy
 
-class MemoryManager:
-    def __init__(self):
-        pass
+class MemoryManager(CognitiveModule):
+    def receive(self, message):
+        if message["type"] == "trigger_sleep_cycle":
+            self.trigger_sleep_cycle()
+        elif message["type"] == "compression_check":
+            context = message["data"]
+            result = self.should_compress(context)
+            self.scheduler.submit(self, {"type": "compression_result", "data": result})
 
     def trigger_sleep_cycle(self):
         """
@@ -50,8 +51,12 @@ class MemoryManager:
         """
         Decides between "Distill", "Archive", or "Continue".
         """
-        density = calculate_information_density(context)
-        context_len = len(context.split()) # Rough token count
+        if not context:
+            return "Continue"
+
+        words = context.split()
+        density = calculate_information_density(words)
+        context_len = len(words)
 
         if density < CONTEXT_SALIENCY_FLOOR:
             # The context is full of "fluff"; trigger structural distillation

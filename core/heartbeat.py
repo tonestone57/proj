@@ -21,13 +21,11 @@ class CognitiveHeartbeat:
         if entropy > THRESHOLD_REPLAN:
             print("[Heartbeat] High uncertainty detected. Triggering Re-planning.")
             if self.planner:
-                # Submit to scheduler instead of direct call to maintain actor pattern
                 self.scheduler.submit(self.planner, {"type": "goal", "data": "Address high system entropy"})
         elif entropy < THRESHOLD_CONSOLIDATE:
             print("[Heartbeat] Low uncertainty detected. Triggering Memory Consolidation.")
             if self.memory_manager:
-                # Sleep cycle is a background process, but we can still submit a notification
-                self.memory_manager.trigger_sleep_cycle()
+                self.scheduler.submit(self.memory_manager, {"type": "trigger_sleep_cycle"})
 
         self.drive_engine.update_objective_priorities()
 
