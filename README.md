@@ -4,12 +4,14 @@ This repository contains a modular AGI (Artificial General Intelligence) archite
 
 ## Architecture
 
-The system follows a hub-and-spoke model with a **Global Workspace** and a **Dynamic Processing System (DPS)** orchestrating various specialized cognitive modules.
+The system follows a hub-and-spoke model with a **Global Workspace** and a **Dynamic Processing System (DPS)** orchestrating various specialized cognitive modules. It implements a **Multi-Stage Agentic RAG Pipeline** (Reason → Search → Ingest → Index → Generate) and is designed for **Self-Improvement**, autonomously updating its data files and logic to enhance accuracy and performance.
 
 ### Core Components
 - **Global Workspace**: The central communication hub for all modules.
 - **Scheduler**: Manages task execution based on dynamic priorities.
 - **Autonomous Loop**: The main cognitive cycle that drives perception, reasoning, and action.
+- **Internal Critic**: Verifies the logic and safety of outputs before they are finalized.
+- **Scratchpad Memory**: A dedicated working memory area for intermediate reasoning steps.
 
 ### Dynamic Processing System (DPS)
 - **Task Router**: Directs messages to the appropriate modules.
@@ -19,6 +21,8 @@ The system follows a hub-and-spoke model with a **Global Workspace** and a **Dyn
 ### Specialized Modules
 - **Symbolic Reasoner**: Handles mathematical and logical queries.
 - **Coding Module**: Executes and verifies Python code in a restricted sandbox.
+- **Search Agent**: Performs autonomous online searches using APIs like Tavily to retrieve fresh information.
+- **Critic**: Evaluates the reasoning of other modules to ensure accuracy and safety.
 - **Vision Module**: Processes visual inputs.
 - **Planner**: Generates step-by-step plans to achieve goals.
 - **Self Model**: Tracks the AGI's internal state and identity.
@@ -62,13 +66,19 @@ python3 main.py
 
 ## Capabilities
 
+The AGI system focuses primarily on high-stakes intellectual domains: **C, C++, Python, Rust, Mathematics, and Logic**.
+
 ### Mathematics and Logic
-The `SymbolicReasoner` module evaluates complex expressions:
+The `SymbolicReasoner` module evaluates complex expressions and performs formal reasoning:
 - **Arithmetic**: `math.factorial(5)`, `math.sqrt(16)`
 - **Logic**: `True and (False or True)`
+- **Formal Verification**: Integration with tools like Lean or WolframAlpha for rigorous proof checking.
 
-### Coding & Self-Correction
-The `CodingModule` executes Python code. If an error occurs, the `Autonomous Loop` can route the failure back to the reasoning modules for correction.
+### Coding & Self-Improvement
+The `CodingModule` executes code across supported languages.
+- **Polyglot Execution**: Sandboxed execution and testing for C, C++, Python, and Rust.
+- **Self-Correction**: If an error occurs, the `Autonomous Loop` routes the failure back for iterative correction.
+- **Autonomous Research**: The system can search online to find latest libraries, fix bugs, or learn new algorithms.
 
 ## Directory Structure
 
@@ -78,3 +88,9 @@ The `CodingModule` executes Python code. If an error occurs, the `Autonomous Loo
 - `world_model/`: Internal reality mapping.
 - `ethics/`, `safety/`: Alignment and risk management.
 - `memory/`: Episodic and Semantic memory systems.
+
+---
+
+## Licensing and Compliance
+
+**Strict Requirement**: This repository and all associated data files must NOT contain any code licensed under **GPL** or **LGPL**. All contributions and indexed data must adhere to permissive licenses (e.g., MIT, Apache 2.0, BSD) or be original works.
