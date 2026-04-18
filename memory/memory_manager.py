@@ -4,22 +4,40 @@ from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT
 
 def calculate_information_density(words):
     """
-    Computes token-level entropy of the provided list of words.
+    Computes a refined information density metric for the provided list of words.
+    Combines Shannon entropy with a symbol-to-word ratio to better detect "code fluff".
     """
     if not words:
         return 0.0
 
+    # Shannon Entropy calculation
     counts = {}
+    total_chars = 0
+    symbols = set("!@#$%^&*()_+-=[]{}|;':\",./<>?")
+    symbol_count = 0
+
     for word in words:
         counts[word] = counts.get(word, 0) + 1
+        total_chars += len(word)
+        for char in word:
+            if char in symbols:
+                symbol_count += 1
 
-    total = len(words)
+    total_words = len(words)
     entropy = 0
     for count in counts.values():
-        p = count / total
+        p = count / total_words
         entropy -= p * math.log2(p)
 
-    return entropy
+    # Symbol density factor (code often has more symbols than natural language)
+    symbol_ratio = symbol_count / total_chars if total_chars > 0 else 0
+
+    # Combined metric: Entropy weighted by symbol density
+    # Natural language "fluff" has high word-level entropy but low symbol density.
+    # Dense code has meaningful symbols and structure.
+    density = entropy * (1 + symbol_ratio)
+
+    return density
 
 class MemoryManager(CognitiveModule):
     def receive(self, message):
