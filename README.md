@@ -2,6 +2,9 @@
 
 This repository contains a modular AGI (Artificial General Intelligence) architecture designed for high-level reasoning, mathematical evaluation, and logical processing.
 
+### Philosophical Foundation: Minimum Description Length (MDL)
+According to the **Minimum Description Length (MDL)** principle, the best "understanding" of a dataset is the shortest possible program that can recreate it. Our SGI system aims to achieve maximum information density and compression in its memory and reasoning loops.
+
 ## Architecture
 
 The system utilizes an **Asynchronous Predictive Workspace (APW)**. Unlike traditional models, the Hub acts as a **Broadcast Center** using Pub/Sub logic to eliminate bottlenecks. It implements a **Multi-Stage Agentic RAG Pipeline** and is designed for **Self-Improvement**, autonomously updating its data files and logic to achieve better accuracy and reliability.
@@ -54,7 +57,9 @@ The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 | **Qdrant** | **The Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful/Index) |
 | **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) |
 
-- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (Entropy-Targeted Quantization) for efficient storage (2-bit to FP16 tiering).
+- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (Entropy-Targeted Quantization) for efficient storage.
+    - **High Entropy Data** (New logic, complex bugs): Store at **FP16** or **INT8**.
+    - **Low Entropy Data** (Standard boilerplate): Store at **2-bit (Quantized Johnson-Lindenstrauss)**.
 - **Qdrant**: Primary store for active reasoning and payload filtering.
 - **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** (Lossless Neural Archiving) for neural archiving.
 - **NebulaGraph/TuGraph**: Stores the **Neural Map** (AST-based relationships) for GraphRAG.

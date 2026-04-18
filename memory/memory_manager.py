@@ -99,7 +99,7 @@ class MemoryManager(CognitiveModule):
         Calculates a Structural Importance Score (I_struct) for tokens using a Code Property Graph (CPG) logic.
         Protects function signatures, return types, and control logic (if/while).
         """
-        print("[MemoryManager] Calculating Structural Importance Score (CodeComp)...")
+        print("[MemoryManager] Calculating Structural Importance Score ($I_{struct}$) using CPG...")
         # Simulated CodeComp logic: identifying mission-critical structural tokens
         important_patterns = [r"def\s+", r"class\s+", r"if\s+", r"while\s+", r"return\s+", r"virtual\s+"]
         score = 0
@@ -130,21 +130,14 @@ class MemoryManager(CognitiveModule):
     def should_compress(self, context):
         """
         Decides between "Distill" (CodeComp), "Archive" (LLM-Zip), or "Continue".
-        Uses Context Integrity Check.
+        Uses Context Integrity Check based on MDL and information density.
         """
-        if not context:
-            return "Continue"
-
-        words = context.split()
-        token_entropy = calculate_information_density(words)
-        context_len = len(words)
-
-        print(f"[MemoryManager] Context Integrity Check: Entropy={token_entropy:.4f}, Len={context_len}")
-
+        # Instead of just len(context) > threshold:
+        token_entropy = calculate_information_density(context.split() if isinstance(context, str) else context)
         if token_entropy < CONTEXT_SALIENCY_FLOOR:
-            # The context is full of "fluff"; trigger structural distillation (CodeComp)
+            # The context is full of "fluff"; trigger structural distillation
             return "Distill"
-        elif context_len > MAX_LIMIT * 0.8:
-            # The context is actually dense; trigger neural offloading to LanceDB (LLM-Zip)
+        elif len(context.split() if isinstance(context, str) else context) > MAX_LIMIT * 0.8:
+            # The context is actually dense; trigger neural offloading to LanceDB
             return "Archive"
         return "Continue"
