@@ -1,4 +1,4 @@
-class AutonomousLoop:
+class CognitiveHeartbeat:
     def __init__(self, workspace, scheduler, dps):
         self.workspace = workspace
         self.scheduler = scheduler

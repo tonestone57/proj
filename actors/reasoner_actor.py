@@ -1,8 +1,8 @@
 import math
 import re
-from modules.base import CognitiveModule
+from core.base import CognitiveModule
 
-class SymbolicReasoner(CognitiveModule):
+class ReasonerActor(CognitiveModule):
     def receive(self, message):
         if message["type"] == "query":
             result = self.reason(message["data"])

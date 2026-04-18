@@ -1,10 +1,10 @@
-from safety.risk_classifier import RiskClassifier
-from safety.oversight_agent import OversightAgent
-from safety.governance_graph import GovernanceGraph
-from safety.interpretability_monitor import InterpretabilityMonitor
-from safety.deception_detector import DeceptionDetector
-from safety.constraint_enforcer import ConstraintEnforcer
-from safety.shutdown_controller import ShutdownController
+from safety_ethics.risk_classifier import RiskClassifier
+from safety_ethics.oversight_agent import OversightAgent
+from safety_ethics.governance_graph import GovernanceGraph
+from safety_ethics.interpretability_monitor import InterpretabilityMonitor
+from safety_ethics.deception_detector import DeceptionDetector
+from safety_ethics.constraint_enforcer import ConstraintEnforcer
+from safety_ethics.shutdown_controller import ShutdownController
 
 class SafetyManager:
     def __init__(self):

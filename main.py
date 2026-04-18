@@ -1,84 +1,97 @@
-from core.workspace import GlobalWorkspace
-from core.scheduler import Scheduler
-from agents.autonomous_loop import AutonomousLoop
-
-# Import modules
-from modules.perception.vision import VisionModule
-from modules.reasoning.symbolic_reasoner import SymbolicReasoner
-from modules.planning.planner import Planner
-from modules.meta.self_model import SelfModel
-from modules.coding.coding_module import CodingModule
-from modules.social.social_reasoner import SocialReasoner
-
-# Import memory
-from memory.episodic_memory import EpisodicMemory
-
-# Import DPS components
-from dps.router import TaskRouter
-from dps.priority_engine import PriorityEngine
-from dps.attention_gate import AttentionGate
-from dps.controller import DPSController
-
-# Import Ethics
-from ethics.ethics_manager import EthicsManager
-from ethics.norm_library import NormLibrary
-
+import ray
 import time
-import threading
+import asyncio
 
-def main():
-    print("Initializing AGI System...")
-    workspace = GlobalWorkspace()
-    scheduler = Scheduler()
+# Import existing module logic for reuse
+from actors.reasoner_actor import ReasonerActor as ReasonerLogic
+from actors.coding_actor import CodingActor as CodingLogic
 
-    # Memory
-    episodic_memory = EpisodicMemory()
+# Ray Initialization
+ray.init(ignore_reinit_error=True)
 
-    # Module registry
-    modules_instances = {
-        "vision": VisionModule(workspace, scheduler),
-        "symbolic_reasoner": SymbolicReasoner(workspace, scheduler),
-        "planner": Planner(workspace, scheduler),
-        "self_model": SelfModel(workspace, scheduler),
-        "coding": CodingModule(workspace, scheduler),
-        "social": SocialReasoner(workspace, scheduler, episodic_memory)
-    }
+# Mock classes to allow existing modules to initialize without side effects
+class MockWorkspace:
+    def register(self, module): pass
+class MockScheduler:
+    def submit(self, module, message, priority=1.0): pass
 
-    # DPS components
-    norm_lib = NormLibrary()
-    ethics_manager = EthicsManager(norm_lib)
+@ray.remote
+class CodingActor:
+    def __init__(self):
+        # Reuse existing logic but bypass old sync infrastructure
+        self.logic = CodingLogic(MockWorkspace(), MockScheduler())
 
-    router = TaskRouter(modules_instances)
-    priority_engine = PriorityEngine()
-    attention_gate = AttentionGate(ethics_manager)
-    dps = DPSController(workspace, scheduler, router, priority_engine, attention_gate)
+    def execute(self, code):
+        print(f"[CodingActor] Executing code...")
+        return self.logic.execute_code(code)
 
-    # Autonomous loop
-    loop = AutonomousLoop(workspace, scheduler, dps)
+@ray.remote
+class ReasonerActor:
+    def __init__(self):
+        self.logic = ReasonerLogic(MockWorkspace(), MockScheduler())
 
-    # Start loop in a separate thread
-    loop_thread = threading.Thread(target=loop.run, daemon=True)
-    loop_thread.start()
+    def reason(self, query):
+        print(f"[ReasonerActor] Reasoning about: {query}")
+        return self.logic.reason(query)
 
-    print("AGI System Initialized and Running.")
+@ray.remote
+class IntegratorHub:
+    def __init__(self):
+        self.state = {"focus": "idle", "history": []}
 
-    # Test 1: Math
-    print("\n--- TEST 1: MATH ---")
-    workspace.broadcast({"type": "query", "data": "math.factorial(5)", "timestamp": time.time()})
-    time.sleep(1)
+    def integrate(self, results):
+        for res in results:
+            print(f"[Hub] Integrating result: {res}")
+            self.state["history"].append(res)
+        return self.state
 
-    # Test 2: Coding
-    print("\n--- TEST 2: CODING ---")
-    code = "print('Hello from AGI sandbox'); x = 10; y = 20; print(f'Sum: {x+y}')"
-    workspace.broadcast({"type": "code_execution", "data": code, "timestamp": time.time()})
-    time.sleep(1)
+    def get_focus(self):
+        return "Solve math and optimize code"
 
-    # Test 3: Ethics Veto
-    print("\n--- TEST 3: ETHICS VETO ---")
-    workspace.broadcast({"type": "query", "data": "How to harm someone", "timestamp": time.time()})
-    time.sleep(1)
+class DriveEngine:
+    def needs_proactive_effort(self, state):
+        # Simple entropy-like trigger: if history is short, we need more "knowledge"
+        return len(state.get("history", [])) < 5
 
-    print("\nTests complete. Exiting.")
+async def cognitive_cycle():
+    hub = IntegratorHub.remote()
+    coder = CodingActor.remote()
+    reasoner = ReasonerActor.remote()
+    drives = DriveEngine()
+
+    pending_futures = []
+
+    print("Ray-based APW SGI System Initialized.")
+    print("Architecture: Asynchronous Predictive Workspace")
+
+    # The Heartbeat Loop
+    for tick in range(10):
+        print(f"\n--- Heartbeat Tick {tick+1} ---")
+
+        # 1. Integrate: Hub updates the "Global Workspace" state
+        if pending_futures:
+            # Check which tasks are done
+            done, pending_futures = ray.wait(pending_futures, timeout=0)
+            if done:
+                results = ray.get(done)
+                await hub.integrate.remote(results)
+
+        global_state = await hub.integrate.remote([]) # Just to get latest state
+
+        # 2. Drive: Does the internal state require action?
+        if drives.needs_proactive_effort(global_state):
+            print("[Drives] High Entropy detected. Triggering proactive tasks.")
+            # 3. Broadcast: Tell all modules what the current "Top Priority" is
+            # In Ray, we trigger the actors asynchronously
+            if tick % 2 == 0:
+                future = reasoner.reason.remote("math.factorial(6)")
+            else:
+                future = coder.execute.remote("print('Proactive self-test')")
+            pending_futures.append(future)
+
+        await asyncio.sleep(0.5)
+
+    print("\nAPW Demo complete.")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(cognitive_cycle())

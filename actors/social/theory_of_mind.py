@@ -1,4 +1,4 @@
-from modules.base import CognitiveModule
+from core.base import CognitiveModule
 
 class TheoryOfMind(CognitiveModule):
     def __init__(self, workspace, scheduler):

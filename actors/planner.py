@@ -1,4 +1,4 @@
-from modules.base import CognitiveModule
+from core.base import CognitiveModule
 
 class Planner(CognitiveModule):
     def receive(self, message):
