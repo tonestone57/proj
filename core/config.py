@@ -10,3 +10,6 @@ TICK_INTERVAL = 5.0 # Seconds
 # Context management
 CONTEXT_SALIENCY_FLOOR = 0.5
 MAX_LIMIT = 8192 # Token limit
+
+# Workspace settings
+WORKSPACE_HISTORY_LIMIT = 100

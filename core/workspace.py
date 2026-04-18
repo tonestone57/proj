@@ -1,3 +1,5 @@
+from core.config import WORKSPACE_HISTORY_LIMIT
+
 class GlobalWorkspace:
     def __init__(self):
         self.subscribers = []
@@ -10,8 +12,8 @@ class GlobalWorkspace:
     def broadcast(self, message):
         self.current_broadcast = message
         self.history.append(message)
-        # Keep history manageable
-        if len(self.history) > 100:
+        # Keep history manageable using centralized config
+        if len(self.history) > WORKSPACE_HISTORY_LIMIT:
             self.history.pop(0)
 
         for module in self.subscribers:
