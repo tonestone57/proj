@@ -44,12 +44,34 @@ class CodingActor(CognitiveModule):
         confidence = max(0.0, 1.0 - (entropy / 5.0))
         return confidence
 
+    def distill_code(self, code):
+        """
+        Performs distillation while prioritizing Class Hierarchy Preservation.
+        For object-oriented APIs (BeOS/Haiku), it must retain virtual function overrides.
+        """
+        print("[CodingActor] Distilling code with Class Hierarchy Preservation...")
+        # Protect virtual functions and class schemas
+        lines = code.split('\n')
+        preserved = []
+        for line in lines:
+            if "class " in line or "virtual" in line or "override" in line:
+                preserved.append(line)
+            elif "def " in line:
+                preserved.append(line)
+
+        print(f"[CodingActor] Preservation complete. Key schema elements retained.")
+        return "\n".join(preserved)
+
     def execute_code(self, code, persistent=False):
         """
         Executes Python code in a restricted environment and captures output.
         If persistent=True, it operates within a Stateful Digital Twin (Firecracker microVM).
         This allows for Speculative Execution and state rewinding.
         """
+        # If code is too large, perform schema-aware distillation first
+        if len(code.split()) > 1000:
+            code = self.distill_code(code)
+
         if persistent:
             print(f"[CodingActor] Connecting to Persistent Digital Twin (Firecracker VM).")
             # Simulate Speculative Execution: branching the VM state

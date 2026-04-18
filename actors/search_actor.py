@@ -63,6 +63,20 @@ class SearchActor(CognitiveModule):
             print("[SearchActor] tree-sitter not available. Using basic dependency heuristics.")
             return {"nodes": [], "edges": []}
 
+    def distill_results(self, results):
+        """
+        Synthesizes multiple search results into a single, high-density Actionable Spec (JIT Context Compilation).
+        Reduces token count while maximizing utility.
+        """
+        print("[SearchActor] Performing JIT Context Compilation (Distiller)...")
+        # Simulate high-speed model distilling results into a compact API spec
+        synthesized_spec = "Synthesized Actionable Spec (JIT Memory):\n"
+        for i, res in enumerate(results):
+            synthesized_spec += f"- Spec {i+1}: {res[:50]}...\n"
+
+        print(f"[SearchActor] Generated {len(results)}-to-1 API Cheat Sheet.")
+        return synthesized_spec
+
     def receive(self, message):
         if message["type"] == "search_request":
             query = message["data"]
@@ -78,9 +92,13 @@ class SearchActor(CognitiveModule):
                 else:
                     print(f"[SearchActor] Filtered out non-compliant result for query: {query}")
 
+            # JIT Context Compilation: Distill compliant results
+            actionable_spec = self.distill_results(compliant_results)
+
             self.scheduler.submit(self, {
                 "type": "search_result",
-                "data": compliant_results
+                "data": compliant_results,
+                "actionable_spec": actionable_spec
             })
 
     def perform_search(self, query):
