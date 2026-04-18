@@ -20,12 +20,20 @@ class CognitiveHeartbeat:
         print(f"[Heartbeat] Current Entropy: {entropy:.4f}")
 
         if entropy > THRESHOLD_REPLAN:
-            print("[Heartbeat] High uncertainty detected. Triggering Re-planning.")
+            # High uncertainty: The agent is "confused" or facing a new problem
+            print("[Heartbeat] High System Entropy detected. Generating new strategy.")
             if self.planner:
-                self.scheduler.submit(self.planner, {"type": "goal", "data": "Address high system entropy"})
+                # Trigger planner to generate new strategy due to high uncertainty
+                self.scheduler.submit(self.planner, {
+                    "type": "goal",
+                    "data": "Generate new strategy due to high system entropy",
+                    "reason": "High System Entropy"
+                })
         elif entropy < THRESHOLD_CONSOLIDATE:
-            print("[Heartbeat] Low uncertainty detected. Triggering Memory Consolidation.")
+            # Low uncertainty: The agent is "bored"
+            print("[Heartbeat] Low System Entropy detected. Triggering sleep cycle.")
             if self.memory_manager:
+                # Trigger background consolidation: refactoring, indexing, synthetic data gen
                 self.scheduler.submit(self.memory_manager, {"type": "trigger_sleep_cycle"})
 
         self.drive_engine.update_objective_priorities()

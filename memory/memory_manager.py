@@ -53,15 +53,45 @@ class MemoryManager(CognitiveModule):
         Performs background consolidation: Synaptic Pruning and Knowledge Synthesis.
         """
         print("[MemoryManager] Starting Sleep Cycle...")
+
+        # 1. Review Scratchpad and Active Context
+        patterns = self.identify_recurring_patterns()
+
+        # 2. Synthesize new Knowledge Base Entry
+        if patterns:
+            self.synthesize_knowledge(patterns)
+
+        # 3. Synaptic Pruning (Archive raw logs)
         self.perform_synaptic_pruning()
-        self.synthesize_knowledge()
+
         print("[MemoryManager] Sleep Cycle complete.")
+
+    def identify_recurring_patterns(self):
+        """
+        Reviews Scratchpad and Workspace history to identify recurring patterns.
+        """
+        print("[MemoryManager] Reviewing Scratchpad and Active Context for patterns...")
+        state = self.workspace.get_current_state()
+        history = state.get("history", [])
+
+        # Simulate pattern detection (e.g., looking up Haiku OS syntax)
+        patterns = []
+        haiku_count = sum(1 for msg in history if "Haiku OS" in str(msg))
+        if haiku_count > 3:
+            patterns.append("Frequent interaction with Haiku OS BMessage syntax")
+
+        return patterns
 
     def perform_synaptic_pruning(self):
         print("[MemoryManager] Pruning redundant patterns and low-saliency memories.")
+        print("[MemoryManager] Archiving raw logs to long-term storage (LanceDB).")
 
-    def synthesize_knowledge(self):
-        print("[MemoryManager] Synthesizing new Knowledge Base entries from recent logs.")
+    def synthesize_knowledge(self, patterns):
+        print(f"[MemoryManager] Synthesizing new Knowledge Base entries for patterns: {patterns}")
+        for pattern in patterns:
+            # In a real system, this would generate a Markdown doc
+            kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
+            print(f"[MemoryManager] Generated KB Entry: {pattern}")
 
     def should_compress(self, context):
         """
