@@ -10,8 +10,8 @@ The agent operates under the **MDL principle**: the best understanding of any da
 The system operates as a central **Broadcast Center** (Hub) with **Specialized Actors** (Spokes) communicating over an asynchronous **Message Bus**.
 
 ### The Actor Pattern
-- **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes. The Hub broadcasts objectives to specialized actors (e.g., Symbolic Reasoner, Coding Module) and synthesizes the optimal response.
-- **Implementation**: Utilize **Ray** as the primary distributed orchestrator to bypass the Python GIL. Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
+- **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes. On the i5-8265U, actors are limited to `num_cpus=1` or `2` to manage thermal load.
+- **Implementation**: Utilize **Ray** as the primary distributed orchestrator. Use **IPEX-LLM** for Intel CPU acceleration (NF4/INT8).
 - **Data Transfer**: Use **Ray Plasma** (shared memory object store) for zero-latency transfer of large technical data buffers between actors.
 
 ### The Cognitive Heartbeat (Curiosity Drive)
@@ -87,14 +87,19 @@ Instead of pruning by recency, use a **Code Property Graph (CPG)** to identify t
 - **Class Hierarchy Preservation**: For object-oriented APIs (like BeOS/Haiku), always retain `virtual` function overrides during distillation to preserve the code schema.
 
 ### The "Internal Critic" Loop
-- Every output from the `Symbolic Reasoner` or `Coding Module` must be verified by a `Critic` agent or the `World Model` before being finalized.
+- Every output from the `Symbolic Reasoner` or `Coding Module` must be verified by a `Critic` agent (using **FP16 precision** for high accuracy) or the `World Model` before being finalized.
 - **Verification Step**: The `Planner` must confirm the output matches the original goal.
 
 ### Formal Verification
 - **Coding**: Integrate a **Linter** and **Unit Test Generator**. Every generated function must be accompanied by its own tests.
 - **SMT Solver (Z3)**: For mission-critical logic, translate code logic into **SMT-LIB format** to prove functions cannot reach undefined states or overflow.
 
-## 4. Memory Management
+## 4. Memory Management (8265U Adaptive)
+
+### Adaptive Context Manager (Summarize & Purge)
+- **Strategy**: When context exceeds 80% (1638 tokens of 2048), trigger a pruning cycle.
+- **Action**: Archive raw logs to **LanceDB** and summarize the oldest 50% into a "Memory Nugget."
+- **Memory Swap Guard**: Monitor `psutil.virtual_memory()` and pause ingestion if available RAM < 800MB.
 
 ### Tiered Context System
 - **Active Context**: Last 5 turns of thought.

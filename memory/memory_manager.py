@@ -1,143 +1,110 @@
 import math
 import re
+import psutil
+import time
+import ray
+import lancedb
+import pandas as pd
+from sentence_transformers import SentenceTransformer
 from core.base import CognitiveModule
-from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT
+from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, PRUNING_THRESHOLD_PCT, ACTIVE_CONTEXT_LIMIT, LOW_MEMORY_WARNING_MB
 
 def calculate_information_density(words):
-    """
-    Computes a refined information density metric for the provided list of words.
-    Combines Shannon entropy with a symbol-to-word ratio to better detect "code fluff".
-    """
-    if not words:
-        return 0.0
-
-    # Shannon Entropy calculation
-    counts = {}
-    total_chars = 0
-    symbols = set("!@#$%^&*()_+-=[]{}|;':\",./<>?")
+    if not words: return 0.0
+    counts, total_chars, symbols = {}, 0, set("!@#$%^&*()_+-=[]{}|;':\",./<>?")
     symbol_count = 0
-
     for word in words:
         counts[word] = counts.get(word, 0) + 1
         total_chars += len(word)
         for char in word:
-            if char in symbols:
-                symbol_count += 1
-
+            if char in symbols: symbol_count += 1
     total_words = len(words)
-    entropy = 0
-    for count in counts.values():
-        p = count / total_words
-        entropy -= p * math.log2(p)
-
-    # Symbol density factor (code often has more symbols than natural language)
+    entropy = sum(-(count/total_words) * math.log2(count/total_words) for count in counts.values())
     symbol_ratio = symbol_count / total_chars if total_chars > 0 else 0
+    return entropy * (1 + symbol_ratio)
 
-    # Combined metric: Entropy weighted by symbol density
-    # Natural language "fluff" has high word-level entropy but low symbol density.
-    # Dense code has meaningful symbols and structure.
-    density = entropy * (1 + symbol_ratio)
-
-    return density
-
+@ray.remote
 class MemoryManager(CognitiveModule):
+    def __init__(self, workspace, scheduler):
+        super().__init__(workspace, scheduler)
+        self.context_buffer = [] # Active Context
+        self.active_context_limit = ACTIVE_CONTEXT_LIMIT
+        # Use a lightweight model optimized for CPU AVX2 on 8265U
+        self.embed_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.db = lancedb.connect("./data/sgi_archived_memory")
+        self.table = None
+
     def receive(self, message):
         if message["type"] == "trigger_sleep_cycle":
             self.trigger_sleep_cycle()
         elif message["type"] == "compression_check":
             context = message["data"]
             result = self.should_compress(context)
-            self.scheduler.submit(self, {"type": "compression_result", "data": result})
+            # In Ray, scheduler is a remote actor
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {"type": "compression_result", "data": result})
+        elif message["type"] == "add_to_context":
+            self.context_buffer.append(message["data"])
+            self.manage_context()
+
+    def memory_swap_guard(self):
+        mem = psutil.virtual_memory()
+        if mem.available < 1024 * 1024 * LOW_MEMORY_WARNING_MB:
+            print("🚨 Memory Swap Guard: RAM dangerously low!")
+            return False
+        return True
+
+    def archive_nugget(self, summary_text):
+        """Vector Searchable Memory (Section 4)."""
+        print(f"[MemoryManager] Archiving nugget: {summary_text[:50]}...")
+        vector = self.embed_model.encode(summary_text)
+        data = [{"vector": vector, "text": summary_text, "timestamp": time.time()}]
+        if self.table is None:
+            if "memory" in self.db.table_names():
+                self.table = self.db.open_table("memory")
+                self.table.add(data)
+            else:
+                self.table = self.db.create_table("memory", data=data)
+        else:
+            self.table.add(data)
+
+    def retrieve_relevant(self, query):
+        if self.table is None: return []
+        query_vec = self.embed_model.encode(query)
+        return self.table.search(query_vec).limit(2).to_list()
+
+    def manage_context(self):
+        current_usage = sum(len(m.split()) * 1.3 for m in self.context_buffer)
+        if current_usage > (self.active_context_limit * PRUNING_THRESHOLD_PCT):
+            print("⚠️ Context Pruning Triggered (80% Limit reached)")
+            to_archive = " ".join(self.context_buffer[:5])
+            self.archive_nugget(to_archive)
+            summary = "Synthesized Memory Nugget from pruned context." # In real usage, use 4-bit summarizer
+            self.context_buffer = [f"System Summary: {summary}"] + self.context_buffer[5:]
+            return "Context Pruned & Archived."
+        return "Context Stable."
 
     def trigger_sleep_cycle(self):
-        """
-        Performs background consolidation: Synaptic Pruning and Knowledge Synthesis.
-        """
         print("[MemoryManager] Starting Sleep Cycle...")
-
-        # 1. Review Scratchpad and Active Context
-        patterns = self.identify_recurring_patterns()
-
-        # 2. Synthesize new Knowledge Base Entry
-        if patterns:
-            self.synthesize_knowledge(patterns)
-
-        # 3. Synaptic Pruning (Archive raw logs)
-        self.perform_synaptic_pruning()
-
+        if self.memory_swap_guard():
+            patterns = self.identify_recurring_patterns()
+            if patterns: self.synthesize_knowledge(patterns)
         print("[MemoryManager] Sleep Cycle complete.")
 
     def identify_recurring_patterns(self):
-        """
-        Reviews Scratchpad and Workspace history to identify recurring patterns.
-        """
-        print("[MemoryManager] Reviewing Scratchpad and Active Context for patterns...")
-        state = self.workspace.get_current_state()
+        # We need to await the remote call to workspace
+        state = ray.get(self.workspace.get_current_state.remote())
         history = state.get("history", [])
-
-        # Simulate pattern detection (e.g., looking up Haiku OS syntax)
-        patterns = []
-        haiku_count = sum(1 for msg in history if "Haiku OS" in str(msg))
-        if haiku_count > 3:
-            patterns.append("Frequent interaction with Haiku OS BMessage syntax")
-
-        return patterns
+        return ["Frequent interaction with Haiku OS BMessage syntax"] if sum(1 for msg in history if "Haiku OS" in str(msg)) > 3 else []
 
     def perform_synaptic_pruning(self):
         print("[MemoryManager] Pruning redundant patterns and low-saliency memories.")
-        print("[MemoryManager] Archiving raw logs to long-term storage (LanceDB).")
 
     def synthesize_knowledge(self, patterns):
-        print(f"[MemoryManager] Synthesizing new Knowledge Base entries for patterns: {patterns}")
         for pattern in patterns:
-            # In a real system, this would generate a Markdown doc
-            kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
-            print(f"[MemoryManager] Generated KB Entry: {pattern}")
-
-    def calculate_structural_importance_score(self, context):
-        """
-        Calculates a Structural Importance Score (I_struct) for tokens using a Code Property Graph (CPG) logic.
-        Protects function signatures, return types, and control logic (if/while).
-        """
-        print("[MemoryManager] Calculating Structural Importance Score ($I_{struct}$) using CPG...")
-        # Simulated CodeComp logic: identifying mission-critical structural tokens
-        important_patterns = [r"def\s+", r"class\s+", r"if\s+", r"while\s+", r"return\s+", r"virtual\s+"]
-        score = 0
-        for pattern in important_patterns:
-            if re.search(pattern, context):
-                score += 1
-        return score
-
-    def perform_neural_archiving(self, context):
-        """
-        Performs Lossless Neural Archiving (LLM-Zip).
-        Encodes context into a dense, neural representation for 0% information loss.
-        """
-        print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip) to LanceDB...")
-        # Simulate arithmetic coding via LLM probabilities
-        return "compressed_neural_representation_0xdeadbeef"
-
-    def perform_structural_distillation(self, context):
-        """
-        Performs AST-Aware KV Pruning (CodeComp).
-        Evicts boilerplate while protecting the Control Flow Skeleton.
-        """
-        print("[MemoryManager] Performing Structural Distillation (CodeComp)...")
-        # Evicting redundant comments and boilerplate
-        distilled = re.sub(r"#.*", "", context)
-        return distilled
+            self.archive_nugget(f"Synthesized Lesson: {pattern}")
 
     def should_compress(self, context):
-        """
-        Decides between "Distill" (CodeComp), "Archive" (LLM-Zip), or "Continue".
-        Uses Context Integrity Check based on MDL and information density.
-        """
-        # Instead of just len(context) > threshold:
         token_entropy = calculate_information_density(context.split() if isinstance(context, str) else context)
-        if token_entropy < CONTEXT_SALIENCY_FLOOR:
-            # The context is full of "fluff"; trigger structural distillation
-            return "Distill"
-        elif len(context.split() if isinstance(context, str) else context) > MAX_LIMIT * 0.8:
-            # The context is actually dense; trigger neural offloading to LanceDB
-            return "Archive"
+        if token_entropy < CONTEXT_SALIENCY_FLOOR: return "Distill"
+        elif len(context.split() if isinstance(context, str) else context) > MAX_LIMIT * 0.8: return "Archive"
         return "Continue"

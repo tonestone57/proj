@@ -7,12 +7,12 @@ According to the **Minimum Description Length (MDL)** principle, the best "under
 
 ## Architecture
 
-The system utilizes an **Asynchronous Predictive Workspace (APW)**. Unlike traditional models, the Hub acts as a **Broadcast Center** using Pub/Sub logic to eliminate bottlenecks. It implements a **Multi-Stage Agentic RAG Pipeline** and is designed for **Self-Improvement**, autonomously updating its data files and logic to achieve better accuracy and reliability.
+The system utilizes an **Asynchronous Predictive Workspace (APW)** optimized for the **Intel Core i5-8265U (15W TDP)**. Unlike traditional models, the Hub acts as a **Broadcast Center** using Pub/Sub logic to eliminate bottlenecks. It implements a **Multi-Stage Agentic RAG Pipeline** and is designed for **Self-Improvement**, autonomously updating its data files and logic to achieve better accuracy and reliability.
 
 ### The Dual-Stream System
-To maximize performance, cognitive workload is split into two tracks:
-- **The Reflex Arc (Fast Path):** Low-latency modules (Safety, Syntax Checking) that act instantly.
-- **The Global Workspace (Slow Path):** Higher-order reasoning (Planning, Complex Coding) requiring full attention.
+To maximize performance on the i5-8265U, cognitive workload is split into two tracks:
+- **The Reflex Arc (Fast Path):** Low-latency modules (Safety, Syntax Checking, Thermal Guard) that act instantly.
+- **The Global Workspace (Slow Path):** Higher-order reasoning (Planning, Complex Coding) requiring full attention, managed by a **Thermal Circuit Breaker**.
 
 ### Core Components
 - **Message Bus (The Spine)**: An asynchronous bus (Ray or NATS) where all modules post their state.
@@ -26,10 +26,11 @@ To maximize performance, cognitive workload is split into two tracks:
 - **Priority Engine**: Computes dynamic priorities based on context and urgency.
 - **Attention Gate**: Filters and amplifies signals to manage cognitive load. Integrates with the **Ethics** module for proactive vetting.
 
-### Specialized Modules
-- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates **SMT Solvers (Z3)** for formal verification by translating logic into **SMT-LIB format** to prove the absence of undefined states or overflows. Supports **LLM-Zip** (Lossless Neural Archiving) for deep session decompression.
-- **Coding Module**: Executes and verifies code in a **Stateful Digital Twin** (Firecracker microVMs). It calculates a **Confidence Score** and triggers **Research Missions** (Active Learning) when entropy is high. Implements **CodeComp** (AST-Aware KV Cache Compression).
-- **Search Agent**: Performs autonomous online searches using **Tavily** and **SearXNG**. Implements **GraphRAG** (The "Neural Map") and **JIT Context Compilation** (Synthesized Micro-Contexts). Includes a **License Guardian Classifier Gate** (No GPL).
+### Specialized Modules (8265U Optimized)
+- **Symbolic Reasoner**: Handles mathematical and logical queries using **INT8 precision** for efficiency. Integrates **SMT Solvers (Z3)** for formal verification. Supports **LLM-Zip** (Lossless Neural Archiving).
+- **Coding Module**: Executes and verifies code using **NF4 precision** to maintain a consistent "Cognitive Heartbeat" without overheating the 15W CPU.
+- **Search Agent**: Performs autonomous online searches using **NF4 precision** for fast JIT Context Compilation. Includes a **License Guardian Classifier Gate** (No GPL).
+- **Thermal Guard**: Monitors CPU temperature and load, pausing tasks if thresholds are exceeded to prevent thermal throttling.
 - **Critic**: Evaluates the reasoning of other modules to ensure accuracy and safety.
 - **Vision Module**: Processes visual inputs.
 - **Planner**: Generates step-by-step plans to achieve goals.
@@ -68,11 +69,16 @@ The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 
 ## Getting Started
 
-To run the AGI system:
+To run the SGI-Alpha system on Intel i5-8265U:
 
-```bash
-python3 main.py
-```
+1. **Setup Environment**:
+   ```bash
+   bash setup_8265u.sh
+   ```
+2. **Launch System**:
+   ```bash
+   python3 main.py
+   ```
 
 ## Capabilities
 

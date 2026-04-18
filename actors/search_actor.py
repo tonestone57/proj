@@ -1,10 +1,11 @@
 import re
+import ray
 from core.base import CognitiveModule
+from ipex_llm.transformers import AutoModelForCausalLM
+from core.config import CORES_SEARCH
 
 class LicenseActor:
     def __init__(self):
-        # Patterns that might indicate GPL/LGPL licenses
-        # Enhanced with more specific prohibited phrases
         self.prohibited_patterns = [
             re.compile(r"GNU\s+General\s+Public\s+License", re.IGNORECASE),
             re.compile(r"GPLv[123]", re.IGNORECASE),
@@ -17,99 +18,63 @@ class LicenseActor:
         ]
 
     def is_compliant(self, content):
-        """
-        Checks if the content is compliant with the No-GPL rule.
-        Uses a specialized License Classifier Gate.
-        """
-        print("[LicenseActor] Running specialized License Classifier Gate (BERT/Regex)...")
         for pattern in self.prohibited_patterns:
-            if pattern.search(content):
-                return False
+            if pattern.search(content): return False
         return True
 
+@ray.remote(num_cpus=CORES_SEARCH)
 class SearchActor(CognitiveModule):
-    def __init__(self, workspace, scheduler):
+    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
         super().__init__(workspace, scheduler)
         self.license_actor = LicenseActor()
+        print(f"[SearchActor] Loading {model_id} in NF4 precision for search distillation...")
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                load_in_low_bit="nf4",
+                trust_remote_code=True,
+                use_cache=True
+            )
+        except Exception as e:
+            print(f"[SearchActor] Error loading model: {e}. Using mock model.")
+            self.model = None
 
     def perform_graph_indexing(self, code_snippet, language="python"):
-        """
-        Performs AST-based indexing using tree-sitter and stores relationships in a graph database.
-        This allows the agent to "walk the codebase" like a human developer.
-        """
         print(f"[SearchActor] Performing AST-based Indexing ({language}) via tree-sitter...")
-
         try:
             import tree_sitter
-            # In a full implementation, we would load the language grammar and parse the snippet.
-            # Here we provide a more structured representation of the AST-based nodes and edges.
-
-            # Simulated AST Graph Output
-            graph_data = {
+            # Simulating AST Graph Output as requested in AGENTS.md
+            return {
                 "nodes": [
                     {"id": "func_main", "type": "function", "label": "main.py:main"},
-                    {"id": "class_auth", "type": "class", "label": "utils/auth.py:Authenticator"},
-                    {"id": "call_login", "type": "call", "label": "auth.login()"}
+                    {"id": "class_auth", "type": "class", "label": "utils/auth.py:Authenticator"}
                 ],
-                "edges": [
-                    {"source": "func_main", "target": "class_auth", "relation": "instantiates"},
-                    {"source": "func_main", "target": "call_login", "relation": "calls"}
-                ]
+                "edges": [{"source": "func_main", "target": "class_auth", "relation": "instantiates"}]
             }
-
-            print(f"[SearchActor] Mapping dependencies to Neural Map (NebulaGraph/TuGraph).")
-            return graph_data
         except ImportError:
-            print("[SearchActor] tree-sitter not available. Using basic dependency heuristics.")
-            return {"nodes": [], "edges": []}
+            return {"nodes": [{"id": "snippet", "type": "code", "label": "Search Result"}], "edges": []}
 
     def distill_results(self, results):
-        """
-        Synthesizes multiple search results into a single, high-density Actionable Spec (JIT Context Compilation).
-        Reduces token count while maximizing utility.
-        """
         print("[SearchActor] Performing JIT Context Compilation (Distiller)...")
-        # Simulate high-speed model distilling results into a compact API spec
         synthesized_spec = "Synthesized Actionable Spec (JIT Memory):\n"
-        for i, res in enumerate(results):
-            synthesized_spec += f"- Spec {i+1}: {res[:50]}...\n"
-
-        print(f"[SearchActor] Generated {len(results)}-to-1 API Cheat Sheet.")
+        for i, res in enumerate(results): synthesized_spec += f"- Spec {i+1}: {res[:50]}...\n"
         return synthesized_spec
 
     def receive(self, message):
         if message["type"] == "search_request":
             query = message["data"]
             results = self.perform_search(query)
-
             compliant_results = []
             for res in results:
                 if self.license_actor.is_compliant(res):
                     compliant_results.append(res)
-                    # For code snippets, perform GraphRAG indexing
-                    if "class" in res or "def " in res:
-                        self.perform_graph_indexing(res)
-                else:
-                    print(f"[SearchActor] Filtered out non-compliant result for query: {query}")
-
-            # JIT Context Compilation: Distill compliant results
+                    if "class" in res or "def " in res: self.perform_graph_indexing(res)
             actionable_spec = self.distill_results(compliant_results)
-
-            self.scheduler.submit(self, {
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {
                 "type": "search_result",
                 "data": compliant_results,
                 "actionable_spec": actionable_spec
             })
 
     def perform_search(self, query):
-        """
-        Simulates an autonomous online search.
-        In a real scenario, this would call Tavily or SearXNG.
-        """
-        # Dynamic mock results based on query
-        return [
-            f"Documentation for {query}: Permissive MIT license summary.",
-            f"Technical spec for {query}: Licensed under Apache 2.0.",
-            f"Implementation details for {query}: See GPLv3 source for more info.",
-            f"Quick start guide for {query}: Included in COPYING file."
-        ]
+        return [f"Documentation for {query}: Permissive MIT license.", f"Technical spec for {query}: Licensed under Apache 2.0."]

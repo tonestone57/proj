@@ -1,4 +1,5 @@
 # SGI System Configuration Constants
+# Target Architecture: Intel Core i5-8265U (Whiskey Lake)
 
 # Entropy/Drive thresholds
 THRESHOLD_REPLAN = 2.0
@@ -10,6 +11,27 @@ TICK_INTERVAL = 5.0 # Seconds
 # Context management
 CONTEXT_SALIENCY_FLOOR = 0.5
 MAX_LIMIT = 8192 # Token limit
+ACTIVE_CONTEXT_LIMIT = 2048
+PRUNING_THRESHOLD_PCT = 0.80
 
 # Workspace settings
 WORKSPACE_HISTORY_LIMIT = 100
+
+# Hardware Resource Allocation (8265U - 15W TDP)
+TOTAL_CPU_THREADS = 8
+RAY_RESERVED_THREADS = 6
+THERMAL_THRESHOLD_CELSIUS = 78.0
+LOW_MEMORY_WARNING_MB = 800
+
+# Precision Tiers
+PRECISION_SYMBOLIC = "fp16"
+PRECISION_SOCIAL = "int8"
+PRECISION_SEARCH = "nf4"
+PRECISION_CODING = "nf4"
+
+# Actor resource allocation
+CORES_SYMBOLIC = 2
+CORES_SOCIAL = 1
+CORES_SEARCH = 1
+CORES_CODING = 2
+CORES_CRITIC = 2
