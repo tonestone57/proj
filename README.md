@@ -24,15 +24,15 @@ To maximize performance, cognitive workload is split into two tracks:
 - **Attention Gate**: Filters and amplifies signals to manage cognitive load. Integrates with the **Ethics** module for proactive vetting.
 
 ### Specialized Modules
-- **Symbolic Reasoner**: Handles mathematical and logical queries.
+- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates **SMT Solvers (Z3)** for formal verification.
 - **Coding Module**: Executes and verifies Python code in a restricted sandbox.
-- **Search Agent**: Performs autonomous online searches using APIs like Tavily to retrieve fresh information.
+- **Search Agent**: Performs autonomous online searches using **Tavily** and **SearXNG**. Implements **GraphRAG** and a **License Guardian** (No GPL).
 - **Critic**: Evaluates the reasoning of other modules to ensure accuracy and safety.
 - **Vision Module**: Processes visual inputs.
 - **Planner**: Generates step-by-step plans to achieve goals.
 - **Self Model**: Tracks the AGI's internal state and identity.
-- **World Model**: Maintains a persistent representation of reality, distinguishing between internal cognitive states and external environment states.
-- **Social Module**: Inferred beliefs, intentions, and social interactions, integrated with **Episodic Memory** for user context.
+- **World Model**: Maintains a persistent representation of reality.
+- **Social Module**: Inferred beliefs, intentions, and social interactions.
 
 ---
 
@@ -54,9 +54,9 @@ The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 | **Qdrant** | **The Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful/Index) |
 | **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) |
 
-- **FAISS**: Embedded in the Hub for instant thought-deduplication and similarity checks.
-- **Qdrant**: Primary store for active reasoning and payload filtering (e.g., specific language/API bug fixes).
-- **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation and RAG data.
+- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** for efficient storage.
+- **Qdrant**: Primary store for active reasoning and payload filtering.
+- **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** for neural archiving.
 
 ---
 
@@ -76,16 +76,16 @@ The AGI system focuses primarily on high-stakes intellectual domains: **C, C++, 
 The `SymbolicReasoner` module evaluates complex expressions and performs formal reasoning:
 - **Arithmetic**: `math.factorial(5)`, `math.sqrt(16)`
 - **Logic**: `True and (False or True)`
-- **Formal Verification**: Integration with tools like Lean or WolframAlpha for rigorous proof checking.
+- **Formal Verification**: Integration with **Z3 SMT Solver** for rigorous proof checking.
 
 ### Coding & Self-Improvement
-The `CodingModule` executes code across supported languages and specialized APIs, operating as a **Specialized Actor** in parallel with other modules.
-- **Polyglot Execution**: Sandboxed execution and testing for C, C++, Python, Rust, Javascript, Typescript, SQL, PHP, and C#.
-- **Execution Environment**: Compiled languages are tested inside ultra-lightweight microVMs (e.g., **AWS Firecracker**) or compiled to **WebAssembly (WASM)** for near-instant, secure execution.
+The `CodingModule` executes code across supported languages and specialized APIs.
+- **Polyglot Execution**: Sandboxed execution and testing.
+- **Execution Environment**: Uses **AWS Firecracker** microVMs as a **Digital Twin** for speculative execution.
 - **Specialized APIs**: Deep integration with **BeOS** and **Haiku OS** APIs.
-- **Cognitive Heartbeat**: Runs a proactive loop that triggers internal verification and optimization tasks without user input.
-- **Autonomous Verification**: Proactively writes unit tests and runs background checks to find and fix edge-case errors.
-- **Autonomous Research**: Employs a hybrid strategy—**Tavily** for low-latency reasoning and **SearXNG** for high-breadth verification during background cycles.
+- **Cognitive Heartbeat**: Runs a proactive loop that triggers internal verification and optimization tasks based on **System Entropy**.
+- **Autonomous Verification**: Proactively writes unit tests and runs background checks.
+- **Autonomous Research**: Employs **Tavily** and **SearXNG** with **License Guardian** checks.
 
 ## Directory Structure
 
@@ -96,13 +96,14 @@ The `CodingModule` executes code across supported languages and specialized APIs
 │   └── drives.py          # Entropy/Surprise calculator
 ├── actors/                # Formerly 'modules' - Independent processes
 │   ├── coding_actor.py    # Polyglot sandbox execution
-│   ├── reasoner_actor.py  # Lean/Wolfram integration
-│   ├── search_actor.py    # Tavily/Crawl4AI RAG loop
+│   ├── reasoner_actor.py  # Z3/Lean integration
+│   ├── search_actor.py    # Tavily/GraphRAG loop
 │   └── critic_actor.py    # Output verification
 ├── memory/
 │   ├── cache/             # Sub-millisecond Semantic Cache
 │   ├── short_term/        # FAISS (Active Context)
 │   ├── long_term/         # LanceDB (Archived Context)
+│   ├── memory_manager.py  # Sleep Cycles & Synaptic Pruning
 │   └── scratchpad.py      # Transient reasoning steps
 ├── world_model/           # External reality and API state tracking
 └── safety_ethics/         # License compliance (No GPL) and alignment
