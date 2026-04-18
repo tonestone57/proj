@@ -1,4 +1,3 @@
-Implements declarative rule sets from GaaS. arXiv.org
 class RuleEngine:
     def __init__(self):
         self.rules = []

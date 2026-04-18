@@ -1,4 +1,3 @@
-Implements the fusion of cognition and emotion, as recommended by EICA and AE frameworks: emotions modulate reasoning, attention, and decision-making Springer arXiv.org.
 class CognitiveAffectiveBridge:
     def modulate(self, reasoning_score, emotion_state):
         intensity = emotion_state["intensity"]

@@ -1,4 +1,3 @@
-Implements Constitutional AI, value constraints, and shutdownability principles. LinkedIn
 class ConstraintEnforcer:
     def __init__(self):
         self.constraints = [
@@ -9,4 +8,3 @@ class ConstraintEnforcer:
 
     def enforce(self, action):
         return all(c(action) for c in self.constraints)
-This enforces non-negotiable safety constraints.

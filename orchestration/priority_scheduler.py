@@ -1,4 +1,3 @@
-Implements lifecycle management & intelligent routing from Codebridge.
 codebridge.tech
 import heapq
 

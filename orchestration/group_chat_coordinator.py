@@ -1,5 +1,3 @@
-Implements group-chat orchestration (multi-agent collaborative reasoning).
-Microsoft Developer Blogs
 class GroupChatCoordinator:
     def __init__(self, agents):
         self.agents = agents

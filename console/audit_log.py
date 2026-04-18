@@ -1,4 +1,3 @@
-Implements traceability and accountability as required by HITL frameworks.
 Permit.io
 class AuditLog:
     def __init__(self):

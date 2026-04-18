@@ -1,4 +1,3 @@
-Tracks agent confidence and triggers escalation.
 galileo.ai
 class ConfidenceMonitor:
     def evaluate(self, result):

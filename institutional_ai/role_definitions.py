@@ -1,4 +1,3 @@
-Inspired by WEF’s functional classification of agents (role, autonomy, predictability, context). The World Economic Forum
 class RoleDefinitions:
     def __init__(self):
         self.roles = {

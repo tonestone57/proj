@@ -1,4 +1,3 @@
-Based on GaaS’s Trust Factor mechanism. arXiv.org
 class TrustEngine:
     def __init__(self):
         self.scores = {}
@@ -9,4 +8,3 @@ class TrustEngine:
 
     def get_score(self, agent_id):
         return self.scores.get(agent_id, 0)
-Trust scores evolve based on longitudinal compliance.

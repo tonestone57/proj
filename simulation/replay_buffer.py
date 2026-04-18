@@ -1,4 +1,3 @@
-Implements replay-based incoherence analysis.
 swarm-ai.org
 class ReplayBuffer:
     def __init__(self):

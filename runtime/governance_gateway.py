@@ -1,4 +1,3 @@
-Enforces institutional governance.
 class GovernanceGateway:
     def __init__(self, governance_layer):
         self.gov = governance_layer

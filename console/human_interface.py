@@ -1,4 +1,3 @@
-Implements Mahilo-style human–agent communication and context sharing.
 Github
 class HumanInterface:
     def present(self, action):

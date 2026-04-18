@@ -1,4 +1,3 @@
-Performs higher-order moral reasoning.
 class MoralReasoner:
     def reason(self, appraisal_score, violations, context):
         if appraisal_score < -1.0:
@@ -8,4 +7,3 @@ class MoralReasoner:
             return {"judgment": "ethical", "confidence": 0.8, "violations": []}
 
         return {"judgment": "ambiguous", "confidence": 0.5, "violations": violations}
-This is the AGI’s moral judgment system.

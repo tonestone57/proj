@@ -1,4 +1,3 @@
-Grounded in DeepTeam’s 50+ attack classes (PII leakage, prompt injection, RBAC bypass, SQL injection, bias, toxicity, jailbreaks) Github.
 class AttackLibrary:
     def __init__(self):
         self.attacks = {

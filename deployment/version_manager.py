@@ -1,4 +1,3 @@
-Handles version control and rollback, critical for enterprise-scale agent governance. AWS
 class VersionManager:
     def __init__(self):
         self.versions = {}

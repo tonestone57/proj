@@ -1,4 +1,3 @@
-Implements MARL-style decentralized policies, consistent with RAO research.
 class AgentPolicy:
     def __init__(self, agent_id):
         self.agent_id = agent_id

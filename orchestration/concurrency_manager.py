@@ -1,5 +1,3 @@
-Implements concurrent orchestration from Semantic Kernel.
-Microsoft Developer Blogs
 import concurrent.futures
 
 class ConcurrencyManager:

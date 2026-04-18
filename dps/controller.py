@@ -24,7 +24,6 @@ class DPSController:
 
         # 5. Submit to scheduler
         self.scheduler.submit(module, message, priority)
-This controller is the central nervous system of the AGI.
 
 from dps.router import TaskRouter
 from dps.priority_engine import PriorityEngine

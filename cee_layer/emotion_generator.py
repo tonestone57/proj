@@ -1,4 +1,3 @@
-Inspired by EICA’s emotion-generation mechanisms (bio-inspired, modular, grounded in affective computing) Springer.
 class EmotionGenerator:
     def __init__(self):
         self.emotions = {"joy":0, "fear":0, "anger":0, "curiosity":0}

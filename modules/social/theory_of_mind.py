@@ -1,4 +1,3 @@
-This module maintains mental state models of agents.
 from modules.base import CognitiveModule
 
 class TheoryOfMind(CognitiveModule):
@@ -46,4 +45,3 @@ class TheoryOfMind(CognitiveModule):
             return {"intention": model["beliefs"]["goal"]}
 
         return {"intention": "uncertain"}
-This module gives your AGI the ability to track and infer mental states of other agents.

@@ -1,4 +1,3 @@
-Integrates replay, generative training, schema updates, and world-model refinement.
 from memory_consolidation.hippocampal_replay import HippocampalReplay
 from memory_consolidation.generative_trainer import GenerativeTrainer
 from memory_consolidation.consolidation_scheduler import ConsolidationScheduler
@@ -30,10 +29,7 @@ class ConsolidationManager:
             self.world_model.state.update_entity(ep["id"], enriched)
 
         return {"consolidation_loss": loss, "episodes": len(selected)}
-This is a complete systems consolidation pipeline, matching the neuroscience literature.
 
-6. INTEGRATION INTO YOUR AGI
-Add to main.py:
 from memory_consolidation.consolidation_manager import ConsolidationManager
 
 consolidation = ConsolidationManager(
@@ -43,6 +39,6 @@ consolidation = ConsolidationManager(
 )
 
 modules["consolidation"] = consolidation
-Add DPS routing:
+
 if msg_type in ["consolidate_memory"]:
     return module_registry.get("consolidation")

@@ -1,4 +1,3 @@
-Implements prediction-error-based curiosity (like modern RL agents).
 class CuriosityModule:
     def __init__(self, world_model):
         self.world_model = world_model
@@ -10,4 +9,3 @@ class CuriosityModule:
             act = actual_state["properties"].get(key, pred)
             error += abs(pred - act)
         return error
-Curiosity = prediction error.

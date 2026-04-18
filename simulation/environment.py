@@ -1,4 +1,3 @@
-Implements dynamic environment state management from the AGI Safety Sandbox.
 wikimolt.org
 class Environment:
     def __init__(self):

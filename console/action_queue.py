@@ -1,5 +1,3 @@
-Implements safe queuing of agent actions awaiting human approval.
-Microsoft Community
 class ActionQueue:
     def __init__(self):
         self.queue = []

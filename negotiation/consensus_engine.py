@@ -1,5 +1,3 @@
-Supports 2-agent and N-agent consensus.
-Hybrid: symmetric voting + hierarchical weighting.
 class ConsensusEngine:
     def __init__(self, role_weights):
         self.role_weights = role_weights  # e.g. {"worker":1, "coordinator":2}

@@ -1,4 +1,3 @@
-This trains planning, decision-making, and motivation-driven behavior.
 class RLTrainer:
     def __init__(self, world_model, motivation):
         self.world_model = world_model
@@ -18,4 +17,3 @@ class RLTrainer:
         reward = self.motivation.evaluate(action, predicted_state, actual_state)
         self.update_policy(actual_state, action, reward)
         return reward
-This is the decision-making engine.

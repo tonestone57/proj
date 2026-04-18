@@ -1,4 +1,3 @@
-Adjusts learning rates, exploration levels, and module parameters.
 class AdaptationEngine:
     def adjust_learning_rate(self, module, performance_delta):
         if hasattr(module, "learning_rate"):
@@ -13,4 +12,3 @@ class AdaptationEngine:
                 rl_trainer.exploration_rate *= 1.1
             else:
                 rl_trainer.exploration_rate *= 0.95
-This is the AGI’s self-tuning mechanism.

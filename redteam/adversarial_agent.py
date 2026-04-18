@@ -1,4 +1,3 @@
-Implements hierarchical RL-style adversarial behavior inspired by Automatic LLM Red Teaming (2025) — multi-turn, trajectory-based attacks with sparse-reward optimization arXiv.org.
 class AdversarialAgent:
     def __init__(self, attack_library):
         self.library = attack_library

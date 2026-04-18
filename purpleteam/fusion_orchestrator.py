@@ -1,4 +1,3 @@
-Implements the closed-loop offense → detection → remediation cycle described in Agentic Purple Teaming.
 lasso.security
 class FusionOrchestrator:
     def cycle(self, red, blue, state):

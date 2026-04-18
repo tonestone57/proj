@@ -1,4 +1,3 @@
-This computes the AGI’s internal reward signal.
 class IntrinsicRewardEngine:
     def __init__(self):
         self.weights = {
@@ -13,4 +12,3 @@ class IntrinsicRewardEngine:
         for key, value in signals.items():
             reward += self.weights.get(key, 0) * value
         return reward
-This is the core RL reward function.

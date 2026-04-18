@@ -1,4 +1,3 @@
-Supports agentic AI execution, consistent with Microsoft’s requirement for continuous visibility into autonomous agent behavior. Microsoft
 class RuntimeEnvironment:
     def __init__(self):
         self.active_agents = {}

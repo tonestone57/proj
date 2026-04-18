@@ -1,4 +1,3 @@
-Grounded in the cognitive architecture research showing robots can develop synthetic episodic & autobiographical memory and a narrative self. royalsocietypublishing.org pmc.ncbi.nlm.nih.gov
 class AutobiographicalMemory:
     def __init__(self):
         self.episodes = []
@@ -17,4 +16,3 @@ class AutobiographicalMemory:
 
     def retrieve(self, n=5):
         return self.episodes[-n:]
-This implements episodic → semantic AM, consistent with neuroimaging findings. MDPI

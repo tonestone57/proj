@@ -1,4 +1,3 @@
-Stores agreements, obligations, dependencies.
 class TreatyGraph:
     def __init__(self):
         self.nodes = []

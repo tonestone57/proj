@@ -1,4 +1,3 @@
-Implements normative & adaptive interventions (GaaS). arXiv.org
 class IncentiveEngine:
     def reward(self, agent_id, trust_score):
         if trust_score > 10:

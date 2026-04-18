@@ -1,4 +1,3 @@
-Evaluates actions or events against ethical norms.
 class EthicalAppraisal:
     def __init__(self, norm_library):
         self.norms = norm_library.get_norms()
@@ -21,4 +20,3 @@ class EthicalAppraisal:
         if norm == "honesty" and action.get("deception", False):
             return True
         return False
-This is the AGI’s ethical evaluation engine.

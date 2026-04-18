@@ -1,4 +1,3 @@
-Inspired by CyberSleuth, which achieved 80% accuracy in forensic analysis of real attacks and demonstrated the importance of multi-agent specialization and evidence correlation arXiv.org.
 class ForensicAgent:
     def analyze(self, network_trace):
         findings = {

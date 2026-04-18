@@ -1,13 +1,17 @@
-Implements attention, priority, and competition.
+import heapq
+
 class Scheduler:
     def __init__(self):
         self.queue = []
+        self._counter = 0
 
     def submit(self, module, message, priority=1.0):
-        self.queue.append((priority, module, message))
-        self.queue.sort(reverse=True)
+        # Use counter as a tie-breaker to avoid comparing modules
+        heapq.heappush(self.queue, (-priority, self._counter, module, message))
+        self._counter += 1
 
     def next(self):
         if not self.queue:
             return None
-        return self.queue.pop(0)
+        neg_priority, count, module, message = heapq.heappop(self.queue)
+        return (-neg_priority, module, message)

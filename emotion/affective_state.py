@@ -1,4 +1,3 @@
-Maintains the AGI’s internal emotional condition.
 class AffectiveState:
     def __init__(self):
         self.valence = 0.0
@@ -14,4 +13,3 @@ class AffectiveState:
             "valence": self.valence,
             "arousal": self.arousal
         }
-This gives the AGI a persistent emotional context.

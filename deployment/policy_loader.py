@@ -1,4 +1,3 @@
-Loads safety, compliance, and operational policies.
 class PolicyLoader:
     def __init__(self):
         self.policies = {}

@@ -1,4 +1,3 @@
-Implements scenario-based adversarial simulations, as recommended by “Red Teaming Beyond Prompt Injection” (2025) ijisrt.com.
 class ScenarioEngine:
     def __init__(self):
         self.scenarios = {

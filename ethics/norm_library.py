@@ -1,4 +1,3 @@
-Stores ethical rules, norms, and constraints.
 class NormLibrary:
     def __init__(self):
         self.norms = {
@@ -11,4 +10,3 @@ class NormLibrary:
 
     def get_norms(self):
         return self.norms
-This is the AGI’s ethical knowledge base.

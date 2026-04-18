@@ -1,4 +1,3 @@
-CoSAI emphasizes restoring safe state: memory rollback, policy reset, tool re-enablement. coalitionforsecureai.org
 class RecoveryEngine:
     def recover(self, agent):
         agent.sandboxed = False
