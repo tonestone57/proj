@@ -54,15 +54,42 @@ class ReasonerActor(CognitiveModule):
 
     def verify_logic(self, code):
         """
-        Uses an SMT solver (Z3 placeholder) to verify code logic.
+        Uses an SMT solver (Z3 placeholder) or heuristic analysis to verify code logic.
         """
         print(f"[ReasonerActor] Verifying logic for code snippet...")
+
+        # 1. Attempt SMT verification if z3 is available
         try:
             import z3
             # Placeholder for actual Z3 logic
-            # s = z3.Solver()
-            # ... translation of code to SMT-LIB ...
             return {"status": "verified", "method": "Z3 SMT Solver"}
         except ImportError:
-            print("[ReasonerActor] Z3 not available. Using heuristic verification.")
-            return {"status": "partially_verified", "method": "Heuristic"}
+            pass
+
+        # 2. Fallback to Heuristic Static Analysis
+        return self._heuristic_verify(code)
+
+    def _heuristic_verify(self, code):
+        """
+        Performs basic static analysis for common logical errors.
+        """
+        issues = []
+
+        # Check for potential division by zero
+        if re.search(r"/\s*0(?:\.0*)?\b", code):
+            issues.append("Potential division by zero detected.")
+
+        # Check for simple infinite loops
+        if re.search(r"while\s+True|while\s+1", code):
+            if "break" not in code:
+                issues.append("Potential infinite loop (while True) without break.")
+
+        # Check for shadowing built-ins
+        shadowed = re.findall(r"\b(list|dict|str|int|float|set|sum|min|max|abs)\s*=", code)
+        if shadowed:
+            issues.append(f"Shadowing built-in names: {', '.join(set(shadowed))}")
+
+        if issues:
+            return {"status": "failed_heuristics", "method": "Static Analysis", "issues": issues}
+
+        return {"status": "passed_heuristics", "method": "Static Analysis", "details": "No common patterns of error detected."}

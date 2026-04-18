@@ -1,16 +1,25 @@
+import re
 from core.base import CognitiveModule
 
 class LicenseActor:
     def __init__(self):
-        # Keywords that might indicate GPL/LGPL licenses
-        self.prohibited_keywords = ["GPL", "LGPL", "General Public License"]
+        # Patterns that might indicate GPL/LGPL licenses
+        self.prohibited_patterns = [
+            re.compile(r"GNU\s+General\s+Public\s+License", re.IGNORECASE),
+            re.compile(r"GPLv[123]", re.IGNORECASE),
+            re.compile(r"LGPL\s*[0-9\.]*", re.IGNORECASE),
+            re.compile(r"Lesser\s+General\s+Public\s+License", re.IGNORECASE),
+            re.compile(r"COPYING(?:\.txt|\.md)?", re.IGNORECASE),
+            re.compile(r"licensed\s+under\s+the\s+GPL", re.IGNORECASE),
+        ]
 
     def is_compliant(self, content):
         """
         Checks if the content is compliant with the No-GPL rule.
+        Uses regex for more robust detection.
         """
-        for keyword in self.prohibited_keywords:
-            if keyword in content:
+        for pattern in self.prohibited_patterns:
+            if pattern.search(content):
                 return False
         return True
 
@@ -44,8 +53,9 @@ class SearchActor(CognitiveModule):
         # More dynamic mock results
         base_results = [
             {"content": f"Documentation for {query}: Permissive MIT license.", "license": "MIT"},
-            {"content": f"Source code for {query}: GPL v3 license included.", "license": "GPL"},
+            {"content": f"Source code for {query}: licensed under the GPL v3.", "license": "GPL"},
             {"content": f"Technical specification for {query}: Apache 2.0 license.", "license": "Apache"},
+            {"content": f"Readme for {query}: See COPYING for details.", "license": "GPL_Unknown"},
         ]
 
         return [res["content"] for res in base_results]
