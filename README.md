@@ -46,16 +46,17 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval.
 
 ### Storage Options
-The AGI uses two primary vector storage engines depending on the required latency and scale:
+The AGI uses a tiered storage system to manage cognitive state and external knowledge:
 
-| Feature | FAISS (Facebook AI Similarity Search) | LanceDB |
-| :--- | :--- | :--- |
-| **Type** | Low-level **Library**. | Serverless **Database**. |
-| **Primary Storage** | **RAM-first.** | **Disk-first.** |
-| **Persistence** | Manual `.index` files. | Automatic (SQLite-like). |
-| **Compression** | Product Quantization (PQ). | Columnar (Lance format). |
-| **Use Case** | **Short-term Memory** & **DPS**. | **Long-term Memory** & **World Model**. |
+| Feature | Semantic Cache | FAISS | LanceDB |
+| :--- | :--- | :--- | :--- |
+| **Type** | Sub-millisecond **Cache**. | Low-level **Library**. | Serverless **Database**. |
+| **Primary Storage** | **In-Memory.** | **RAM-first.** | **Disk-first.** |
+| **Persistence** | Volatile (Redis). | Manual `.index` files. | Automatic (SQLite-like). |
+| **Compression** | Key-Value Pairs. | Product Quantization (PQ). | Columnar (Lance format). |
+| **Use Case** | **Reflex Cache** & Latency Reduction. | **Short-term Memory** & **DPS**. | **Long-term Memory** & **World Model**. |
 
+- **Semantic Cache**: Uses tools like `Redis` or `GPTCache` to store semantically identical thought processes, dropping response times to milliseconds.
 - **FAISS**: Best for the **DPS** where microsecond latency is critical for comparing current "thoughts" against recent cognitive history.
 - **LanceDB**: Best for the **World Model**, allowing the storage of terabytes of extracted knowledge on disk while supporting complex metadata filtering.
 
@@ -82,6 +83,7 @@ The `SymbolicReasoner` module evaluates complex expressions and performs formal 
 ### Coding & Self-Improvement
 The `CodingModule` executes code across supported languages and specialized APIs, operating as a **Specialized Actor** in parallel with other modules.
 - **Polyglot Execution**: Sandboxed execution and testing for C, C++, Python, Rust, Javascript, Typescript, SQL, PHP, and C#.
+- **Execution Environment**: Compiled languages are tested inside ultra-lightweight microVMs (e.g., **AWS Firecracker**) or compiled to **WebAssembly (WASM)** for near-instant, secure execution.
 - **Specialized APIs**: Deep integration with **BeOS** and **Haiku OS** APIs.
 - **Cognitive Heartbeat**: Runs a proactive loop that triggers internal verification and optimization tasks without user input.
 - **Autonomous Verification**: Proactively writes unit tests and runs background checks to find and fix edge-case errors.
@@ -89,12 +91,24 @@ The `CodingModule` executes code across supported languages and specialized APIs
 
 ## Directory Structure
 
-- `core/`: Fundamental infrastructure.
-- `dps/`: Executive control systems (Router, Attention Gate).
-- `modules/`: Specialized cognitive modules (Coding, Social, Reasoning).
-- `world_model/`: Internal reality mapping.
-- `ethics/`, `safety/`: Alignment and risk management.
-- `memory/`: Episodic and Semantic memory systems.
+```text
+├── core/
+│   ├── message_bus/       # Pub/Sub event router (Redis/ZeroMQ)
+│   ├── heartbeat.py       # The autonomous cognitive loop
+│   └── drives.py          # Entropy/Surprise calculator
+├── actors/                # Formerly 'modules' - Independent processes
+│   ├── coding_actor.py    # Polyglot sandbox execution
+│   ├── reasoner_actor.py  # Lean/Wolfram integration
+│   ├── search_actor.py    # Tavily/Crawl4AI RAG loop
+│   └── critic_actor.py    # Output verification
+├── memory/
+│   ├── cache/             # Sub-millisecond Semantic Cache
+│   ├── short_term/        # FAISS (Active Context)
+│   ├── long_term/         # LanceDB (Archived Context)
+│   └── scratchpad.py      # Transient reasoning steps
+├── world_model/           # External reality and API state tracking
+└── safety_ethics/         # License compliance (No GPL) and alignment
+```
 
 ---
 

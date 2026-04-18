@@ -8,6 +8,7 @@ The system operates as a central **Broadcast Center** (Hub) with **Specialized A
 
 ### The Actor Pattern
 - Modules must work in parallel. The Hub broadcasts a goal, and multiple actors (e.g., Symbolic Reasoner, Coding Module) work simultaneously. The Hub selects the best result.
+- **Implementation**: Actors must operate in isolated processes. Use frameworks like **Ray**, **Celery**, or **gRPC** microservices to ensure CPU-bound tasks in the Spokes do not block the central Message Bus.
 
 ### The Cognitive Heartbeat
 - The system runs a **Heartbeat Loop** to maintain proactivity.
@@ -31,6 +32,9 @@ The system must follow an iterative loop: **Reason → Search → Ingest → Ind
 - **Vector Store**: Use **FAISS** for short-term/high-speed tasks and **LanceDB** for long-term/persistent knowledge storage.
 
 ## 3. Self-Improvement & Verification
+
+### Context Pruning
+- If the Active Context exceeds 80% of the maximum token limit, the system must trigger an immediate compression cycle, summarizing the current state and pushing raw logs to LanceDB before continuing.
 
 ### The "Internal Critic" Loop
 - Every output from the `Symbolic Reasoner` or `Coding Module` must be verified by a `Critic` agent or the `World Model` before being finalized.
