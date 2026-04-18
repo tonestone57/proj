@@ -4,12 +4,17 @@ This repository contains a modular AGI (Artificial General Intelligence) archite
 
 ## Architecture
 
-The system follows a hub-and-spoke model with a **Global Workspace** and a **Dynamic Processing System (DPS)** orchestrating various specialized cognitive modules. It implements a **Multi-Stage Agentic RAG Pipeline** (Reason → Search → Ingest → Index → Generate) and is designed for **Self-Improvement**, autonomously updating its data files and logic to enhance accuracy and performance.
+The system utilizes an **Asynchronous Predictive Workspace (APW)**. Unlike traditional models, the Hub acts as a **Broadcast Center** using Pub/Sub logic to eliminate bottlenecks. It implements a **Multi-Stage Agentic RAG Pipeline** and is designed for **Self-Improvement**, autonomously updating its data files and logic to achieve better accuracy and reliability.
+
+### The Dual-Stream System
+To maximize performance, cognitive workload is split into two tracks:
+- **The Reflex Arc (Fast Path):** Low-latency modules (Safety, Syntax Checking) that act instantly.
+- **The Global Workspace (Slow Path):** Higher-order reasoning (Planning, Complex Coding) requiring full attention.
 
 ### Core Components
-- **Global Workspace**: The central communication hub for all modules.
-- **Scheduler**: Manages task execution based on dynamic priorities.
-- **Autonomous Loop**: The main cognitive cycle that drives perception, reasoning, and action.
+- **Message Bus (The Spine)**: An asynchronous bus where all modules post their state.
+- **Integrator (The Hub)**: Samples the Message Bus every "Tick" to form a coherent global state.
+- **Drive Engine (Drives Module)**: Calculates a **Surprise/Entropy Metric** to proactively trigger re-planning or background consolidation.
 - **Internal Critic**: Verifies the logic and safety of outputs before they are finalized.
 - **Scratchpad Memory**: A dedicated working memory area for intermediate reasoning steps.
 
@@ -66,7 +71,7 @@ python3 main.py
 
 ## Capabilities
 
-The AGI system focuses primarily on high-stakes intellectual domains: **C, C++, Python, Rust, Mathematics, and Logic**.
+The AGI system focuses primarily on high-stakes intellectual domains: **C, C++, Python, Rust, Javascript, Typescript, SQL, PHP, C#, Mathematics, and Logic**.
 
 ### Mathematics and Logic
 The `SymbolicReasoner` module evaluates complex expressions and performs formal reasoning:
@@ -75,9 +80,11 @@ The `SymbolicReasoner` module evaluates complex expressions and performs formal 
 - **Formal Verification**: Integration with tools like Lean or WolframAlpha for rigorous proof checking.
 
 ### Coding & Self-Improvement
-The `CodingModule` executes code across supported languages.
-- **Polyglot Execution**: Sandboxed execution and testing for C, C++, Python, and Rust.
-- **Self-Correction**: If an error occurs, the `Autonomous Loop` routes the failure back for iterative correction.
+The `CodingModule` executes code across supported languages and specialized APIs, operating as a **Specialized Actor** in parallel with other modules.
+- **Polyglot Execution**: Sandboxed execution and testing for C, C++, Python, Rust, Javascript, Typescript, SQL, PHP, and C#.
+- **Specialized APIs**: Deep integration with **BeOS** and **Haiku OS** APIs.
+- **Cognitive Heartbeat**: Runs a proactive loop that triggers internal verification and optimization tasks without user input.
+- **Autonomous Verification**: Proactively writes unit tests and runs background checks to find and fix edge-case errors.
 - **Autonomous Research**: The system can search online to find latest libraries, fix bugs, or learn new algorithms.
 
 ## Directory Structure
