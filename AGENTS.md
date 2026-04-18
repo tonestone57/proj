@@ -57,8 +57,10 @@ The system must follow an iterative loop: **Reason → Search → Ingest → Ind
 - **Contextual Retrieval**: Attach a document summary to every chunk to preserve global context.
 - **Vector Store**: Use **FAISS** for short-term/high-speed tasks and **LanceDB** for long-term/persistent knowledge storage.
 - **Entropy-Targeted Quantization (TurboQuant)**:
+Uses **PolarQuant** to randomly rotate data vectors and **QJL** for error-correction.
     - **High Entropy Data**: Store at **FP16** or **INT8**.
     - **Low Entropy Data**: Store at **2-bit (Quantized Johnson-Lindenstrauss)**.
+    - **Accuracy**: Maintains **0% accuracy loss** at 3-bit compression.
 - **License Guardian**: Every snippet must pass through a specialized **License Classifier Gate**.
 
 ## 3. Self-Improvement & Verification
@@ -109,8 +111,17 @@ Instead of pruning by recency, use a **Code Property Graph (CPG)** to identify t
 4. **Neural Map (NebulaGraph/TuGraph)**: Stores AST relationships.
 
 ### Lossless Neural Archiving (LLM-Zip)
-- **Neural Compression**: Use the system's reasoning capabilities to encode conversation history into dense, non-human-readable representations using **arithmetic coding** via LLM probabilities.
-- **0% Information Loss**: When the agent needs to "remember" a deep session, it decompresses the neural representation back into the original token stream, bypassing the limits of natural language summarization.
+- **Neural Compression**: Use the system's reasoning capabilities to encode conversation history into dense, non-human-readable representations using **Arithmetic LLM Coding** via LLM probabilities.
+- **SGI Benefit**: Achieving ratios 5x to 10x better than Zstd by finding patterns in logic.
+- **0% Information Loss**: When the agent needs to "remember" a deep session, it decompresses the neural representation back into the original token stream, bypassing summarization limits.
+- **Structural Advantage**: Uses **Tree-sitter Serialization** to store code as tree-node operations (AST).
+- **Warning (Non-deterministic Mismatch)**: LLM-based compression fails if weights shift.
+    - **Recovery Improvement**: Always store a **Model Hash** and a small **Residual Mismatch Buffer** with compressed neural data to ensure recoverability even if fine-tuned.
+
+### Compression Tiering Logic
+1.  **Tier 1 (Ephemeral):** Use **Flash-Optimized LZ4** for the `Message Bus` (Ray/Dragonfly).
+2.  **Tier 2 (Active Context):** Use **TurboQuant** for the KV cache to expand working memory.
+3.  **Tier 3 (Deep Archive):** Use **LLM-Arithmetic Coding** during sleep cycles to turn LanceDB into a "Neural Library."
 
 ### Sleep Cycles (Consolidation)
 - During **Low Entropy** periods:

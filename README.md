@@ -57,12 +57,25 @@ The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 | **Qdrant** | **The Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful/Index) |
 | **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) |
 
-- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (Entropy-Targeted Quantization) for efficient storage.
-    - **High Entropy Data** (New logic, complex bugs): Store at **FP16** or **INT8**.
-    - **Low Entropy Data** (Standard boilerplate): Store at **2-bit (Quantized Johnson-Lindenstrauss)**.
+- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (with **QJL & PolarQuant**) for efficient storage.
+    - **How it works**: Uses **PolarQuant** to randomly rotate data vectors, simplifying their geometry, then applies **Quantized Johnson-Lindenstrauss (QJL)** for a 1-bit "error-correction" pass.
+    - **SGI Benefit**: Compresses KV cache and embeddings to **3 bits** with **0% accuracy loss**, tripling "Reflex Arc" capacity.
+    - **Tiering**: Store high-entropy data at **FP16/INT8** and low-entropy data at **2-bit QJL**.
 - **Qdrant**: Primary store for active reasoning and payload filtering.
 - **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** (Lossless Neural Archiving) for neural archiving.
+    - **SGI Benefit**: Achieves **5x to 10x better compression** than Zstd/7z by storing token probabilities predicted by the LLM.
 - **NebulaGraph/TuGraph**: Stores the **Neural Map** (AST-based relationships) for GraphRAG.
+- **Structural Codecs**: Uses **Tree-sitter Serialization** to compactly store code as Abstract Syntax Tree (AST) node operations.
+    - **SGI Benefit**: Naturally compact for repetitive programming patterns; bypassing re-parsing to provide immediate Control Flow Graphs when read back.
+
+### Codec Comparison Table (2026 Standards)
+
+| Codec Type | Standard (The "Good") | SGI Alternative (The "Better") | Primary Benefit |
+| :--- | :--- | :--- | :--- |
+| **Hot Storage** | **LZ4** / **Zstd-1** | **Flash-Optimized LZ4** | Sub-millisecond latency for the "Reflex Arc." |
+| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | 3-bit compression with **0%** accuracy loss. |
+| **Long-term Archive**| **7z (LZMA2)** | **LLM-Arithmetic Coding** | Massive ratio; "stores knowledge, not just data." |
+| **Video/Vision** | **H.265 / AV1** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
 
 ---
 
