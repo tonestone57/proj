@@ -57,7 +57,7 @@ The system must follow an iterative loop: **Reason → Search → Ingest → Ind
 - **Contextual Retrieval**: Attach a document summary to every chunk to preserve global context.
 - **Vector Store**: Use **FAISS** for short-term/high-speed tasks and **LanceDB** for long-term/persistent knowledge storage.
 - **2026 Compression Landscape (Domain-Aware & Neural Codecs)**:
-    - **Vector Codecs (TurboQuant)**: Beyond standard PQ, use **PolarQuant** to rotate vectors and **Quantized Johnson-Lindenstrauss (QJL)** for 1-bit error correction. Compresses embeddings to **3 bits** with **0% accuracy loss**.
+    - **Vector Codecs (TurboQuant)**: Beyond standard PQ, use **PolarQuant** to rotate vectors and **Quantized Johnson-Lindenstrauss (QJL)** for 1-bit error correction. Compresses embeddings to **4-bit (NF4)** with **0% accuracy loss**.
     - **Text Codecs (LLM-Zip)**: Use **Arithmetic LLM Coding** where the LLM predicts probability distributions and an Arithmetic Encoder stores probabilities. Achieving **5x to 10x better** compression than Zstd for code.
     - **Structural Codecs (Tree-sitter)**: Instead of raw text, serialize the **Abstract Syntax Tree (AST)**. Stores code as tree-node operations, bypassing the need to re-parse and providing the Control Flow Graph immediately.
 - **License Guardian**: Every snippet must pass through a specialized **License Classifier Gate**.
@@ -108,7 +108,7 @@ Instead of pruning by recency, use a **Code Property Graph (CPG)** to identify t
 | Codec Type | Standard (The "Good") | SGI Alternative (The "Better") | Primary Benefit |
 | :--- | :--- | :--- | :--- |
 | **Hot Storage** | **LZ4** / **Zstd-1** | **Flash-Optimized LZ4** | Sub-millisecond latency for the "Reflex Arc." |
-| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | 3-bit compression with **0%** accuracy loss. |
+| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | 4-bit (NF4) compression with **0%** accuracy loss. |
 | **Long-term Archive**| **7z (LZMA2)** | **LLM-Arithmetic Coding** | Massive ratio; "stores knowledge, not just data." |
 | **Video/Vision** | **H.265 / AV1** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
 

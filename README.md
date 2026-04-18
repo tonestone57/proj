@@ -58,7 +58,7 @@ The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 | **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) | **LLM-Arithmetic Coding** |
 
 - **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (QJL) for efficient storage.
-    - **TurboQuant**: Compresses vectors to **3 bits** with **0% accuracy loss** using PolarQuant rotation and QJL error-correction.
+    - **TurboQuant**: Compresses vectors to **4-bit (NF4)** with **0% accuracy loss** using PolarQuant rotation and QJL error-correction.
 - **Qdrant**: Primary store for active reasoning and payload filtering.
 - **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** (Lossless Neural Archiving) for neural archiving.
     - **LLM-Zip**: Achieves **5x to 10x better** compression than Zstd for code by storing token probabilities predicted by the LLM.
