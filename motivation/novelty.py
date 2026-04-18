@@ -1,4 +1,3 @@
-Rewards the AGI for encountering new states.
 class NoveltyModule:
     def __init__(self):
         self.visited_states = set()
@@ -9,4 +8,3 @@ class NoveltyModule:
             self.visited_states.add(state_hash)
             return 1.0
         return 0.0
-Novelty = first-time experiences.

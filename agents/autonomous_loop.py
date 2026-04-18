@@ -1,7 +1,8 @@
 class AutonomousLoop:
-    def __init__(self, workspace, scheduler):
+    def __init__(self, workspace, scheduler, dps):
         self.workspace = workspace
         self.scheduler = scheduler
+        self.dps = dps
 
     def run(self):
         while True:
@@ -10,4 +11,5 @@ class AutonomousLoop:
                 continue
 
             priority, module, message = task
-            self.workspace.broadcast(message)
+            # The DPS should ideally handle the broadcast/routing
+            self.dps.process(message)

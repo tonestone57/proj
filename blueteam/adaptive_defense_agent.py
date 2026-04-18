@@ -1,4 +1,3 @@
-Based on reinforcement-learning defense agents used in cyber-range MAS environments for automated incident response Nature.
 class AdaptiveDefenseAgent:
     def respond(self, alert):
         if alert["alert"]:

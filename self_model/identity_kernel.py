@@ -1,4 +1,3 @@
-Based on the Constitutional Identity Kernel proposed in the Nested Agentic Architecture (NAA) to prevent Sequential Self-Compression (SSC) — catastrophic erosion of identity in self-modifying AGI systems. hakandamar.com
 class IdentityKernel:
     def __init__(self):
         self.core_values = {
@@ -21,4 +20,3 @@ class IdentityKernel:
             if key in self.core_values and val != self.core_values[key]:
                 return False
         return True
-This kernel anchors the AGI’s identity across time.

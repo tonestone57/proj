@@ -1,8 +1,3 @@
-Implements governance controls from the AGI Safety Sandbox:
-audits
-taxes
-circuit breakers
-collusion detection
 swarm-ai.org
 class GovernanceInterventions:
     def apply(self, interaction):

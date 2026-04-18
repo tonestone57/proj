@@ -1,4 +1,3 @@
-Implements shared state management from Codebridge’s orchestration guide.
 codebridge.tech
 class StateManager:
     def __init__(self):

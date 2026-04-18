@@ -1,4 +1,3 @@
-Learns which strategies work best across tasks.
 class StrategyOptimizer:
     def __init__(self):
         self.strategy_scores = {}
@@ -12,4 +11,3 @@ class StrategyOptimizer:
         if not self.strategy_scores:
             return None
         return max(self.strategy_scores.items(), key=lambda x: x[1])[0]
-This is the AGI’s meta-policy for choosing how to learn.

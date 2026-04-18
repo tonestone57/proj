@@ -1,5 +1,3 @@
-Based on Spens & Burgess:
-Replay strengthens schema-based predictions and introduces schema-based distortions (boundary extension, conceptual filling-in). Nature
 class SchemaManager:
     def __init__(self):
         self.schemas = {}
@@ -26,4 +24,3 @@ class SchemaManager:
             }
             return enriched
         return partial_memory
-This enables semanticization of episodic memories.

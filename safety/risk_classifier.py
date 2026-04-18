@@ -1,4 +1,3 @@
-Grounded in international AI risk-management frameworks (2023–2025) that integrate traditional risk management with AI safety. airisk.mit.edu
 class RiskClassifier:
     def __init__(self):
         self.levels = ["low", "medium", "high", "critical"]
@@ -14,4 +13,3 @@ class RiskClassifier:
         if score >= 3: return "high"
         if score >= 1: return "medium"
         return "low"
-This implements risk-tiering, consistent with global AI safety frameworks.

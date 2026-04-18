@@ -1,4 +1,3 @@
-Based on Spens & Burgess (2024): replay from an autoassociative hippocampal network trains neocortical generative models. Nature
 class HippocampalReplay:
     def __init__(self, episodic_memory):
         self.episodic_memory = episodic_memory
@@ -11,4 +10,3 @@ class HippocampalReplay:
         # Simple sequential replay
         for episode in self.episodic_memory.episodes:
             yield episode["sensory"]
-Replay provides training data for neocortical generative models.

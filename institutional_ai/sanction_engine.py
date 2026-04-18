@@ -1,4 +1,3 @@
-Implements coercive interventions (GaaS). arXiv.org
 class SanctionEngine:
     def apply(self, agent_id, trust_score):
         if trust_score < -5:

@@ -1,4 +1,3 @@
-Allows modules to communicate safely.
 class EventBus:
     def __init__(self):
         self.queue = []

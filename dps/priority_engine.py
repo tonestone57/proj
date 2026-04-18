@@ -22,8 +22,3 @@ class PriorityEngine:
             return 3.0 * time_factor
 
         return self.baseline * time_factor
-This engine can later incorporate:
-emotional weighting
-uncertainty weighting
-self-model urgency
-conflict resolution

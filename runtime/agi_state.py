@@ -1,4 +1,3 @@
-A unified state object shared across all modules.
 class AGIState:
     def __init__(self):
         self.beliefs = []

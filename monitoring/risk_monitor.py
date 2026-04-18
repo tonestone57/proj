@@ -1,5 +1,3 @@
-Implements DeepMind’s AGI risk categories:
-misuse, misalignment, accidents, structural risks. deepmind.google
 class RiskMonitor:
     def assess(self, telemetry):
         risk = 0

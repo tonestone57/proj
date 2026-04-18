@@ -1,4 +1,3 @@
-Tracks performance across tasks, episodes, and modules.
 class PerformanceTracker:
     def __init__(self):
         self.history = []
@@ -15,4 +14,3 @@ class PerformanceTracker:
         if len(scores) == 0:
             return 0
         return sum(scores[-n:]) / min(len(scores), n)
-This is the AGI’s memory of how well it learns.

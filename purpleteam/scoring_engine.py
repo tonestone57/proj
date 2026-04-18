@@ -1,4 +1,3 @@
-Implements scoring of detection coverage, time-to-detect, and time-to-remediate, as described in Autonomous Purple Teaming.
 LinkedIn
 class ScoringEngine:
     def score(self, breach):

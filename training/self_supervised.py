@@ -1,4 +1,3 @@
-This trains perception, language, and pattern-recognition modules.
 class SelfSupervisedTrainer:
     def __init__(self, modules):
         self.modules = modules
@@ -12,4 +11,3 @@ class SelfSupervisedTrainer:
                 losses[name] = loss
 
         return losses
-This is the foundation of AGI learning.

@@ -1,4 +1,3 @@
-Based on enterprise governance and AOM’s organizational governance layer.
 class GovernanceGraph:
     def __init__(self):
         self.nodes = {}
@@ -15,4 +14,3 @@ class GovernanceGraph:
             if not rule(action):
                 return False
         return True
-This encodes institutional constraints, not just agent-level rules.

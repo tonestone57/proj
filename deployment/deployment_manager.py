@@ -1,4 +1,3 @@
-Coordinates deployment, versioning, and policy binding.
 class DeploymentManager:
     def __init__(self, env, registry, version_manager, policy_loader):
         self.env = env

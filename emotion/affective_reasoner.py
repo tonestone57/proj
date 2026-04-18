@@ -1,4 +1,3 @@
-Uses emotional state to influence decisions.
 class AffectiveReasoner:
     def reason(self, affective_state, context):
         valence = affective_state["valence"]
@@ -15,4 +14,3 @@ class AffectiveReasoner:
             return {"strategy": "act_fast", "confidence": 0.6}
 
         return {"strategy": "neutral", "confidence": 0.5}
-This is the AGI’s System-2 emotional reasoning.

@@ -1,4 +1,3 @@
-Implements the Progressive Negotiation Protocol (PNP).
 class NegotiationProtocol:
     def __init__(self, utility_system, concession_strategy, consensus_engine):
         self.utility = utility_system

@@ -1,4 +1,3 @@
-Runs forward simulations based on the world state + causal graph.
 class Simulator:
     def __init__(self, world_state, causal_graph):
         self.world_state = world_state
@@ -19,4 +18,3 @@ class Simulator:
         for action in actions:
             state = self.simulate_step(action)
         return state
-This is the AGI’s internal physics + logic engine.

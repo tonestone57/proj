@@ -1,4 +1,3 @@
-Implements probabilistic scoring & incoherence metrics.
 swarm-ai.org
 class MetricsEngine:
     def score(self, interaction):

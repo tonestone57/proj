@@ -1,4 +1,3 @@
-Implements detection of prompt-injection, memory poisoning, context poisoning, jailbreaks, and drift.
 class Detectors:
     def detect_prompt_injection(self, input_text):
         return "override" in input_text.lower()
@@ -11,4 +10,3 @@ class Detectors:
 
     def detect_drift(self, behavior, expected):
         return behavior != expected
-These map directly to CoSAI’s threat taxonomy. coalitionforsecureai.org

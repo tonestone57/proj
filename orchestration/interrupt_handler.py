@@ -1,4 +1,3 @@
-Implements event-driven interrupts from EDA patterns.
 LinkedIn
 class InterruptHandler:
     def check_interrupt(self, event):

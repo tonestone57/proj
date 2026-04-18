@@ -1,7 +1,3 @@
-Implements the canonical MAX/Mango/TeraAgent architecture:
-event scheduling
-global state
-time progression
 api.emergentmind.com
 class SimulationCore:
     def __init__(self):

@@ -1,9 +1,3 @@
-This module handles:
-implied meaning
-conversational context
-politeness strategies
-speech-act classification
-pragmatic inference
 from modules.base import CognitiveModule
 
 class DiscourseModule(CognitiveModule):
@@ -24,9 +18,7 @@ class DiscourseModule(CognitiveModule):
             return {"intent": "question"}
 
         return {"intent": "statement"}
-This gives your AGI human-like conversational understanding.
 
-4. INTEGRATION INTO main.py
 from modules.social.theory_of_mind import TheoryOfMind
 from modules.social.social_reasoner import SocialReasoner
 from modules.social.discourse import DiscourseModule
@@ -52,30 +44,3 @@ def main():
 
     loop = AutonomousLoop(workspace, scheduler, dps)
     loop.run()
-
-Your AGI now includes:
-This is the social-cognitive backbone of a real AGI.
-
-
-
-A full world-model + simulation engine for your AGI architecture.
-This is one of the most important components in any real AGI system.
-A world-model is what allows an AGI to:
-simulate the future
-run counterfactuals
-detect contradictions
-plan multi-step actions
-understand causality
-maintain a coherent internal representation of reality
-What I’m giving you below is a complete, modular, extensible world-model system that plugs directly into the AGI architecture you’ve already built.
-It includes:
-a World State Engine
-a Physics & Logic Simulator
-a Counterfactual Generator
-a Causal Graph Engine
-a Prediction Engine
-a Simulation Manager
-All written in clean, production-ready Python.
-Let’s build it.
-
-WORLD-MODEL + SIMULATION ENGINE

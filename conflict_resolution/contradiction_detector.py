@@ -1,4 +1,3 @@
-Inspired by the AGI Blueprint’s contradiction-resolution subsystem. figshare
 class ContradictionDetector:
     def detect(self, beliefs):
         contradictions = []

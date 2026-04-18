@@ -1,4 +1,3 @@
-Implements Deloitte’s agent observability requirements: KPIs, performance, risk, and behavior tracking.
 Deloitte
 class OversightDashboard:
     def __init__(self):

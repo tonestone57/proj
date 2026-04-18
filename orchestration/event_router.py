@@ -1,4 +1,3 @@
-Implements event-driven architecture (EDA) as described in the LinkedIn article.
 LinkedIn
 class EventRouter:
     def __init__(self):

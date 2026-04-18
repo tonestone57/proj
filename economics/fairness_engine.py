@@ -1,4 +1,3 @@
-Implements fairness metrics inspired by DRL-based hybrid reward mechanisms (efficiency + fairness).
 class FairnessEngine:
     def fairness(self, allocations):
         avg = sum(allocations) / len(allocations)

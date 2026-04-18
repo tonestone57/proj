@@ -1,4 +1,3 @@
-Represents cause-effect relationships.
 class CausalGraph:
     def __init__(self):
         self.graph = {}
@@ -13,4 +12,3 @@ class CausalGraph:
 
     def get_causes(self, effect):
         return [c for c, effects in self.graph.items() if effect in effects]
-This allows the AGI to reason about what leads to what.

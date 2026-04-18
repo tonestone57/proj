@@ -1,4 +1,3 @@
-Inspired by AWS/Boomi’s Agent Control Tower for managing agent sprawl, compliance, and lifecycle. AWS
 class AgentRegistry:
     def __init__(self):
         self.registry = {}

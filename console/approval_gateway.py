@@ -1,5 +1,3 @@
-Implements Microsoft’s checkpoint-pause-resume pattern for human approval.
-Microsoft Community
 class ApprovalGateway:
     def __init__(self):
         self.pending = {}

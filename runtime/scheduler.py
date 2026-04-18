@@ -1,4 +1,3 @@
-Controls which subsystem runs when.
 class Scheduler:
     def __init__(self):
         self.phases = ["perception", "cognition", "action", "reflection"]

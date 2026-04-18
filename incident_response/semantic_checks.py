@@ -1,4 +1,3 @@
-AIR (2026) uses semantic checks to detect incidents in real time. arXiv.org
 class SemanticChecks:
     def check(self, state, context):
         issues = []

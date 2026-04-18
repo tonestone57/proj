@@ -8,8 +8,6 @@ class SemanticMemory:
     def query(self, key):
         return self.knowledge.get(key)
 
-3. Cognitive Modules
-Each module follows the same interface:
 class CognitiveModule:
     def __init__(self, workspace, scheduler):
         self.workspace = workspace

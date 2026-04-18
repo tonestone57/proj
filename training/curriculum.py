@@ -1,4 +1,3 @@
-Gradually increases task complexity.
 class Curriculum:
     def __init__(self):
         self.level = 0
@@ -15,4 +14,3 @@ class Curriculum:
             2: ["multi-step reasoning"],
             3: ["social inference"],
         }[self.level]
-This is how the AGI scales to human-level complexity.
