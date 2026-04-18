@@ -1,5 +1,6 @@
 import time
-from core.drives import DriveEngine, THRESHOLD_REPLAN, THRESHOLD_CONSOLIDATE
+from core.drives import DriveEngine
+from core.config import THRESHOLD_REPLAN, THRESHOLD_CONSOLIDATE, TICK_INTERVAL
 
 class CognitiveHeartbeat:
     def __init__(self, workspace, scheduler, dps, planner=None, memory_manager=None):
@@ -10,7 +11,7 @@ class CognitiveHeartbeat:
         self.memory_manager = memory_manager
         self.drive_engine = DriveEngine()
         self.last_tick = 0
-        self.tick_interval = 5.0 # Run entropy check every 5 seconds
+        self.tick_interval = TICK_INTERVAL
 
     def heartbeat_tick(self):
         state = self.workspace.get_current_state()

@@ -1,8 +1,6 @@
 import math
 from core.base import CognitiveModule
-
-CONTEXT_SALIENCY_FLOOR = 0.5
-MAX_LIMIT = 8192
+from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT
 
 def calculate_information_density(words):
     """

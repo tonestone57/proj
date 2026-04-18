@@ -50,12 +50,10 @@ class SearchActor(CognitiveModule):
         Simulates an autonomous online search.
         In a real scenario, this would call Tavily or SearXNG.
         """
-        # More dynamic mock results
-        base_results = [
-            {"content": f"Documentation for {query}: Permissive MIT license.", "license": "MIT"},
-            {"content": f"Source code for {query}: licensed under the GPL v3.", "license": "GPL"},
-            {"content": f"Technical specification for {query}: Apache 2.0 license.", "license": "Apache"},
-            {"content": f"Readme for {query}: See COPYING for details.", "license": "GPL_Unknown"},
+        # Dynamic mock results based on query
+        return [
+            f"Documentation for {query}: Permissive MIT license summary.",
+            f"Technical spec for {query}: Licensed under Apache 2.0.",
+            f"Implementation details for {query}: See GPLv3 source for more info.",
+            f"Quick start guide for {query}: Included in COPYING file."
         ]
-
-        return [res["content"] for res in base_results]
