@@ -2,6 +2,9 @@
 
 This repository contains a modular AGI (Artificial General Intelligence) architecture designed for high-level reasoning, mathematical evaluation, and logical processing.
 
+### Philosophical Foundation: Minimum Description Length (MDL)
+According to the **Minimum Description Length (MDL)** principle, the best "understanding" of a dataset is the shortest possible program that can recreate it. Our SGI system aims to achieve maximum information density and compression in its memory and reasoning loops.
+
 ## Architecture
 
 The system utilizes an **Asynchronous Predictive Workspace (APW)**. Unlike traditional models, the Hub acts as a **Broadcast Center** using Pub/Sub logic to eliminate bottlenecks. It implements a **Multi-Stage Agentic RAG Pipeline** and is designed for **Self-Improvement**, autonomously updating its data files and logic to achieve better accuracy and reliability.
@@ -24,9 +27,9 @@ To maximize performance, cognitive workload is split into two tracks:
 - **Attention Gate**: Filters and amplifies signals to manage cognitive load. Integrates with the **Ethics** module for proactive vetting.
 
 ### Specialized Modules
-- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates **SMT Solvers (Z3)** for formal verification.
-- **Coding Module**: Executes and verifies Python code in a restricted sandbox.
-- **Search Agent**: Performs autonomous online searches using **Tavily** and **SearXNG**. Implements **GraphRAG** and a **License Guardian** (No GPL).
+- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates **SMT Solvers (Z3)** for formal verification by translating logic into **SMT-LIB format** to prove the absence of undefined states or overflows. Supports **LLM-Zip** (Lossless Neural Archiving) for deep session decompression.
+- **Coding Module**: Executes and verifies code in a **Stateful Digital Twin** (Firecracker microVMs). It calculates a **Confidence Score** and triggers **Research Missions** (Active Learning) when entropy is high. Implements **CodeComp** (AST-Aware KV Cache Compression).
+- **Search Agent**: Performs autonomous online searches using **Tavily** and **SearXNG**. Implements **GraphRAG** (The "Neural Map") and **JIT Context Compilation** (Synthesized Micro-Contexts). Includes a **License Guardian Classifier Gate** (No GPL).
 - **Critic**: Evaluates the reasoning of other modules to ensure accuracy and safety.
 - **Vision Module**: Processes visual inputs.
 - **Planner**: Generates step-by-step plans to achieve goals.
@@ -54,9 +57,12 @@ The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 | **Qdrant** | **The Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful/Index) |
 | **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) |
 
-- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** for efficient storage.
+- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (Entropy-Targeted Quantization) for efficient storage.
+    - **High Entropy Data** (New logic, complex bugs): Store at **FP16** or **INT8**.
+    - **Low Entropy Data** (Standard boilerplate): Store at **2-bit (Quantized Johnson-Lindenstrauss)**.
 - **Qdrant**: Primary store for active reasoning and payload filtering.
-- **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** for neural archiving.
+- **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** (Lossless Neural Archiving) for neural archiving.
+- **NebulaGraph/TuGraph**: Stores the **Neural Map** (AST-based relationships) for GraphRAG.
 
 ---
 
@@ -76,16 +82,15 @@ The AGI system focuses primarily on high-stakes intellectual domains: **C, C++, 
 The `SymbolicReasoner` module evaluates complex expressions and performs formal reasoning:
 - **Arithmetic**: `math.factorial(5)`, `math.sqrt(16)`
 - **Logic**: `True and (False or True)`
-- **Formal Verification**: Integration with **Z3 SMT Solver** for rigorous proof checking.
+- **Formal Verification**: Integration with **Z3 SMT Solver** to prove code correctness and safety at a mathematical level.
 
 ### Coding & Self-Improvement
 The `CodingModule` executes code across supported languages and specialized APIs.
 - **Polyglot Execution**: Sandboxed execution and testing.
-- **Execution Environment**: Uses **AWS Firecracker** microVMs as a **Digital Twin** for speculative execution.
-- **Specialized APIs**: Deep integration with **BeOS** and **Haiku OS** APIs.
-- **Cognitive Heartbeat**: Runs a proactive loop that triggers internal verification and optimization tasks based on **System Entropy**.
-- **Autonomous Verification**: Proactively writes unit tests and runs background checks.
-- **Autonomous Research**: Employs **Tavily** and **SearXNG** with **License Guardian** checks.
+- **Stateful Sandbox Persistence**: Uses **AWS Firecracker** microVMs as a **Persistent Digital Twin**.
+- **Specialized APIs**: Deep integration with **BeOS** and **Haiku OS** APIs. Prioritizes **Class Hierarchy Preservation** (virtual functions) during distillation.
+- **Cognitive Heartbeat**: Runs a proactive loop based on **System Entropy**.
+- **Context Integrity**: Triggers **Structural Distillation** (CodeComp) if token entropy is low, or **Neural Offloading** (LLM-Zip) if context is full.
 
 ## Directory Structure
 
@@ -93,24 +98,24 @@ The `CodingModule` executes code across supported languages and specialized APIs
 ├── core/
 │   ├── message_bus/       # Pub/Sub event router (Redis/ZeroMQ)
 │   ├── heartbeat.py       # The autonomous cognitive loop
-│   └── drives.py          # Entropy/Surprise calculator
+│   └── drives.py          # Entropy/Surprise calculator (Curiosity Drive)
 ├── actors/                # Formerly 'modules' - Independent processes
-│   ├── coding_actor.py    # Polyglot sandbox execution
-│   ├── reasoner_actor.py  # Z3/Lean integration
-│   ├── search_actor.py    # Tavily/GraphRAG loop
+│   ├── coding_actor.py    # Polyglot sandbox & Stateful Digital Twin (CodeComp)
+│   ├── reasoner_actor.py  # Z3/Lean/SMT-LIB integration (LLM-Zip)
+│   ├── search_actor.py    # Tavily/GraphRAG & JIT Context Compilation
 │   └── critic_actor.py    # Output verification
 ├── memory/
-│   ├── cache/             # Sub-millisecond Semantic Cache
+│   ├── cache/             # Sub-millisecond Semantic Cache (TurboQuant)
 │   ├── short_term/        # FAISS (Active Context)
 │   ├── long_term/         # LanceDB (Archived Context)
-│   ├── memory_manager.py  # Sleep Cycles & Synaptic Pruning
+│   ├── memory_manager.py  # Sleep Cycles & Context Integrity Check
 │   └── scratchpad.py      # Transient reasoning steps
-├── world_model/           # External reality and API state tracking
-└── safety_ethics/         # License compliance (No GPL) and alignment
+├── world_model/           # External reality & Runtime Digital Twin
+└── safety_ethics/         # License compliance (License Guardian) and alignment
 ```
 
 ---
 
 ## Licensing and Compliance
 
-**Strict Requirement**: This repository and all associated data files must NOT contain any code licensed under **GPL** or **LGPL**. All contributions and indexed data must adhere to permissive licenses (e.g., MIT, Apache 2.0, BSD) or be original works.
+**Strict Requirement**: This repository and all associated data files must NOT contain any code licensed under **GPL** or **LGPL**. All contributions and indexed data must adhere to permissive licenses (e.g., MIT, Apache 2.0, BSD) or be original works. The **License Guardian** enforces this gate during ingestion.

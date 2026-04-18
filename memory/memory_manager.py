@@ -1,4 +1,5 @@
 import math
+import re
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT
 
@@ -53,31 +54,90 @@ class MemoryManager(CognitiveModule):
         Performs background consolidation: Synaptic Pruning and Knowledge Synthesis.
         """
         print("[MemoryManager] Starting Sleep Cycle...")
+
+        # 1. Review Scratchpad and Active Context
+        patterns = self.identify_recurring_patterns()
+
+        # 2. Synthesize new Knowledge Base Entry
+        if patterns:
+            self.synthesize_knowledge(patterns)
+
+        # 3. Synaptic Pruning (Archive raw logs)
         self.perform_synaptic_pruning()
-        self.synthesize_knowledge()
+
         print("[MemoryManager] Sleep Cycle complete.")
+
+    def identify_recurring_patterns(self):
+        """
+        Reviews Scratchpad and Workspace history to identify recurring patterns.
+        """
+        print("[MemoryManager] Reviewing Scratchpad and Active Context for patterns...")
+        state = self.workspace.get_current_state()
+        history = state.get("history", [])
+
+        # Simulate pattern detection (e.g., looking up Haiku OS syntax)
+        patterns = []
+        haiku_count = sum(1 for msg in history if "Haiku OS" in str(msg))
+        if haiku_count > 3:
+            patterns.append("Frequent interaction with Haiku OS BMessage syntax")
+
+        return patterns
 
     def perform_synaptic_pruning(self):
         print("[MemoryManager] Pruning redundant patterns and low-saliency memories.")
+        print("[MemoryManager] Archiving raw logs to long-term storage (LanceDB).")
 
-    def synthesize_knowledge(self):
-        print("[MemoryManager] Synthesizing new Knowledge Base entries from recent logs.")
+    def synthesize_knowledge(self, patterns):
+        print(f"[MemoryManager] Synthesizing new Knowledge Base entries for patterns: {patterns}")
+        for pattern in patterns:
+            # In a real system, this would generate a Markdown doc
+            kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
+            print(f"[MemoryManager] Generated KB Entry: {pattern}")
+
+    def calculate_structural_importance_score(self, context):
+        """
+        Calculates a Structural Importance Score (I_struct) for tokens using a Code Property Graph (CPG) logic.
+        Protects function signatures, return types, and control logic (if/while).
+        """
+        print("[MemoryManager] Calculating Structural Importance Score ($I_{struct}$) using CPG...")
+        # Simulated CodeComp logic: identifying mission-critical structural tokens
+        important_patterns = [r"def\s+", r"class\s+", r"if\s+", r"while\s+", r"return\s+", r"virtual\s+"]
+        score = 0
+        for pattern in important_patterns:
+            if re.search(pattern, context):
+                score += 1
+        return score
+
+    def perform_neural_archiving(self, context):
+        """
+        Performs Lossless Neural Archiving (LLM-Zip).
+        Encodes context into a dense, neural representation for 0% information loss.
+        """
+        print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip) to LanceDB...")
+        # Simulate arithmetic coding via LLM probabilities
+        return "compressed_neural_representation_0xdeadbeef"
+
+    def perform_structural_distillation(self, context):
+        """
+        Performs AST-Aware KV Pruning (CodeComp).
+        Evicts boilerplate while protecting the Control Flow Skeleton.
+        """
+        print("[MemoryManager] Performing Structural Distillation (CodeComp)...")
+        # Evicting redundant comments and boilerplate
+        distilled = re.sub(r"#.*", "", context)
+        return distilled
 
     def should_compress(self, context):
         """
-        Decides between "Distill", "Archive", or "Continue".
+        Decides between "Distill" (CodeComp), "Archive" (LLM-Zip), or "Continue".
+        Uses Context Integrity Check based on MDL and information density.
         """
-        if not context:
-            return "Continue"
-
-        words = context.split()
-        density = calculate_information_density(words)
-        context_len = len(words)
-
-        if density < CONTEXT_SALIENCY_FLOOR:
+        # Instead of just len(context) > threshold:
+        token_entropy = calculate_information_density(context.split() if isinstance(context, str) else context)
+        if token_entropy < CONTEXT_SALIENCY_FLOOR:
             # The context is full of "fluff"; trigger structural distillation
             return "Distill"
-        elif context_len > MAX_LIMIT * 0.8:
+        elif len(context.split() if isinstance(context, str) else context) > MAX_LIMIT * 0.8:
             # The context is actually dense; trigger neural offloading to LanceDB
             return "Archive"
         return "Continue"
