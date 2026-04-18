@@ -84,8 +84,25 @@ class MemoryManager(CognitiveModule):
         return patterns
 
     def perform_synaptic_pruning(self):
-        print("[MemoryManager] Pruning redundant patterns and low-saliency memories.")
-        print("[MemoryManager] Archiving raw logs to long-term storage (LanceDB).")
+        """
+        Evicts low-saliency memories during sleep cycles.
+        """
+        print("[MemoryManager] Performing Synaptic Pruning...")
+        state = self.workspace.get_current_state()
+        history = state.get("history", [])
+
+        pruned_count = 0
+        preserved_history = []
+        for msg in history:
+            # Low saliency: message is old and has low token entropy
+            saliency = calculate_information_density(str(msg).split())
+            if saliency > CONTEXT_SALIENCY_FLOOR:
+                preserved_history.append(msg)
+            else:
+                pruned_count += 1
+
+        print(f"[MemoryManager] Pruned {pruned_count} low-saliency memories.")
+        print("[MemoryManager] Archiving remaining raw logs to long-term storage (LanceDB).")
 
     def synthesize_knowledge(self, patterns):
         print(f"[MemoryManager] Synthesizing new Knowledge Base entries for patterns: {patterns}")
@@ -93,6 +110,16 @@ class MemoryManager(CognitiveModule):
             # In a real system, this would generate a Markdown doc
             kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
             print(f"[MemoryManager] Generated KB Entry: {pattern}")
+            self.KnowledgeDistillation_Loop(kb_entry)
+
+    def KnowledgeDistillation_Loop(self, entry):
+        """
+        Refines synthesized knowledge using MDL principles.
+        """
+        print("[MemoryManager] Running Knowledge Distillation Loop...")
+        # Simulate distilling natural language into high-density representation
+        distilled = entry.replace("\n\n", " ").replace("This entry was automatically generated", "Generated")
+        self.calculate_MDL_metric(entry, distilled)
 
     def calculate_structural_importance_score(self, context):
         """
@@ -169,6 +196,37 @@ class MemoryManager(CognitiveModule):
         serialized_ast = "->".join(ops)
         print(f"[MemoryManager] Serialized AST size: {len(serialized_ast)} bytes")
         return serialized_ast
+
+    def AST_Aware_Chunking(self, code):
+        """
+        Simulates AST-aware chunking to preserve structural relationships.
+        Avoids standard 200-400 word chunking for code.
+        """
+        print("[MemoryManager] Performing AST-Aware Chunking...")
+        chunks = []
+        # Simulate splitting by function/class blocks
+        current_chunk = []
+        for line in code.splitlines():
+            if (line.startswith("def ") or line.startswith("class ")) and current_chunk:
+                chunks.append("\n".join(current_chunk))
+                current_chunk = []
+            current_chunk.append(line)
+        if current_chunk:
+            chunks.append("\n".join(current_chunk))
+
+        print(f"[MemoryManager] Created {len(chunks)} structural chunks.")
+        return chunks
+
+    def calculate_MDL_metric(self, data, compressed_data):
+        """
+        Calculates the Minimum Description Length (MDL) metric.
+        Lower values indicate better understanding/compression.
+        """
+        raw_size = len(str(data))
+        compressed_size = len(str(compressed_data))
+        mdl_score = compressed_size / raw_size if raw_size > 0 else 1.0
+        print(f"[MemoryManager] MDL Score: {mdl_score:.4f} (Raw: {raw_size}, Compressed: {compressed_size})")
+        return mdl_score
 
     def perform_structural_distillation(self, context):
         """

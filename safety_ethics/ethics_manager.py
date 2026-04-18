@@ -8,3 +8,18 @@ class EthicsManager:
         if "harm" in data.lower() or "kill" in data.lower():
             return False
         return True
+
+    def assess_safety(self, message):
+        """
+        Provides a safety score between 0 and 1.
+        Used by AttentionGate for proactive vetoing.
+        """
+        if not self.is_safe(message):
+            return 0.0
+
+        data = str(message.get("data", "")).lower()
+        # Heuristic risks
+        if "exploit" in data or "vulnerability" in data:
+            return 0.4
+
+        return 1.0
