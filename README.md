@@ -12,8 +12,8 @@ To maximize performance, cognitive workload is split into two tracks:
 - **The Global Workspace (Slow Path):** Higher-order reasoning (Planning, Complex Coding) requiring full attention.
 
 ### Core Components
-- **Message Bus (The Spine)**: An asynchronous bus where all modules post their state.
-- **Integrator (The Hub)**: Samples the Message Bus every "Tick" to form a coherent global state.
+- **Message Bus (The Spine)**: An asynchronous bus (Ray or NATS) where all modules post their state.
+- **Integrator (The Hub)**: Samples the Message Bus every "Tick" using **Dragonfly** for high-concurrency state updates.
 - **Drive Engine (Drives Module)**: Calculates a **Surprise/Entropy Metric** to proactively trigger re-planning or background consolidation.
 - **Internal Critic**: Verifies the logic and safety of outputs before they are finalized.
 - **Scratchpad Memory**: A dedicated working memory area for intermediate reasoning steps.
@@ -46,19 +46,17 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval.
 
 ### Storage Options
-The AGI uses a tiered storage system to manage cognitive state and external knowledge:
+The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 
-| Feature | Semantic Cache | FAISS | LanceDB |
+| Database | Role | Speed (Latency) | Data Lifecycle |
 | :--- | :--- | :--- | :--- |
-| **Type** | Sub-millisecond **Cache**. | Low-level **Library**. | Serverless **Database**. |
-| **Primary Storage** | **In-Memory.** | **RAM-first.** | **Disk-first.** |
-| **Persistence** | Volatile (Redis). | Manual `.index` files. | Automatic (SQLite-like). |
-| **Compression** | Key-Value Pairs. | Product Quantization (PQ). | Columnar (Lance format). |
-| **Use Case** | **Reflex Cache** & Latency Reduction. | **Short-term Memory** & **DPS**. | **Long-term Memory** & **World Model**. |
+| **FAISS** | **The Reflex Arc** | **Sub-millisecond** | Transient (Volatile/RAM) |
+| **Qdrant** | **The Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful/Index) |
+| **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) |
 
-- **Semantic Cache**: Uses tools like `Redis` or `GPTCache` to store semantically identical thought processes, dropping response times to milliseconds.
-- **FAISS**: Best for the **DPS** where microsecond latency is critical for comparing current "thoughts" against recent cognitive history.
-- **LanceDB**: Best for the **World Model**, allowing the storage of terabytes of extracted knowledge on disk while supporting complex metadata filtering.
+- **FAISS**: Embedded in the Hub for instant thought-deduplication and similarity checks.
+- **Qdrant**: Primary store for active reasoning and payload filtering (e.g., specific language/API bug fixes).
+- **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation and RAG data.
 
 ---
 
@@ -87,7 +85,7 @@ The `CodingModule` executes code across supported languages and specialized APIs
 - **Specialized APIs**: Deep integration with **BeOS** and **Haiku OS** APIs.
 - **Cognitive Heartbeat**: Runs a proactive loop that triggers internal verification and optimization tasks without user input.
 - **Autonomous Verification**: Proactively writes unit tests and runs background checks to find and fix edge-case errors.
-- **Autonomous Research**: The system can search online to find latest libraries, fix bugs, or learn new algorithms.
+- **Autonomous Research**: Employs a hybrid strategy—**Tavily** for low-latency reasoning and **SearXNG** for high-breadth verification during background cycles.
 
 ## Directory Structure
 

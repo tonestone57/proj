@@ -1,9 +1,9 @@
 import sys
 import io
 import contextlib
-from modules.base import CognitiveModule
+from core.base import CognitiveModule
 
-class CodingModule(CognitiveModule):
+class CodingActor(CognitiveModule):
     def receive(self, message):
         if message["type"] == "code_execution":
             code = message["data"]

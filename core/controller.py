@@ -25,10 +25,10 @@ class DPSController:
         # 5. Submit to scheduler
         self.scheduler.submit(module, message, priority)
 
-from dps.router import TaskRouter
-from dps.priority_engine import PriorityEngine
-from dps.attention_gate import AttentionGate
-from dps.controller import DPSController
+from core.message_bus.router import TaskRouter
+from core.message_bus.priority_engine import PriorityEngine
+from safety_ethics.attention_gate import AttentionGate
+from core.controller import DPSController
 
 def main():
     workspace = GlobalWorkspace()

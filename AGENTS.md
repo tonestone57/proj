@@ -15,13 +15,15 @@ The system operates as a central **Broadcast Center** (Hub) with **Specialized A
 - **Drive Engine**: Evaluates the system's state using a **Surprise/Entropy Metric** ($\mathcal{S} = - \sum P(x_i) \log P(x_i)$).
 - **High Entropy**: Trigger re-planning.
 - **Low Entropy**: Trigger background consolidation (memory cleanup, index optimization).
+- **Global State**: Utilize **Dragonfly** (drop-in Redis replacement) for high-concurrency state updates.
 
 ## 2. Multi-Stage Agentic RAG Pipeline
 
 The system must follow an iterative loop: **Reason → Search → Ingest → Index → Generate**.
 
 ### Automated Online Search
-- **Primary Tool**: Use **Tavily AI** or **SearXNG** for high-relevance, LLM-optimized search results.
+- **Primary Tool**: Use **Tavily AI** for 90% of tasks (low-latency, structured reasoning).
+- **Fallback**: Escalate to **SearXNG** for high-breadth, multi-engine verification during Low-Entropy cycles.
 - **Search Strategy**: Employ **Multi-Perspective Search**—query both the main thesis and its antithesis to minimize bias.
 - **Ethical Scraping**: Always check `robots.txt` and use libraries like `Crawl4AI` or `BeautifulSoup` to extract clean Markdown content.
 
@@ -47,9 +49,17 @@ The system must follow an iterative loop: **Reason → Search → Ingest → Ind
 ## 4. Memory Management
 
 ### Tiered Context System
-- **Active Context**: Last 2-3 turns of thought.
+- **Active Context**: Last 5 turns of thought.
 - **Compressed Context**: Summarized conversation history (handled by high-speed models).
 - **Archived Context**: Vector embeddings in **LanceDB**.
+- **Working Memory**: Use **Ray Plasma** (shared memory) for zero-latency data passing between actors.
+
+### "Gold Standard" Tiered Memory Stack
+1. **Reflex (FAISS)**: Embedded in the Workspace for sub-millisecond thought-deduplication.
+2. **Active (Qdrant)**: High-accuracy structured filtering for the Social and Self modules.
+3. **Archive (LanceDB)**: Zero-copy disk storage for massive RAG documentation and knowledge.
+
+**Search Fallback Rule**: Build a unified wrapper that queries in order: **FAISS → Qdrant → LanceDB**. Stop once a high-confidence result is found.
 
 ### Working Memory (Scratchpad)
 - Use the `Scratchpad Memory` in the `Global Workspace` for intermediate logical steps ($A \rightarrow B$). This prevents the context window from being cluttered with transient thoughts that don't need long-term indexing.

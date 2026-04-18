@@ -3,8 +3,8 @@ import time
 import asyncio
 
 # Import existing module logic for reuse
-from modules.reasoning.symbolic_reasoner import SymbolicReasoner
-from modules.coding.coding_module import CodingModule
+from actors.reasoner_actor import ReasonerActor as ReasonerLogic
+from actors.coding_actor import CodingActor as CodingLogic
 
 # Ray Initialization
 ray.init(ignore_reinit_error=True)
@@ -19,20 +19,20 @@ class MockScheduler:
 class CodingActor:
     def __init__(self):
         # Reuse existing logic but bypass old sync infrastructure
-        self.module = CodingModule(MockWorkspace(), MockScheduler())
+        self.logic = CodingLogic(MockWorkspace(), MockScheduler())
 
     def execute(self, code):
         print(f"[CodingActor] Executing code...")
-        return self.module.execute_code(code)
+        return self.logic.execute_code(code)
 
 @ray.remote
 class ReasonerActor:
     def __init__(self):
-        self.module = SymbolicReasoner(MockWorkspace(), MockScheduler())
+        self.logic = ReasonerLogic(MockWorkspace(), MockScheduler())
 
     def reason(self, query):
         print(f"[ReasonerActor] Reasoning about: {query}")
-        return self.module.reason(query)
+        return self.logic.reason(query)
 
 @ray.remote
 class IntegratorHub:

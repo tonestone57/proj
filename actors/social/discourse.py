@@ -1,4 +1,4 @@
-from modules.base import CognitiveModule
+from core.base import CognitiveModule
 
 class DiscourseModule(CognitiveModule):
     def receive(self, message):
@@ -19,9 +19,9 @@ class DiscourseModule(CognitiveModule):
 
         return {"intent": "statement"}
 
-from modules.social.theory_of_mind import TheoryOfMind
-from modules.social.social_reasoner import SocialReasoner
-from modules.social.discourse import DiscourseModule
+from actors.social.theory_of_mind import TheoryOfMind
+from actors.social.social_reasoner import SocialReasoner
+from actors.social.discourse import DiscourseModule
 
 def main():
     workspace = GlobalWorkspace()
