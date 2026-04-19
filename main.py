@@ -1,97 +1,104 @@
 import ray
 import time
 import asyncio
+import os
 
-# Import existing module logic for reuse
-from actors.reasoner_actor import ReasonerActor as ReasonerLogic
-from actors.coding_actor import CodingActor as CodingLogic
+# Core components
+from core.workspace import GlobalWorkspace
+from core.scheduler import Scheduler
+from core.drives import DriveEngine
+from core.config import CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME, THERMAL_THRESHOLD_C
+
+# Actors
+from actors.reasoner_actor import ReasonerActor
+from actors.coding_actor import CodingActor
+from actors.search_actor import SearchActor
+from actors.critic_actor import InternalCritic
+from memory.memory_manager import MemoryManager
+from monitoring.thermal_guard import ThermalGuard
+
+# Enforce thread limits for Intel i5-8265U (15W TDP)
+os.environ["OMP_NUM_THREADS"] = str(MAX_THREADS)
+os.environ["MKL_NUM_THREADS"] = str(MAX_THREADS)
+os.environ["OPENBLAS_NUM_THREADS"] = str(MAX_THREADS)
+os.environ["VECLIB_MAXIMUM_THREADS"] = str(MAX_THREADS)
+os.environ["NUMEXPR_NUM_THREADS"] = str(MAX_THREADS)
 
 # Ray Initialization
-ray.init(ignore_reinit_error=True)
+ray.init(ignore_reinit_error=True, num_cpus=CPU_CORES_MAX)
 
-# Mock classes to allow existing modules to initialize without side effects
-class MockWorkspace:
-    def register(self, module): pass
-class MockScheduler:
-    def submit(self, module, message, priority=1.0): pass
-
-@ray.remote
-class CodingActor:
-    def __init__(self):
-        # Reuse existing logic but bypass old sync infrastructure
-        self.logic = CodingLogic(MockWorkspace(), MockScheduler())
-
-    def execute(self, code):
-        print(f"[CodingActor] Executing code...")
-        return self.logic.execute_code(code)
-
-@ray.remote
-class ReasonerActor:
-    def __init__(self):
-        self.logic = ReasonerLogic(MockWorkspace(), MockScheduler())
-
-    def reason(self, query):
-        print(f"[ReasonerActor] Reasoning about: {query}")
-        return self.logic.reason(query)
-
-@ray.remote
-class IntegratorHub:
-    def __init__(self):
+class SGIHub:
+    def __init__(self, workspace, scheduler, thermal_guard):
+        self.workspace = workspace
+        self.scheduler = scheduler
+        self.thermal_guard = thermal_guard
         self.state = {"focus": "idle", "history": []}
 
-    def integrate(self, results):
-        for res in results:
-            print(f"[Hub] Integrating result: {res}")
-            self.state["history"].append(res)
-        return self.state
+    async def safe_delegate(self, actor_handle, task_type, payload):
+        """Check thermal health before every task."""
+        if await self.thermal_guard.check_health.remote():
+            print(f"[Hub] System is cool. Delegating {task_type}...")
+            actor_handle.receive.remote({"type": task_type, "data": payload})
+            return True
+        else:
+            print("🚨 Thermal Guard Active: CPU cooling down...")
+            return False
 
-    def get_focus(self):
-        return "Solve math and optimize code"
-
-class DriveEngine:
-    def needs_proactive_effort(self, state):
-        # Simple entropy-like trigger: if history is short, we need more "knowledge"
-        return len(state.get("history", [])) < 5
+    async def poll_scheduler(self):
+        """Poll the scheduler and broadcast results to the workspace."""
+        res_obj = await self.scheduler.next.remote()
+        if res_obj:
+            priority, actor_handle, message = res_obj
+            print(f"[Hub] Processing result from scheduler: {message['type']}")
+            self.workspace.broadcast.remote(message)
 
 async def cognitive_cycle():
-    hub = IntegratorHub.remote()
-    coder = CodingActor.remote()
-    reasoner = ReasonerActor.remote()
+    # Initialize Core Actors
+    workspace = GlobalWorkspace.remote()
+    scheduler = Scheduler.remote()
+    thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
+
+    # Initialize Specialized Actors
+    model_id = "intel/neural-chat-14b-v3-3"
+    reasoner = ReasonerActor.remote(workspace, scheduler, model_id=model_id)
+    coder = CodingActor.remote(workspace, scheduler, model_id=model_id)
+    searcher = SearchActor.remote(workspace, scheduler, model_id=model_id)
+    critic = InternalCritic.remote(workspace, scheduler, model_id=model_id)
+    memory_manager = MemoryManager.remote(workspace, scheduler)
+
+    hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
 
-    pending_futures = []
-
-    print("Ray-based APW SGI System Initialized.")
-    print("Architecture: Asynchronous Predictive Workspace")
+    print(f"--- {SYSTEM_NAME} Initialized for Intel i5-8265U ---")
+    print("Architecture: Asynchronous Predictive Workspace (APW)")
 
     # The Heartbeat Loop
     for tick in range(10):
         print(f"\n--- Heartbeat Tick {tick+1} ---")
 
-        # 1. Integrate: Hub updates the "Global Workspace" state
-        if pending_futures:
-            # Check which tasks are done
-            done, pending_futures = ray.wait(pending_futures, timeout=0)
-            if done:
-                results = ray.get(done)
-                await hub.integrate.remote(results)
+        # 1. Thermal & Resource Check
+        health = await thermal_guard.get_thermal_state.remote()
+        print(f"[Hub] Thermal State: Load={health['load']}%, Temp={health['temp']}C, Throttled={health['is_throttled']}")
 
-        global_state = await hub.integrate.remote([]) # Just to get latest state
+        # 2. Drive: Proactive task triggering based on Entropy
+        state = await workspace.get_current_state.remote()
+        # Fixed nitpick: Use initialized DriveEngine instance
+        entropy = drives.evaluate_state(state)
+        print(f"[Hub] System Entropy: {entropy:.4f}")
 
-        # 2. Drive: Does the internal state require action?
-        if drives.needs_proactive_effort(global_state):
+        if entropy > 0.7: # Threshold from config.yaml
             print("[Drives] High Entropy detected. Triggering proactive tasks.")
-            # 3. Broadcast: Tell all modules what the current "Top Priority" is
-            # In Ray, we trigger the actors asynchronously
             if tick % 2 == 0:
-                future = reasoner.reason.remote("math.factorial(6)")
+                await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
             else:
-                future = coder.execute.remote("print('Proactive self-test')")
-            pending_futures.append(future)
+                await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
 
-        await asyncio.sleep(0.5)
+        # 3. Poll Scheduler for asynchronous results
+        await hub.poll_scheduler()
 
-    print("\nAPW Demo complete.")
+        await asyncio.sleep(TICK_INTERVAL)
+
+    print(f"\n{SYSTEM_NAME} Demo complete.")
 
 if __name__ == "__main__":
     asyncio.run(cognitive_cycle())

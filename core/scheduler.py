@@ -1,5 +1,7 @@
+import ray
 import heapq
 
+@ray.remote
 class Scheduler:
     def __init__(self):
         self.queue = []
@@ -7,6 +9,7 @@ class Scheduler:
 
     def submit(self, module, message, priority=1.0):
         # Use counter as a tie-breaker to avoid comparing modules
+        # module can be a Ray ActorHandle
         heapq.heappush(self.queue, (-priority, self._counter, module, message))
         self._counter += 1
 
@@ -14,4 +17,5 @@ class Scheduler:
         if not self.queue:
             return None
         neg_priority, count, module, message = heapq.heappop(self.queue)
+        # Return only priority, module, and message to match Hub's expected unpacking
         return (-neg_priority, module, message)
