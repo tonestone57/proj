@@ -44,4 +44,4 @@ CORES_SYMBOLIC = _config.get('actors', {}).get('symbolic_reasoner', {}).get('cpu
 CORES_SOCIAL = _config.get('actors', {}).get('social_intent_agent', {}).get('cpu_cores', 1)
 CORES_SEARCH = _config.get('actors', {}).get('search_ingestion_spoke', {}).get('cpu_cores', 1)
 CORES_CODING = _config.get('actors', {}).get('coding_actor', {}).get('cpu_cores', 2)
-CORES_CRITIC = 2
+CORES_CRITIC = _config.get('actors', {}).get('internal_critic', {}).get('cpu_cores', 2)

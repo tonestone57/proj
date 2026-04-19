@@ -46,7 +46,10 @@ class SGIHub:
         if await self.thermal_guard.check_health.remote():
             print(f"[Hub] System is cool. Delegating {task_type}...")
             # Use Ray remote call on the handle
-            return await actor_handle.receive.remote({"type": task_type, "data": payload})
+            result = await actor_handle.receive.remote({"type": task_type, "data": payload})
+            if result:
+                await self.workspace.broadcast.remote(result)
+            return result
         else:
             print("🚨 Thermal Guard Active: CPU cooling down...")
             await asyncio.sleep(5)
@@ -56,6 +59,7 @@ class SGIHub:
         for res in results:
             print(f"[Hub] Integrating result: {res}")
             self.state["history"].append(res)
+            await self.workspace.broadcast.remote(res)
         return self.state
 
 async def cognitive_cycle():
@@ -65,7 +69,6 @@ async def cognitive_cycle():
     thermal_guard = ThermalGuard.remote(threshold_temp=config['hardware_limits']['thermal_threshold_celsius'])
 
     # Initialize Specialized Actors
-    # Using the preferred self-reliant Intel model
     model_id = "intel/neural-chat-14b-v3-3"
     reasoner = ReasonerActor.remote(workspace, scheduler, model_id=model_id)
     coder = CodingActor.remote(workspace, scheduler, model_id=model_id)
@@ -73,6 +76,14 @@ async def cognitive_cycle():
     critic = InternalCritic.remote(workspace, scheduler, model_id=model_id)
     planner = Planner.remote(workspace, scheduler)
     memory_manager = MemoryManager.remote(workspace, scheduler)
+
+    # Register subscribers to workspace
+    await workspace.register.remote(reasoner)
+    await workspace.register.remote(coder)
+    await workspace.register.remote(searcher)
+    await workspace.register.remote(critic)
+    await workspace.register.remote(planner)
+    await workspace.register.remote(memory_manager)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
@@ -106,7 +117,9 @@ async def cognitive_cycle():
             priority, handle, msg = task
             if handle:
                 print(f"[Hub] Processing scheduled task: {msg['type']}")
-                await handle.receive.remote(msg)
+                result = await handle.receive.remote(msg)
+                if result:
+                    await workspace.broadcast.remote(result)
 
         await asyncio.sleep(1)
 

@@ -19,11 +19,6 @@ hardware_limits:
   max_threads: 4
 
 # SECTION 2: Specialized Actor Precision Tiers (2026 Standards)
-# Reasoning Engine: BF16 (Q16)
-# Base Model Weights: NF4
-# Vector Index (RAG): Q8 + Binary Quantization
-# KV Cache: FP8 (E4M3)
-# Search/Text Logs: Zstd-19
 actors:
   symbolic_reasoner:
     precision: "bf16"               # Logic/Math (Q16)
@@ -45,6 +40,9 @@ actors:
     precision: "nf4"
     cpu_cores: 2
     priority: 1
+
+  internal_critic:
+    cpu_cores: 2
 
 # SECTION 3: Memory & Context Management (Section 4)
 memory_management:
