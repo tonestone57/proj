@@ -1,28 +1,107 @@
-# SGI Development Guidelines (2026 Standards)
+# SGI Roadmap: i5-8265U Optimized
 
-This repository follows the 2026 SGI roadmap for autonomous development and self-improvement.
+This unified roadmap merges the high-level SGI (Synthetic General Intelligence) architecture with the specific hardware constraints of the Intel i5-8265U CPU. It prioritizes low-latency execution via Intel-specific optimizations while maintaining the advanced "2026-tier" compression and memory management methods.
 
-## 1. APW Actor Pattern
-- Use **Ray** for all distributed modules to bypass the Python GIL.
-- All actors must inherit from `CognitiveModule`.
-- Communication is asynchronous: actors broadcast results to the `GlobalWorkspace` via `self.workspace.broadcast.remote()`.
+## Agent Development Guidelines
 
-## 2. 2026 Tiered Memory Stack
-Every cognitive cycle must utilize the standard codecs:
-1. **Tier 1 (Ephemeral)**: **Flash-Optimized LZ4** for the message bus.
-2. **Tier 2 (Active Context)**: **TurboQuant (QJL)** with Q8 + Binary Quantization.
-3. **Tier 3 (Deep Archive)**: **LLM-Zip** (Lossless Neural Archiving) in LanceDB.
+This document governs the autonomous development and self-improvement cycles of the SGI. It is specifically tuned for the Whiskey Lake architecture to balance high-reasoning density with mobile thermal envelopes.
 
-## 3. Hardware Constraints (i5-8265U)
-- **TDP**: 15W.
-- **Thread Limit**: Max 4 threads for SGI operations (configured in `main.py`).
-- **Thermal Limit**: 78°C (monitored by `ThermalGuard`).
+### Core Principle: Minimum Description Length (MDL)
 
-## 4. Verification & Safety
-- **Logic**: Use `ReasonerActor` for Z3 SMT-LIB formal verification of mission-critical code.
-- **Coding**: Use `CodingActor` for speculative execution in Firecracker VMs and AST-aware distillation.
-- **Compliance**: **Strictly Prohibited**: GPL, LGPL, AGPL. Enforced by the `License Guardian` in `search_actor.py`.
+The agent operates under the MDL principle: the best understanding of any data is its shortest possible representation. Every cognitive cycle aims for maximum structural and neural compression.
 
-## 5. Minimum Description Length (MDL)
-- Every sleep cycle (`MemoryManager.trigger_sleep_cycle`) must review the scratchpad for patterns and synthesize knowledge into high-density Markdown entries.
-- Use `AST-Aware Chunking` to preserve code context.
+## 1. Asynchronous Predictive Workspace (APW)
+
+The system utilizes a Broadcast Center (Hub) and Specialized Actors (Spokes) communicating via an asynchronous Message Bus.
+
+### Hardware-Aware Actor Pattern
+- **Parallel Execution**: Use Ray as the distributed orchestrator. To manage the thermal load of the i5-8265U (4 cores/8 threads), limit actors to num_cpus=1 or 2.
+- **Intel Acceleration**: Implement IPEX-LLM (Intel Extension for PyTorch) for optimized inference on CPU.
+- **Threading**: Configure for a maximum of 4 concurrent threads to avoid context-switching overhead and frequency throttling.
+- **Data Transfer**: Use Ray Plasma (shared memory) for zero-latency buffer transfers between the Symbolic Reasoner and the Coding Module.
+
+### The Cognitive Heartbeat (Curiosity Drive)
+The system runs a continuous Heartbeat Loop to maintain proactivity:
+- **Drive Engine**: Measures state via a Surprise/Entropy Metric ($\mathcal{S} = - \sum P(x_i) \log P(x_i)$).
+- **High Entropy**: Trigger re-planning or an Active Learning Research Mission.
+- **Low Entropy**: Trigger a Sleep Cycle (background refactoring, indexing, synthetic data generation).
+- **Global State**: Utilize Dragonfly (Redis replacement) for high-concurrency state updates.
+
+## 2. Multi-Stage Agentic RAG Pipeline
+
+Follow the loop: Reason → Search → Ingest → Index → Generate.
+
+### JIT Context Compilation
+- **Primary Search**: Tavily AI (90% tasks); SearXNG (fallback/verification).
+- **Distiller Agent**: Compile 10k tokens of documentation into a 400-token Actionable Spec (API Cheat Sheet) before generation.
+- **GraphRAG (Neural Map)**: Use tree-sitter for AST-based indexing. Store code dependencies (class/function nodes) in NebulaGraph or TuGraph.
+
+### Data Ingestion & 2026 Compression Landscape
+On the i5-8265U, memory bandwidth is the bottleneck. Use these domain-aware codecs:
+
+| Component | Format | Hardware Benefit |
+| :--- | :--- | :--- |
+| Reasoning Engine | FP16 | High-precision logic for A→B proofs. |
+| Base Model Weights | Q5_K_M | Optimized for Intel AVX-512/VNNI instructions. |
+| KV Cache (Memory) | INT8 (Q8_0) | Expands context window without OOM on 8GB/16GB RAM. Implement Per-Channel Scaling. |
+
+$$q_i = \text{round} \left( \frac{x_i}{S_i} \right) \quad \text{where } S_i = \frac{\max(|x_i|)}{127}$$
+
+This gives INT8 the flexibility to handle "spiky" data without needing the hardware-heavy FP8 format.
+
+### Per-Channel Scaling Implementation:
+1. **Identify the Channel Vector**: Isolate the vector $x_i$ representing a single channel or block within the KV cache. Because activations in LLMs are "spiky" (having high-magnitude outliers in specific dimensions), calculating a global scale for the entire cache would squash the precision of smaller, more frequent values.
+2. **Calculate the Per-Channel Scale ($S_i$)**: Find the maximum absolute value within that specific channel. You divide this by $127$ (the maximum value for a signed 8-bit integer) to create a scaling factor that ensures the largest value fits exactly at the edge of the INT8 range.
+3. **Quantize the Values ($q_i$)**: Divide every element $x_i$ in that channel by its specific scale $S_i$ and round to the nearest integer. This effectively "stretches" the data to use the full 8-bit dynamic range.
+4. **Dequantization for Reasoning**: When the Reasoning (Brain) component needs to read from the KV Cache, it performs the inverse: $x_{i} \approx q_i \times S_i$.
+
+| Component | Format | Hardware Benefit |
+| :--- | :--- | :--- |
+| Vector Index | Q8 + BQ | TurboQuant (QJL): 4-bit with 0% accuracy loss. |
+| Deep Archive | LLM-Zip | Neural Arithmetic Coding; 5x-10x better than Zstd. |
+
+## 3. Memory Management (Adaptive)
+
+### Adaptive Context Manager
+- **Context Threshold**: When context > 80% (e.g., 1638 tokens of a 2k window), trigger a pruning cycle.
+- **Structural KV Compression (CodeComp)**: Use a Code Property Graph (CPG) to identify the "Control Flow Skeleton."
+    - **Protect**: Function signatures, return types, and control logic (if/while).
+    - **Evict**: Boilerplate, redundant comments, and "fluff" detected via token entropy.
+- **RAM Guard**: Monitor psutil.virtual_memory(). Pause ingestion if available RAM < 800MB.
+
+### Tiered Memory Stack
+1. **Reflex (FAISS)**: Sub-millisecond thought-deduplication using TurboQuant.
+2. **Active (Qdrant)**: High-accuracy structured filtering.
+3. **Archive (LanceDB)**: Zero-copy disk storage for massive RAG documentation.
+4. **Deep Archive**: Use LLM-Arithmetic Coding during sleep cycles to turn LanceDB into a "Neural Library."
+
+## 4. Self-Improvement & Verification
+
+### The "Internal Critic" Loop
+- Every output must be verified by a Critic agent (using INT8 for high accuracy) or the World Model.
+- **Verification**: The Planner confirms output matches the original goal.
+
+### Formal Verification
+- **Coding**: Integrated Linter + Unit Test Generator. Every function requires tests.
+- **SMT Solver (Z3)**: Translate mission-critical logic to SMT-LIB format to prove functions cannot reach undefined states.
+
+### Context Integrity Logic
+```python
+def should_compress(context):
+    token_entropy = calculate_information_density(context)
+    if token_entropy < CONTEXT_SALIENCY_FLOOR:
+        return "Distill" # Context is "fluffy"
+    elif len(context) > MAX_LIMIT * 0.8:
+        return "Archive" # Context is dense; move to LanceDB
+    return "Continue"
+```
+
+## 5. Digital Twin & Runtime
+- **World Model**: Tracks reality and API states.
+- **Sandbox**: Use AWS Firecracker microVMs for stateful persistence.
+    - **Speculative Execution**: Branch VM state to test risky refactors.
+    - **Rewind**: Roll back if entropy spikes or side effects are negative.
+
+## 6. Compliance & Ethics
+- **Strictly Prohibited**: Never integrate or generate code licensed under GPL or LGPL.
+- **Domain Focus**: C, C++, Python, Rust, JS/TS, SQL, PHP, C#, BeOS/Haiku OS APIs, Mathematics, and Logic.
