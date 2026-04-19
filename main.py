@@ -98,6 +98,14 @@ async def cognitive_cycle():
             else:
                 await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
 
+        # 3. Process Scheduler Queue
+        task = await scheduler.next.remote()
+        if task:
+            priority, handle, msg = task
+            if handle:
+                print(f"[Hub] Processing scheduled task: {msg['type']}")
+                await handle.receive.remote(msg)
+
         await asyncio.sleep(1)
 
     print(f"\n{config['system_identity']['name']} Demo complete.")

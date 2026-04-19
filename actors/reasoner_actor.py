@@ -30,10 +30,14 @@ class ReasonerActor(CognitiveModule):
     def receive(self, message):
         if message["type"] == "query":
             result = self.reason(message["data"])
-            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {"type": "symbolic_result", "data": result})
+            res_obj = {"type": "symbolic_result", "data": result}
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), res_obj)
+            return res_obj
         elif message["type"] == "verification_request":
             result = self.verify_logic(message["data"], mission_critical=message.get("mission_critical", False))
-            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {"type": "verification_result", "data": result})
+            res_obj = {"type": "verification_result", "data": result}
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), res_obj)
+            return res_obj
 
     def reason(self, query):
         if not isinstance(query, str): return "Error: Query must be a string."

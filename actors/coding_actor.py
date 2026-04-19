@@ -48,11 +48,13 @@ class CodingActor(CognitiveModule):
             result = self.execute_code(code, persistent=persistent)
             result["confidence"] = confidence
 
-            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {
+            res_obj = {
                 "type": "code_result",
                 "data": result,
                 "original_message": message
-            })
+            }
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), res_obj)
+            return res_obj
 
     def calculate_confidence_score(self):
         """

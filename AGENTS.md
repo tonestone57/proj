@@ -11,40 +11,48 @@ The system operates as a central **Broadcast Center** (Hub) with **Specialized A
 
 ### The Actor Pattern
 - **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes via **Ray**.
-- **Hardware Profile**: 15W TDP limit. Max **4 threads**. 2-4 CPU cores allocated per mission-critical actor.
-- **Thermal Guard**: Monitor `monitoring/thermal_guard.py`. If temperature > 78°C, the Hub must delay non-essential tasks.
+- **Hardware Profile**: 15W TDP limit. Max **4 threads**. 2-4 CPU cores allocated per actor.
+- **Thermal Guard**: Real-time monitoring of CPU temp (threshold 78°C). Delay non-essential tasks if throttled.
+- **Data Transfer**: Use **Ray Plasma** for zero-latency transfer of technical data buffers.
 
 ### The Cognitive Heartbeat
-- **Drive Engine**: Evaluates state entropy.
+- **Drive Engine**: Evaluates state entropy ($\mathcal{S} = - \sum P(x_i) \log P(x_i)$).
 - **High Entropy (>2.0)**: Trigger Re-planning or Research Missions.
 - **Low Entropy (<0.5)**: Trigger Sleep Cycle (Consolidation).
+- **Global State**: Use **Dragonfly** for high-concurrency state updates.
 
 ## 2. Multi-Stage Agentic RAG Pipeline
 
 ### Automated Search & Ingestion
-- **Tavily/SearXNG**: Primary tools for web data.
-- **License Guardian**: Filter out GPL/LGPL/AGPL content via `SearchActor.license_actor`.
+- **Tavily/SearXNG**: Primary tools for web data. Use **Multi-Perspective Search** (thesis + antithesis).
+- **License Guardian**: Filter out GPL/LGPL/AGPL content.
 - **JIT Context Compilation**: Distill results into a 400-token **Actionable Spec** (API Cheat Sheet).
 - **GraphRAG**: Use **tree-sitter** for AST-based indexing into the **Neural Map**.
 
-### 2026 Compression Standards
+### 2026 Compression & Memory Stack
+- **Hot Storage (Tier 1)**: **Flash-Optimized LZ4** for Message Bus.
+- **Active Context (Tier 2)**: **TurboQuant (QJL)** for KV cache expansion.
+- **Deep Archive (Tier 3)**: **LLM-Arithmetic Coding** in LanceDB.
+- **Neural Map**: **Tree-sitter Serialization** for AST relationships.
+
+#### Precision Tiers
 - **Reasoning Engine**: BF16 (Q16).
 - **Base Model Weights**: NF4.
 - **Vector Index (RAG)**: Q8 + Binary Quantization.
 - **KV Cache**: FP8 (E4M3).
-- **Deep Archive**: LLM-Arithmetic Coding (LLM-Zip) + Zstd-19.
+- **Video/Vision**: NeuralLVC / CoPE (93% reduction).
 
 ## 3. Self-Improvement & Verification
 
 ### Context Integrity Check
-- **CodeComp**: Perform Structural Distillation if token entropy is low.
-- **LLM-Zip**: Perform Neural Archiving if context exceeds 80% of `MAX_LIMIT`.
+- **CodeComp**: Perform Structural Distillation (KV Pruning) if token entropy is low. Protect the "Control Flow Skeleton."
+- **LLM-Zip**: Perform Neural Archiving if context exceeds 80% of `MAX_LIMIT`. Always store **Model Hash** and **Residual Mismatch Buffer**.
 
 ### Formal Verification
 - **SMT-LIB**: Translate mission-critical logic for **Z3** solver to prove safety/correctness.
-- **Digital Twin**: Use **Firecracker** for speculative execution. Rewind state on failure.
+- **Digital Twin**: Use **Firecracker** for speculative execution and runtime observation.
 
 ## 4. Compliance & Ethics
 - **Strict Prohibition**: No GPL, LGPL, or AGPL code.
-- **Intel Optimization**: Prioritize `intel/neural-chat-14b-v3-3` in low-bit precision.
+- **Intel Optimization**: Prioritize `intel/neural-chat-14b-v3-3` in NF4/INT8/BF16 precision.
 - **Code Style**: Prioritize Class Hierarchy Preservation for BeOS/Haiku OS development.

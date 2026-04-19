@@ -9,11 +9,17 @@ According to the **Minimum Description Length (MDL)** principle, the best "under
 
 The system utilizes an **Asynchronous Predictive Workspace (APW)**. Unlike traditional models, the Hub acts as a **Broadcast Center** using Pub/Sub logic to eliminate bottlenecks. It implements a **Multi-Stage Agentic RAG Pipeline** and is designed for **Self-Improvement**, autonomously updating its data files and logic to achieve better accuracy and reliability.
 
+### The Dual-Stream System
+To maximize performance, cognitive workload is split into two tracks:
+- **The Reflex Arc (Fast Path):** Low-latency modules (Safety, Syntax Checking) that act instantly.
+- **The Global Workspace (Slow Path):** Higher-order reasoning (Planning, Complex Coding) requiring full attention.
+
 ### The Actor Pattern & Ray Integration
 Modules operate as autonomous, concurrent units in isolated processes. The Hub broadcasts objectives to specialized actors and synthesizes the optimal response.
-- **Orchestration**: Utilizes **Ray** as the primary distributed orchestrator.
+- **Orchestration**: Utilizes **Ray** as the primary distributed orchestrator to bypass the Python GIL.
 - **Hardware Limits**: Configured for 2-4 CPU cores and a **maximum of 4 threads** to maintain stability on 15W TDP hardware.
 - **Thermal Guard**: Real-time monitoring of CPU temperature (threshold 78°C) and load to prevent thermal throttling.
+- **Data Transfer**: Uses **Ray Plasma** (shared memory object store) for zero-latency transfer of large technical data buffers between actors.
 
 ### Core Components
 - **Message Bus (The Spine)**: An asynchronous bus (Ray) where all modules post their state.
@@ -28,18 +34,33 @@ Modules operate as autonomous, concurrent units in isolated processes. The Hub b
 
 The system adheres to the **2026 SGI Operations** standard for vector embeddings and model precision:
 
-| Component | Standard | Reasoning |
-| :--- | :--- | :--- |
-| **Reasoning Engine** | **BF16 (Q16)** | Zero-compromise logic & proof-chaining. |
-| **Base Model Weights** | **NF4** | Information-theoretically optimal for Gaussian weights. |
-| **Vector Index (RAG)** | **Q8 + Binary Quantization** | INT8 for accuracy, Binary for massive scale. |
-| **KV Cache (Memory)** | **FP8 (E4M3)** | High dynamic range for "spiky" activations. |
-| **Search/Text Logs** | **Zstd-19** | Standard high-ratio compression for raw logs. |
+### "Gold Standard" 2026 Tiered Memory Model
 
-### Tiered Memory Model
-1. **Tier 1 (Ephemeral)**: **Flash-Optimized LZ4** for the Message Bus.
-2. **Tier 2 (Active Context)**: **TurboQuant (QJL)** for the KV cache/FAISS.
-3. **Tier 3 (Deep Archive)**: **LLM-Arithmetic Coding** (LLM-Zip) in **LanceDB**.
+| Database | Role | Speed (Latency) | Data Lifecycle | Codec (SGI Alt) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Semantic Cache** | **Message Bus** | **Sub-millisecond** | Ephemeral | **Flash-Optimized LZ4** |
+| **FAISS** | **The Reflex Arc** | **Sub-millisecond** | Transient (Volatile/RAM) | **TurboQuant (QJL)** |
+| **Qdrant** | **Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful) | **Q8 + BQ** |
+| **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) | **LLM-Arithmetic Coding** |
+
+### Specialized Codecs
+- **TurboQuant (QJL & PolarQuant)**: Used in FAISS/Reflex Arc.
+    - **How it works**: Uses **PolarQuant** to randomly rotate data vectors, simplifying their geometry, then applies **Quantized Johnson-Lindenstrauss (QJL)** for a 1-bit "error-correction" pass.
+    - **Benefit**: Compresses KV cache and embeddings to **Q8 + BQ** or **NF4** with **0% accuracy loss**.
+- **LLM-Zip (Lossless Neural Archiving)**: Used in LanceDB.
+    - **Benefit**: Achieves **5x to 10x better compression** than Zstd for code by storing token probabilities predicted by the LLM.
+    - **Recovery**: Includes a **Model Hash** and a **Residual Mismatch Buffer** to safeguard against non-deterministic mismatch.
+- **Tree-sitter Serialization**: Stores code as AST node operations. Bypasses re-parsing to provide immediate Control Flow Graphs.
+- **NeuralLVC / CoPE**: Standard neural codecs for Video/Vision, targeting a **93% token usage reduction**.
+
+### Codec Comparison Table
+
+| Codec Type | Standard | SGI Alternative | Primary Benefit |
+| :--- | :--- | :--- | :--- |
+| **Hot Storage** | **LZ4 / Zstd-1** | **Flash-Optimized LZ4** | Sub-millisecond latency for the "Reflex Arc." |
+| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | High compression with **0%** accuracy loss. |
+| **Long-term Archive**| **7z (LZMA2)** | **LLM-Arithmetic Coding** | Massive ratio; "stores knowledge, not just data." |
+| **Video/Vision** | **H.265 / AV1** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
 
 ---
 
