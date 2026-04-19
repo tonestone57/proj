@@ -1,10 +1,14 @@
 import re
+import ray
 from core.base import CognitiveModule
+try:
+    from ipex_llm.transformers import AutoModelForCausalLM
+except ImportError:
+    AutoModelForCausalLM = None
+from core.config import CORES_SEARCH
 
 class LicenseActor:
     def __init__(self):
-        # Patterns that might indicate GPL/LGPL licenses
-        # Enhanced with more specific prohibited phrases
         self.prohibited_patterns = [
             re.compile(r"GNU\s+General\s+Public\s+License", re.IGNORECASE),
             re.compile(r"GPLv[123]", re.IGNORECASE),
@@ -21,20 +25,30 @@ class LicenseActor:
         ]
 
     def is_compliant(self, content):
-        """
-        Checks if the content is compliant with the No-GPL rule.
-        Uses a specialized License Classifier Gate.
-        """
-        print("[LicenseActor] Running specialized License Classifier Gate (BERT/Regex)...")
         for pattern in self.prohibited_patterns:
             if pattern.search(content):
                 return False
         return True
 
+@ray.remote(num_cpus=CORES_SEARCH)
 class SearchActor(CognitiveModule):
-    def __init__(self, workspace, scheduler):
+    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
         super().__init__(workspace, scheduler)
         self.license_actor = LicenseActor()
+        print(f"[SearchActor] Loading {model_id} in NF4 precision for search distillation...")
+        try:
+            if AutoModelForCausalLM:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_id,
+                    load_in_low_bit="nf4",
+                    trust_remote_code=True,
+                    use_cache=True
+                )
+            else:
+                self.model = None
+        except Exception as e:
+            print(f"[SearchActor] Error loading model: {e}. Using mock model.")
+            self.model = None
 
     def perform_graph_indexing(self, code_snippet, language="python"):
         """
@@ -45,9 +59,6 @@ class SearchActor(CognitiveModule):
 
         try:
             import tree_sitter
-            # In a full implementation, we would load the language grammar and parse the snippet.
-            # Here we provide a more structured representation of the AST-based nodes and edges.
-
             # Simulated AST Graph Output
             graph_data = {
                 "nodes": [
@@ -65,7 +76,7 @@ class SearchActor(CognitiveModule):
             return graph_data
         except ImportError:
             print("[SearchActor] tree-sitter not available. Using basic dependency heuristics.")
-            return {"nodes": [], "edges": []}
+            return {"nodes": [{"id": "snippet", "type": "code", "label": "Search Result"}], "edges": []}
 
     def distill_results(self, results):
         """
@@ -99,7 +110,7 @@ class SearchActor(CognitiveModule):
             # JIT Context Compilation: Distill compliant results
             actionable_spec = self.distill_results(compliant_results)
 
-            self.scheduler.submit(self, {
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {
                 "type": "search_result",
                 "data": compliant_results,
                 "actionable_spec": actionable_spec

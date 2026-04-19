@@ -1,71 +1,65 @@
 import math
 import re
+import ray
 from core.base import CognitiveModule
+try:
+    from ipex_llm.transformers import AutoModelForCausalLM
+except ImportError:
+    AutoModelForCausalLM = None
+from core.config import CORES_SYMBOLIC
 
+@ray.remote(num_cpus=CORES_SYMBOLIC)
 class ReasonerActor(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
+        super().__init__(workspace, scheduler)
+        print(f"[ReasonerActor] Loading {model_id} in INT8 precision for logic/reasoning...")
+        try:
+            if AutoModelForCausalLM:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_id,
+                    load_in_low_bit="sym_int8",
+                    trust_remote_code=True,
+                    use_cache=True
+                )
+            else:
+                self.model = None
+        except Exception as e:
+            print(f"[ReasonerActor] Error loading model: {e}. Using mock model.")
+            self.model = None
+
     def receive(self, message):
         if message["type"] == "query":
             result = self.reason(message["data"])
-            self.scheduler.submit(self, {"type": "symbolic_result", "data": result})
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {"type": "symbolic_result", "data": result})
         elif message["type"] == "verification_request":
-            result = self.verify_logic(message["data"])
-            self.scheduler.submit(self, {"type": "verification_result", "data": result})
+            result = self.verify_logic(message["data"], mission_critical=message.get("mission_critical", False))
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {"type": "verification_result", "data": result})
 
     def reason(self, query):
-        """
-        Evaluates mathematical and logical expressions.
-        Supports: +, -, *, /, **, %, and, or, not, ==, !=, <, >, <=, >=, True, False
-        """
-        if not isinstance(query, str):
-            return "Error: Query must be a string."
-
-        # Replace logical words with Python equivalents for eval
+        if not isinstance(query, str): return "Error: Query must be a string."
         processed_query = re.sub(r'\band\b', 'and', query, flags=re.IGNORECASE)
         processed_query = re.sub(r'\bor\b', 'or', processed_query, flags=re.IGNORECASE)
         processed_query = re.sub(r'\bnot\b', 'not', processed_query, flags=re.IGNORECASE)
         processed_query = re.sub(r'\btrue\b', 'True', processed_query, flags=re.IGNORECASE)
         processed_query = re.sub(r'\bfalse\b', 'False', processed_query, flags=re.IGNORECASE)
-
-        # Restricted environment for eval
-        safe_dict = {
-            "abs": abs,
-            "round": round,
-            "min": min,
-            "max": max,
-            "sum": sum,
-            "pow": pow,
-            "math": math,
-            "True": True,
-            "False": False
-        }
-
-        # Add math functions to the top level
+        safe_dict = {"abs": abs, "round": round, "math": math, "True": True, "False": False}
         for name in dir(math):
-            if not name.startswith("__"):
-                safe_dict[name] = getattr(math, name)
-
+            if not name.startswith("__"): safe_dict[name] = getattr(math, name)
         try:
-            # We still need to be careful with eval.
-            # For this task, we'll use it with no builtins.
-            result = eval(processed_query, {"__builtins__": {}}, safe_dict)
-            return result
+            return eval(processed_query, {"__builtins__": {}}, safe_dict)
         except Exception as e:
             return f"Error evaluating query '{query}': {str(e)}"
 
     def translate_to_smt_lib(self, code):
         """
-        Translates mission-critical code logic into SMT-LIB format for formal verification.
-        Uses a template-based approach to represent assertions about variables and states.
+        Translates a code snippet or logical set into SMT-LIB format for Z3.
         """
         print(f"[ReasonerActor] Translating code to SMT-LIB format for formal verification.")
-
         try:
             import z3
-            # In a full implementation, we would parse the code and generate Z3 constraints.
-            # Here we provide a more structured SMT-LIB representation.
             s = z3.Solver()
 
-            # Example: Ensuring no buffer overflow in a simulated memory access
+            # Simplified translation for demo: proving safety of a simulated memory access
             buffer_size = 1024
             index = z3.Int('index')
 

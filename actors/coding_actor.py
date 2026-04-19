@@ -1,9 +1,33 @@
 import sys
 import io
 import contextlib
+import ray
 from core.base import CognitiveModule
+try:
+    from ipex_llm.transformers import AutoModelForCausalLM
+except ImportError:
+    AutoModelForCausalLM = None
+from core.config import CORES_CODING
 
+@ray.remote(num_cpus=CORES_CODING)
 class CodingActor(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
+        super().__init__(workspace, scheduler)
+        print(f"[CodingActor] Loading {model_id} in NF4 precision for coding tasks...")
+        try:
+            if AutoModelForCausalLM:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_id,
+                    load_in_low_bit="nf4",
+                    trust_remote_code=True,
+                    use_cache=True
+                )
+            else:
+                self.model = None
+        except Exception as e:
+            print(f"[CodingActor] Error loading model: {e}. Using mock executor.")
+            self.model = None
+
     def receive(self, message):
         if message["type"] == "code_execution":
             code = message["data"]
@@ -15,7 +39,7 @@ class CodingActor(CognitiveModule):
             if confidence < 0.4: # Threshold for high entropy / low confidence
                 print("[CodingActor] Low confidence detected. Triggering Research Mission.")
                 # We submit this to the search_actor or as a general goal for the planner
-                self.scheduler.submit(None, { # Broadcast or direct to search_actor if available
+                self.scheduler.submit.remote(None, {
                     "type": "search_request",
                     "data": f"Documentation + Issue Tracker + Comparative Examples for code task: {code[:100]}",
                     "reason": "High Entropy / Low Confidence"
@@ -24,7 +48,7 @@ class CodingActor(CognitiveModule):
             result = self.execute_code(code, persistent=persistent)
             result["confidence"] = confidence
 
-            self.scheduler.submit(self, {
+            self.scheduler.submit.remote(ray.get_runtime_context().get_actor_handle(), {
                 "type": "code_result",
                 "data": result,
                 "original_message": message
@@ -36,7 +60,7 @@ class CodingActor(CognitiveModule):
         If entropy is high, confidence is low, which should trigger a Research Mission.
         """
         from core.drives import calculate_entropy
-        state = self.workspace.get_current_state()
+        state = ray.get(self.workspace.get_current_state.remote())
         entropy = calculate_entropy(state)
 
         # Heuristic: confidence decreases as entropy increases
@@ -54,9 +78,7 @@ class CodingActor(CognitiveModule):
         lines = code.split('\n')
         preserved = []
         for line in lines:
-            if "class " in line or "virtual" in line or "override" in line:
-                preserved.append(line)
-            elif "def " in line:
+            if any(k in line for k in ["class ", "virtual", "override", "def "]):
                 preserved.append(line)
 
         print(f"[CodingActor] Preservation complete. Key schema elements retained.")
@@ -69,27 +91,6 @@ class CodingActor(CognitiveModule):
         print(f"[CodingActor] Creating speculative branch: {branch_name}")
         # In 2026, this allows risky refactors without affecting the main twin
         return f"vm_branch_{branch_name}_0xdeadbeef"
-
-    def execute_code(self, code, persistent=False):
-        """
-        Executes Python code in a restricted environment and captures output.
-        If persistent=True, it operates within a Stateful Digital Twin (Firecracker microVM).
-        This allows for Speculative Execution and state rewinding.
-        """
-        # If code is too large, perform schema-aware distillation first
-        if len(code.split()) > 1000:
-            code = self.distill_code(code)
-
-        if persistent:
-            print(f"[CodingActor] Connecting to Persistent Digital Twin (Firecracker VM).")
-            # Simulate Speculative Execution: branching the VM state
-            branch_id = self.DigitalTwin_Branching("speculative_run")
-            print(f"[CodingActor] Branch {branch_id} ready.")
-
-            # Observe side effects on the "World" (system resources, logs, network)
-            self.Runtime_Observation_Hook(branch_id)
-
-        return self.execute_logic_internal(code)
 
     def Runtime_Observation_Hook(self, context_id):
         """
@@ -117,7 +118,25 @@ class CodingActor(CognitiveModule):
         test_code = "def test_generated():\n    # Mocked test logic\n    assert True"
         return test_code
 
-    def execute_logic_internal(self, code):
+    def execute_code(self, code, persistent=False):
+        """
+        Executes Python code in a restricted environment and captures output.
+        If persistent=True, it operates within a Stateful Digital Twin (Firecracker microVM).
+        This allows for Speculative Execution and state rewinding.
+        """
+        # If code is too large, perform schema-aware distillation first
+        if len(code.split()) > 1000:
+            code = self.distill_code(code)
+
+        if persistent:
+            print(f"[CodingActor] Connecting to Persistent Digital Twin (Firecracker VM).")
+            # Simulate Speculative Execution: branching the VM state
+            branch_id = self.DigitalTwin_Branching("speculative_run")
+            print(f"[CodingActor] Branch {branch_id} ready.")
+
+            # Observe side effects on the "World" (system resources, logs, network)
+            self.Runtime_Observation_Hook(branch_id)
+
         stdout = io.StringIO()
         stderr = io.StringIO()
 

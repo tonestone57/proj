@@ -1,8 +1,8 @@
-# Agent Development Guidelines (SGI Roadmap)
+# AGENTS.md - SGI Operation Manual (2026 Standard)
 
-This file provides instructions for the AGI (or Synthetic General Intelligence - SGI) to follow during its autonomous development and self-improvement cycles.
+This document provides instructions for the SGI (Synthetic General Intelligence) agent operating on Intel i5-8265U hardware.
 
-### Core Principle: Minimum Description Length (MDL)
+## Core Principle: Minimum Description Length (MDL)
 The agent operates under the **MDL principle**: the best understanding of any data is its shortest possible representation. Every cognitive cycle should aim for maximum structural and neural compression.
 
 ## 1. Asynchronous Predictive Workspace (APW)
@@ -10,131 +10,41 @@ The agent operates under the **MDL principle**: the best understanding of any da
 The system operates as a central **Broadcast Center** (Hub) with **Specialized Actors** (Spokes) communicating over an asynchronous **Message Bus**.
 
 ### The Actor Pattern
-- **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes. The Hub broadcasts objectives to specialized actors (e.g., Symbolic Reasoner, Coding Module) and synthesizes the optimal response.
-- **Implementation**: Utilize **Ray** as the primary distributed orchestrator to bypass the Python GIL. Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
-- **Data Transfer**: Use **Ray Plasma** (shared memory object store) for zero-latency transfer of large technical data buffers between actors.
+- **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes via **Ray**.
+- **Hardware Profile**: 15W TDP limit. Max **4 threads**. 2-4 CPU cores allocated per mission-critical actor.
+- **Thermal Guard**: Monitor `monitoring/thermal_guard.py`. If temperature > 78°C, the Hub must delay non-essential tasks.
 
-### The Cognitive Heartbeat (Curiosity Drive)
-- The system runs a **Heartbeat Loop** to maintain proactivity.
-- **Drive Engine**: Evaluates the system's state using a **Surprise/Entropy Metric** ($\mathcal{S} = - \sum P(x_i) \log P(x_i)$).
-- **High Entropy**: Trigger re-planning or an **Active Learning Research Mission** (Documentation + Issue Tracker + Comparative Examples).
-- **Low Entropy**: Trigger a **Sleep Cycle** for background consolidation (Refactoring, Indexing, Synthetic Data Gen).
-- **Global State**: Utilize **Dragonfly** (drop-in Redis replacement) for high-concurrency state updates.
-
-#### Conceptual Heartbeat Logic
-```python
-def heartbeat_tick():
-    state = message_bus.get_current_state()
-    entropy = calculate_entropy(state)
-
-    if entropy > THRESHOLD_REPLAN:
-        # High uncertainty: The agent is "confused" or facing a new problem
-        planner.generate_new_strategy(reason="High System Entropy")
-    elif entropy < THRESHOLD_CONSOLIDATE:
-        # Low uncertainty: The agent is "bored"
-        memory_manager.trigger_sleep_cycle()
-
-    drives.update_objective_priorities()
-```
+### The Cognitive Heartbeat
+- **Drive Engine**: Evaluates state entropy.
+- **High Entropy (>2.0)**: Trigger Re-planning or Research Missions.
+- **Low Entropy (<0.5)**: Trigger Sleep Cycle (Consolidation).
 
 ## 2. Multi-Stage Agentic RAG Pipeline
 
-The system must follow an iterative loop: **Reason → Search → Ingest → Index → Generate**.
+### Automated Search & Ingestion
+- **Tavily/SearXNG**: Primary tools for web data.
+- **License Guardian**: Filter out GPL/LGPL/AGPL content via `SearchActor.license_actor`.
+- **JIT Context Compilation**: Distill results into a 400-token **Actionable Spec** (API Cheat Sheet).
+- **GraphRAG**: Use **tree-sitter** for AST-based indexing into the **Neural Map**.
 
-### Automated Online Search
-- **Primary Tool**: Use **Tavily AI** for 90% of tasks (low-latency, structured reasoning).
-- **Fallback**: Escalate to **SearXNG** for high-breadth verification during background consolidation.
-- **JIT Context Compilation**: Move from "Retrieved Chunks" to "Synthesized Micro-Contexts."
-    - **Action**: Have a "Distiller" agent compile multiple documents into a single, high-density **Actionable Spec**.
-    - **Goal**: Reduce 10,000 tokens of documentation to a 400-token "API Cheat Sheet" that captures exact syntax for the target system.
-- **GraphRAG (The Neural Map)**: Use **tree-sitter** for **AST-based Indexing** to parse code into a graph of dependencies (classes/functions as nodes, calls as edges). Store relationships in **NebulaGraph** or **TuGraph**.
-- **Search Strategy**: Employ **Multi-Perspective Search**—query both the main thesis and its antithesis to minimize bias.
-- **Ethical Scraping**: Always check `robots.txt` and use libraries like `Crawl4AI` or `BeautifulSoup` to extract clean Markdown content.
-
-### Data Ingestion & Indexing
-- **Cleaning**: Distill HTML into clean Markdown before indexing.
-- **Semantic Chunking**: Avoid standard chunking (200–400 words) for code, as it is the "death of context." Use **AST-aware blocks** to preserve structural relationships and non-linear dependencies.
-- **Contextual Retrieval**: Attach a document summary to every chunk to preserve global context.
-- **Vector Store**: Use **FAISS** for short-term/high-speed tasks and **LanceDB** for long-term/persistent knowledge storage.
-- **2026 Compression Landscape (Domain-Aware & Neural Codecs)**:
-    - **Vector Codecs (TurboQuant)**: Beyond standard PQ, use **PolarQuant** to rotate vectors and **Quantized Johnson-Lindenstrauss (QJL)** for 1-bit error correction. Compresses embeddings to **4-bit (NF4)** with **0% accuracy loss**.
-    - **Text Codecs (LLM-Zip)**: Use **Arithmetic LLM Coding** where the LLM predicts probability distributions and an Arithmetic Encoder stores probabilities. Achieving **5x to 10x better** compression than Zstd for code.
-    - **Structural Codecs (Tree-sitter)**: Instead of raw text, serialize the **Abstract Syntax Tree (AST)**. Stores code as tree-node operations, bypassing the need to re-parse and providing the Control Flow Graph immediately.
-- **License Guardian**: Every snippet must pass through a specialized **License Classifier Gate**.
+### 2026 Compression Standards
+- **Reasoning Engine**: BF16 (Q16).
+- **Base Model Weights**: NF4.
+- **Vector Index (RAG)**: Q8 + Binary Quantization.
+- **KV Cache**: FP8 (E4M3).
+- **Deep Archive**: LLM-Arithmetic Coding (LLM-Zip) + Zstd-19.
 
 ## 3. Self-Improvement & Verification
 
 ### Context Integrity Check
-Refine the Context Pruning trigger from a simple "80% limit" to a **Context Integrity Check**:
-
-```python
-def should_compress(context):
-    # Instead of just len(context) > threshold:
-    token_entropy = calculate_information_density(context)
-    if token_entropy < CONTEXT_SALIENCY_FLOOR:
-        # The context is full of "fluff"; trigger structural distillation
-        return "Distill"
-    elif len(context) > MAX_LIMIT * 0.8:
-        # The context is actually dense; trigger neural offloading to LanceDB
-        return "Archive"
-    return "Continue"
-```
-
-### Structural KV Cache Compression (CodeComp)
-Instead of pruning by recency, use a **Code Property Graph (CPG)** to identify the "Control Flow Skeleton."
-- **Action**: Calculate a **Structural Importance Score ($I_{struct}$)** for every token.
-- **Protected Tokens**: Tokens representing function signatures, return types, and control logic (if/while) are protected.
-- **Boilerplate Eviction**: Tokens representing boilerplate or redundant comments are evicted first.
-- **Class Hierarchy Preservation**: For object-oriented APIs (like BeOS/Haiku), always retain `virtual` function overrides during distillation to preserve the code schema.
-
-### The "Internal Critic" Loop
-- Every output from the `Symbolic Reasoner` or `Coding Module` must be verified by a `Critic` agent or the `World Model` before being finalized.
-- **Verification Step**: The `Planner` must confirm the output matches the original goal.
+- **CodeComp**: Perform Structural Distillation if token entropy is low.
+- **LLM-Zip**: Perform Neural Archiving if context exceeds 80% of `MAX_LIMIT`.
 
 ### Formal Verification
-- **Coding**: Integrate a **Linter** and **Unit Test Generator**. Every generated function must be accompanied by its own tests.
-- **SMT Solver (Z3)**: For mission-critical logic, translate code logic into **SMT-LIB format** to prove functions cannot reach undefined states or overflow.
+- **SMT-LIB**: Translate mission-critical logic for **Z3** solver to prove safety/correctness.
+- **Digital Twin**: Use **Firecracker** for speculative execution. Rewind state on failure.
 
-## 4. Memory Management
-
-### Tiered Context System
-- **Active Context**: Last 5 turns of thought.
-- **Compressed Context**: Summarized conversation history (handled by high-speed models).
-- **Archived Context**: Vector embeddings in **LanceDB**. Use **LLM-Arithmetic Coding** for lossless neural archiving of deep sessions.
-- **Working Memory**: Use **Ray Plasma** (shared memory) for zero-latency data passing between actors.
-
-### "Gold Standard" Tiered Memory Stack (2026 Standards)
-
-| Codec Type | Standard (The "Good") | SGI Alternative (The "Better") | Primary Benefit |
-| :--- | :--- | :--- | :--- |
-| **Hot Storage** | **LZ4** / **Zstd-1** | **Flash-Optimized LZ4** | Sub-millisecond latency for the "Reflex Arc." |
-| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | 4-bit (NF4) compression with **0%** accuracy loss. |
-| **Long-term Archive**| **7z (LZMA2)** | **LLM-Arithmetic Coding** | Massive ratio; "stores knowledge, not just data." |
-| **Video/Vision** | **H.265 / AV1** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
-
-### Compression Tiering Logic
-1. **Tier 1 (Ephemeral)**: Use **LZ4** for the `Message Bus` (Ray/Dragonfly) for maximum speed.
-2. **Tier 2 (Active Context)**: Use **TurboQuant (QJL)** for the KV cache to expand working memory without OOM.
-3. **Tier 3 (Deep Archive)**: Use **LLM-Arithmetic Coding** during low-entropy sleep cycles to turn LanceDB into a "Neural Library."
-
-### Lossless Neural Archiving (LLM-Zip)
-- **Neural Compression**: Use the system's reasoning capabilities to encode conversation history into dense, non-human-readable representations using **arithmetic coding** via LLM probabilities.
-- **0% Information Loss**: When the agent needs to "remember" a deep session, it decompresses the neural representation back into the original token stream, bypassing the limits of natural language summarization.
-- **Model Hash Protection**: Always store a **Model Hash** and a **Residual Mismatch Buffer** with neural data to prevent "Non-deterministic Mismatch" if model weights change.
-
-### Sleep Cycles (Consolidation)
-- During **Low Entropy** periods:
-    1. Review `Scratchpad` and `Active Context` for patterns.
-    2. **Synthesize** a new "Knowledge Base Entry."
-    3. **Synaptic Pruning**: Archive raw logs and keep only synthesized lessons.
-
-## 5. Digital Twin & Runtime
-- **World Model**: Tracks reality and API states.
-- **Stateful Sandbox Persistence**: Use **AWS Firecracker** microVMs as a **Persistent Digital Twin**.
-    - **Speculative Execution**: Branch the VM state to try risky refactors.
-    - **Observation**: Observe side effects on the "World" (system resources, logs, network calls).
-    - **Rewind**: Roll back the state if entropy spikes or side effects are negative.
-
-## 6. Compliance & Ethics
-- **Strictly Prohibited**: Never integrate or generate code licensed under **GPL** or **LGPL**.
-- **Domain Focus**: C, C++, Python, Rust, Javascript, Typescript, SQL, PHP, C#, BeOS/Haiku OS APIs, Mathematics, and Logic.
+## 4. Compliance & Ethics
+- **Strict Prohibition**: No GPL, LGPL, or AGPL code.
+- **Intel Optimization**: Prioritize `intel/neural-chat-14b-v3-3` in low-bit precision.
+- **Code Style**: Prioritize Class Hierarchy Preservation for BeOS/Haiku OS development.
