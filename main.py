@@ -2,7 +2,6 @@ import ray
 import time
 import asyncio
 import os
-import yaml
 
 # Core components
 from core.workspace import GlobalWorkspace
@@ -39,7 +38,6 @@ class SGIHub:
         """Check thermal health before every task."""
         if await self.thermal_guard.check_health.remote():
             print(f"[Hub] System is cool. Delegating {task_type}...")
-            # Direct call to the Ray actor receive method
             actor_handle.receive.remote({"type": task_type, "data": payload})
             return True
         else:
@@ -84,8 +82,8 @@ async def cognitive_cycle():
 
         # 2. Drive: Proactive task triggering based on Entropy
         state = await workspace.get_current_state.remote()
-        from core.drives import calculate_entropy
-        entropy = calculate_entropy(state)
+        # Fixed nitpick: Use initialized DriveEngine instance
+        entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
         if entropy > 0.7: # Threshold from config.yaml

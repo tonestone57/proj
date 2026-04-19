@@ -12,10 +12,11 @@ export NUMEXPR_NUM_THREADS=4
 export KMP_BLOCKTIME=1
 export PYTHONDONTWRITEBYTECODE=1
 
-# 2. Dependency Installation (Simulated/Placeholder)
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-# pip install --pre --upgrade ipex-llm[all]
-# pip install ray psutil pyyaml z3-solver lancedb tree-sitter
+# 2. Dependency Installation
+echo "Installing/Updating core dependencies..."
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install --pre --upgrade ipex-llm[all]
+pip install ray psutil pyyaml z3-solver lancedb tree-sitter
 
 # 3. Path Setup
 export PYTHONPATH=$PYTHONPATH:$(pwd)
