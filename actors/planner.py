@@ -2,29 +2,32 @@ import ray
 from core.base import CognitiveModule
 
 try:
-    from ipex_llm.transformers import AutoModelForCausalLM
+    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
 except ImportError:
-    AutoModelForCausalLM = None
+    AutoModelForCausalLM, AutoTokenizer = None, None
 
 @ray.remote
 class Planner(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
+    def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
         print(f"[Planner] Loading {model_id} for goal decomposition...")
         if AutoModelForCausalLM and model_id:
             try:
+                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
-                    load_in_low_bit="nf4",
+                    load_in_low_bit="sym_int8",
                     trust_remote_code=True,
                     use_cache=True
                 )
             except Exception as e:
                 print(f"[Planner] Error loading model: {e}. Using heuristics.")
                 self.model = None
+            self.tokenizer = None
         else:
             print("[Planner] IPEX-LLM not available or no model_id. Using heuristics.")
             self.model = None
+            self.tokenizer = None
 
     def receive(self, message):
         if message["type"] == "goal":
@@ -78,7 +81,7 @@ class Planner(CognitiveModule):
         print(f"[Planner] Translating objective to tasks: {objective}")
 
         if self.model:
-            # SGI 2026: Goal Decomposition using NF4 model
+            # SGI 2026: Goal Decomposition using INT8 model
             print("[Planner] Performing semantic goal decomposition via LLM...")
             # Simulated model decomposition
             if "code" in str(objective).lower():

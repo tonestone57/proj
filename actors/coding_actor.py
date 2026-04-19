@@ -6,29 +6,32 @@ from core.base import CognitiveModule
 from core.config import CORES_CODING
 
 try:
-    from ipex_llm.transformers import AutoModelForCausalLM
+    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
 except ImportError:
-    AutoModelForCausalLM = None
+    AutoModelForCausalLM, AutoTokenizer = None, None
 
 @ray.remote(num_cpus=CORES_CODING)
 class CodingActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
+    def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
-        print(f"[CodingActor] Loading {model_id} in NF4 precision for coding tasks...")
+        print(f"[CodingActor] Loading {model_id} in INT8 precision for coding tasks...")
         if AutoModelForCausalLM:
             try:
+                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
-                    load_in_low_bit="nf4",
+                    load_in_low_bit="sym_int8",
                     trust_remote_code=True,
                     use_cache=True
                 )
             except Exception as e:
                 print(f"[CodingActor] Error loading model: {e}. Using mock executor.")
                 self.model = None
+            self.tokenizer = None
         else:
             print("[CodingActor] IPEX-LLM not available. Using mock executor.")
             self.model = None
+            self.tokenizer = None
 
     def receive(self, message):
         if message["type"] == "code_execution":
@@ -123,6 +126,6 @@ class CodingActor(CognitiveModule):
         if not self.model:
             return "Error: Model not loaded."
 
-        # SGI-Alpha 2026: Base Model Weights in NF4
+        # SGI-Alpha 2026: Base Model Weights in INT8
         # Placeholder for actual inference call
         return f"def solution():\n    # Implementation for {prompt}\n    pass"

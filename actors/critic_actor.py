@@ -2,30 +2,34 @@ import ray
 from core.base import CognitiveModule
 
 try:
-    from ipex_llm.transformers import AutoModelForCausalLM
+    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
 except ImportError:
-    AutoModelForCausalLM = None
+    AutoModelForCausalLM, AutoTokenizer = None, None
 
 @ray.remote
 class InternalCritic(CognitiveModule):
-    def __init__(self, workspace=None, scheduler=None, model_id="intel/neural-chat-14b-v3-3"):
+    def __init__(self, workspace=None, scheduler=None, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
         self.critiques = []
-        print(f"[InternalCritic] Loading {model_id} for semantic critique...")
+        print(f"[InternalCritic] Loading {model_id} for semantic critique (INT8 precision)...")
         if AutoModelForCausalLM and model_id:
             try:
+                # SGI 2026: Internal Critic uses INT8 for high accuracy
+                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
-                    load_in_low_bit="nf4",
+                    load_in_low_bit="sym_int8",
                     trust_remote_code=True,
                     use_cache=True
                 )
             except Exception as e:
                 print(f"[InternalCritic] Error loading model: {e}. Using heuristics.")
                 self.model = None
+            self.tokenizer = None
         else:
             print("[InternalCritic] IPEX-LLM not available or no model_id. Using heuristics.")
             self.model = None
+            self.tokenizer = None
 
     def critique_code(self, code):
         print(f"[InternalCritic] Critiquing code snippet...")
@@ -35,7 +39,7 @@ class InternalCritic(CognitiveModule):
         if code.count("(") != code.count(")"): issues.append("Mismatched parentheses detected.")
 
         if self.model:
-            # SGI 2026: Semantic Code Critique using NF4 model
+            # SGI 2026: Semantic Code Critique using INT8 model
             print("[InternalCritic] Performing semantic code analysis via LLM...")
             # Simulated model critique
             if "pass" in code: issues.append("Semantic Warning: Code contains empty 'pass' blocks.")
@@ -51,7 +55,7 @@ class InternalCritic(CognitiveModule):
             issues.append("Blatant logical contradiction detected.")
 
         if self.model:
-            # SGI 2026: Semantic Logic Critique using NF4 model
+            # SGI 2026: Semantic Logic Critique using INT8 model
             print("[InternalCritic] Performing semantic logic analysis via LLM...")
             # Simulated model critique
             if "inferred" in str(reasoning): issues.append("Semantic Warning: Reasoning relies on inferred premises.")

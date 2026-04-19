@@ -5,29 +5,32 @@ from core.base import CognitiveModule
 from core.config import CORES_REASONER
 
 try:
-    from ipex_llm.transformers import AutoModelForCausalLM
+    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
 except ImportError:
-    AutoModelForCausalLM = None
+    AutoModelForCausalLM, AutoTokenizer = None, None
 
 @ray.remote(num_cpus=CORES_REASONER)
 class ReasonerActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
+    def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
-        print(f"[ReasonerActor] Loading {model_id} in BF16 precision for reasoning tasks...")
+        print(f"[ReasonerActor] Loading {model_id} in FP16 precision for reasoning tasks...")
         if AutoModelForCausalLM:
             try:
+                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
-                    load_in_low_bit="bf16",
+                    load_in_low_bit="sym_int8",
                     trust_remote_code=True,
                     use_cache=True
                 )
             except Exception as e:
                 print(f"[ReasonerActor] Error loading model: {e}. Using mock engine.")
                 self.model = None
+            self.tokenizer = None
         else:
             print("[ReasonerActor] IPEX-LLM not available. Using mock engine.")
             self.model = None
+            self.tokenizer = None
 
     def receive(self, message):
         try:

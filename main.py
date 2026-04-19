@@ -60,7 +60,7 @@ async def cognitive_cycle():
     thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
 
     # Initialize Specialized Actors
-    model_id = "intel/neural-chat-14b-v3-3"
+    model_id = "DeepSeek-Coder-V2-Lite"
     reasoner = ReasonerActor.remote(workspace, scheduler, model_id=model_id)
     coder = CodingActor.remote(workspace, scheduler, model_id=model_id)
     searcher = SearchActor.remote(workspace, scheduler, model_id=model_id)

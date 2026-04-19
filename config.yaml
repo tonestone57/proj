@@ -18,17 +18,17 @@ hardware_limits:
 # SECTION 2: Specialized Actor Precision Tiers
 actors:
   symbolic_reasoner:
-    precision: "bf16"               # Logic/Math (2026 standard)
+    precision: "fp16"               # Logic/Math (2026 standard)
     cpu_cores: 2
     priority: 1
 
   coding_actor:
-    precision: "nf4"                # Base weights (2026 standard)
+    precision: "sym_int8"                # Base weights (2026 standard)
     cpu_cores: 2
     priority: 1
 
   search_actor:
-    precision: "nf4"                # Web Data
+    precision: "UD-Q4_K_M"                # Web Data
     cpu_cores: 1
     load_mode: "ipex_low_bit"
     priority: 3

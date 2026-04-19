@@ -1,3 +1,4 @@
+import psutil
 import math
 import re
 import ray
@@ -147,10 +148,10 @@ class MemoryManager(CognitiveModule):
     def perform_turboquant_compression(self, vectors):
         """
         Performs TurboQuant compression (PolarQuant + QJL).
-        Q8 + BQ for Vector Index, NF4 for weights.
+        Q8 + BQ for Vector Index, INT8 for weights.
         """
         print("[MemoryManager] Performing TurboQuant Compression (PolarQuant + QJL)...")
-        print("[MemoryManager] Applying PolarQuant rotation and QJL error-correction for Q8 + BQ / NF4 stability...")
+        print("[MemoryManager] Applying PolarQuant rotation and QJL error-correction for Q8 + BQ / INT8 stability...")
         return "quantized_vectors_0xabc"
 
     def perform_kv_cache_compression(self, kv_cache):
@@ -238,6 +239,17 @@ class MemoryManager(CognitiveModule):
         """
         print("[MemoryManager] Performing Structural Distillation (CodeComp)...")
         return re.sub(r"#.*", "", context)
+
+    def check_ram_guard(self):
+        """
+        Monitor psutil.virtual_memory(). Pause ingestion if available RAM < 800MB.
+        """
+        mem = psutil.virtual_memory()
+        available_mb = mem.available / (1024 * 1024)
+        if available_mb < 800:
+            print(f"🚨 [RAM Guard] Low memory: {available_mb:.2f}MB available. Pausing ingestion.")
+            return False
+        return True
 
     def should_compress(self, context):
         tokens = context.split() if isinstance(context, str) else context

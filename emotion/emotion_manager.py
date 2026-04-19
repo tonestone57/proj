@@ -18,10 +18,3 @@ class EmotionManager:
             "reasoning": self.reasoner.reason(self.state.snapshot(), event)
         }
 
-from emotion.emotion_manager import EmotionManager
-
-emotion_manager = EmotionManager()
-modules["emotion"] = emotion_manager
-
-if msg_type in ["emotional_event"]:
-    return module_registry.get("emotion")
