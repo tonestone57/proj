@@ -15,6 +15,10 @@ class LicenseActor:
             re.compile(r"licensed\s+under\s+the\s+GPL", re.IGNORECASE),
             re.compile(r"Free\s+Software\s+Foundation", re.IGNORECASE),
             re.compile(r"vulnerability\s+to\s+viral\s+licensing", re.IGNORECASE),
+            re.compile(r"Affero\s+General\s+Public\s+License", re.IGNORECASE),
+            re.compile(r"AGPLv[123]", re.IGNORECASE),
+            re.compile(r"license\s+is\s+viral", re.IGNORECASE),
+            re.compile(r"strictly\s+prohibited\s+without\s+FSF\s+approval", re.IGNORECASE),
         ]
 
     def is_compliant(self, content):
@@ -77,4 +81,59 @@ class SearchActor(CognitiveModule):
             })
 
     def perform_search(self, query):
-        return [f"Documentation for {query}: Permissive MIT license.", f"Technical spec for {query}: Licensed under Apache 2.0."]
+        """
+        Simulates an autonomous online search.
+        In a real scenario, this would call Tavily or SearXNG.
+        """
+        # Dynamic mock results based on query
+        return [
+            f"Documentation for {query}: Permissive MIT license summary.",
+            f"Technical spec for {query}: Licensed under Apache 2.0.",
+            f"Implementation details for {query}: See GPLv3 source for more info.",
+            f"Quick start guide for {query}: Included in COPYING file."
+        ]
+
+    def MultiPerspectiveSearch(self, query):
+        """
+        Employs Multi-Perspective Search—querying both the main thesis and its antithesis.
+        """
+        print(f"[SearchActor] Performing Multi-Perspective Search for: {query}")
+        queries = [
+            query,
+            f"limitations of {query}",
+            f"alternatives to {query}",
+            f"why {query} might fail"
+        ]
+
+        all_results = []
+        for q in queries:
+            all_results.extend(self.perform_search(q))
+        return all_results
+
+    def NebulaGraph_Emitter(self, graph_data):
+        """
+        Simulates AST-based node/edge persistence in NebulaGraph.
+        """
+        print("[SearchActor] Emitting graph data to NebulaGraph (The Neural Map)...")
+        for node in graph_data.get("nodes", []):
+            print(f"  INSERT VERTEX (ID: {node['id']}, TYPE: {node['type']})")
+        for edge in graph_data.get("edges", []):
+            print(f"  INSERT EDGE (FROM: {edge['source']}, TO: {edge['target']}, REL: {edge['relation']})")
+        return True
+
+    def calculate_retrieval_confidence(self, query, results):
+        """
+        Scores retrieval confidence based on result relevance to the query.
+        """
+        if not results:
+            return 0.0
+
+        relevance_score = 0
+        query_terms = set(query.lower().split())
+        for res in results:
+            res_terms = set(res.lower().split())
+            if query_terms.intersection(res_terms):
+                relevance_score += 1
+
+        confidence = relevance_score / len(results)
+        return min(1.0, confidence)
