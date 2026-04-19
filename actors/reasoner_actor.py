@@ -36,7 +36,10 @@ class ReasonerActor(CognitiveModule):
             handle = None
 
         if message["type"] == "query":
-            result = self.reason(message["data"])
+            if self.model:
+                result = self.generate_reasoning(message["data"])
+            else:
+                result = self.reason(message["data"])
             self.scheduler.submit.remote(handle, {"type": "symbolic_result", "data": result})
         elif message["type"] == "verification_request":
             result = self.verify_logic(message["data"])
@@ -102,3 +105,15 @@ class ReasonerActor(CognitiveModule):
         shadowed = re.findall(r"\b(list|dict|str|int|float|set|sum|min|max|abs)\s*=", code)
         if shadowed: issues.append(f"Shadowing built-ins: {', '.join(set(shadowed))}")
         return {"status": "failed_heuristics" if issues else "passed_heuristics", "method": "Static Analysis", "issues" if issues else "details": issues if issues else "No common patterns of error detected."}
+
+    def generate_reasoning(self, prompt):
+        """
+        Generates logic chains using the loaded LLM.
+        """
+        print(f"[ReasonerActor] Generating logic chain for: {prompt[:50]}...")
+        if not self.model:
+            return "Error: Model not loaded."
+
+        # SGI-Alpha 2026: Reasoning Engine in BF16
+        # Placeholder for actual inference call (requires tokenizer and specific prompt template)
+        return f"Logic chain for '{prompt}': [P1] -> [P2] -> [Conclusion]"
