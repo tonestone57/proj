@@ -1,5 +1,7 @@
+import ray
 from core.config import WORKSPACE_HISTORY_LIMIT
 
+@ray.remote
 class GlobalWorkspace:
     def __init__(self):
         self.subscribers = []
@@ -17,7 +19,11 @@ class GlobalWorkspace:
             self.history.pop(0)
 
         for module in self.subscribers:
-            module.receive(message)
+            # message is now a dict, we call receive.remote
+            try:
+                module.receive.remote(message)
+            except Exception as e:
+                print(f"[GlobalWorkspace] Error broadcasting to module: {e}")
 
     def get_current_state(self):
         return {
