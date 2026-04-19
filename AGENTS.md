@@ -11,7 +11,7 @@ The system operates as a central **Broadcast Center** (Hub) with **Specialized A
 
 ### The Actor Pattern
 - **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes. The Hub broadcasts objectives to specialized actors (e.g., Symbolic Reasoner, Coding Module) and synthesizes the optimal response.
-- **Implementation**: Utilize **Ray** as the primary distributed orchestrator to bypass the Python GIL. The system is configured to use **2 to 4 CPU cores** (min/max). Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
+- **Implementation**: Utilize **Ray** as the primary distributed orchestrator to bypass the Python GIL. The system is configured to use **2 to 4 CPU cores** (min/max) and a **maximum of 4 threads**. Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
 - **Data Transfer**: Use **Ray Plasma** (shared memory object store) for zero-latency transfer of large technical data buffers between actors.
 
 ### The Cognitive Heartbeat (Curiosity Drive)

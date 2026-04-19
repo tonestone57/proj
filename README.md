@@ -46,7 +46,7 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 ### Extraction Process
 1. **Probe**: The GGUF model is prompted to generate exhaustive information on target topics.
 2. **Embed**: Generated text is converted into mathematical vectors (embeddings).
-3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval using **Domain-Aware & Neural Codecs**. The system is optimized for **2 to 4 CPU cores**.
+3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval using **Domain-Aware & Neural Codecs**. The system is optimized for **2 to 4 CPU cores** and a **maximum of 4 threads**.
 
 ### Storage Options (2026 Standards)
 The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
