@@ -14,10 +14,13 @@ class ThermalGuard:
         Monitors CPU temperature and load.
         Note: Temperature monitoring might require specific permissions or drivers.
         """
-        load = psutil.cpu_percent(interval=None)
+        try:
+            load = psutil.cpu_percent(interval=None)
+        except Exception:
+            load = 0.0
 
         # Attempt to get temperature (OS dependent)
-        temp = 0.0
+        temp = 45.0 # Default safe temperature
         try:
             temps = psutil.sensors_temperatures()
             if 'coretemp' in temps:

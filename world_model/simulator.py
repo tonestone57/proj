@@ -7,9 +7,16 @@ class Simulator:
         effects = self.causal_graph.get_effects(action)
         new_state = self.world_state.snapshot()
 
+        # Update external entities based on causal effects
         for effect in effects:
-            if effect in new_state["properties"]:
-                new_state["properties"][effect] += 1
+            if effect in new_state["external"]["entities"]:
+                # Simulation logic: increment entity property value if it exists
+                entity = new_state["external"]["entities"][effect]
+                if isinstance(entity, dict) and "value" in entity:
+                    entity["value"] += 1
+            else:
+                # Add new entity if it's a discovered effect
+                new_state["external"]["entities"][effect] = {"type": "inferred", "value": 1}
 
         return new_state
 

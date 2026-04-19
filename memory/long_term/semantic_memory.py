@@ -1,3 +1,5 @@
+from core.base import CognitiveModule
+
 class SemanticMemory:
     def __init__(self):
         self.knowledge = {}
@@ -27,12 +29,3 @@ class SemanticMemory:
             "compression_ratio": "8.5x",
             "codec": "Arithmetic LLM Coding"
         }
-
-class CognitiveModule:
-    def __init__(self, workspace, scheduler):
-        self.workspace = workspace
-        self.scheduler = scheduler
-        workspace.register(self)
-
-    def receive(self, message):
-        raise NotImplementedError

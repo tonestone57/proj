@@ -68,11 +68,12 @@ class CodingActor(CognitiveModule):
 
     def distill_code(self, code):
         """
-        Performs distillation while prioritizing Class Hierarchy Preservation.
+        Performs distillation while prioritizing Class Hierarchy Preservation and Control Logic.
         """
-        print("[CodingActor] Distilling code with Class Hierarchy Preservation...")
+        print("[CodingActor] Distilling code with Class Hierarchy Preservation (CodeComp)...")
         lines = code.split('\n')
-        preserved = [line for line in lines if any(k in line for k in ["class ", "virtual", "override", "def "])]
+        keywords = ["class ", "def ", "virtual", "override", "if ", "while ", "for ", "return "]
+        preserved = [line for line in lines if any(k in line for k in keywords)]
         return "\n".join(preserved)
 
     def DigitalTwin_Branching(self, branch_name):
@@ -85,7 +86,11 @@ class CodingActor(CognitiveModule):
 
         if persistent:
             print(f"[CodingActor] Connecting to Persistent Digital Twin (Firecracker VM).")
+            from world_model.state import VMStateDigitalTwin
+            twin = VMStateDigitalTwin(vm_id="speculative-01")
+            twin.start()
             branch_id = self.DigitalTwin_Branching("speculative_run")
+            twin.branch(branch_id)
             print(f"[CodingActor] Branch {branch_id} ready. Observing side effects...")
 
         return self.execute_logic_internal(code)

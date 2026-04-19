@@ -167,6 +167,25 @@ class MemoryManager(CognitiveModule):
         print("[MemoryManager] Compressing Reasoning Engine to BF16 (Q16)...")
         return "bf16_logic_chain"
 
+    def perform_per_channel_scaling(self, channel_vector):
+        """
+        Implements Per-Channel Scaling for INT8 quantization.
+        Formula: qi = round(xi / Si), where Si = max(|xi|) / 127
+        """
+        if not channel_vector:
+            return []
+
+        # SGI 2026 Standard: Per-Channel Scaling
+        max_val = max(abs(x) for x in channel_vector)
+        if max_val == 0:
+            return [0] * len(channel_vector)
+
+        scale = max_val / 127.0
+        quantized = [round(x / scale) for x in channel_vector]
+
+        print(f"[MemoryManager] Per-Channel Scaling applied. Scale: {scale:.4f}")
+        return quantized
+
     def perform_ast_serialization(self, code):
         """
         Performs Structural Codec compression using Tree-sitter Serialization.
