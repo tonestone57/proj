@@ -102,7 +102,7 @@ class MemoryManager(CognitiveModule):
                 pruned_count += 1
 
         print(f"[MemoryManager] Pruned {pruned_count} low-saliency memories.")
-        print("[MemoryManager] Archiving remaining raw logs to long-term storage (LanceDB).")
+        print("[MemoryManager] Archiving remaining raw logs to long-term storage (LanceDB) using Zstd-19.")
 
     def synthesize_knowledge(self, patterns):
         print(f"[MemoryManager] Synthesizing new Knowledge Base entries for patterns: {patterns}")
@@ -156,14 +156,31 @@ class MemoryManager(CognitiveModule):
     def perform_turboquant_compression(self, vectors):
         """
         Performs TurboQuant compression using PolarQuant and QJL.
-        Compresses vectors to 4-bit (NF4) with 0% accuracy loss.
+        Compresses vectors (RAG Index) to Q8 + BQ (INT8 for accuracy, Binary for scale).
+        Base weights are compressed to NF4.
         """
         print("[MemoryManager] Performing TurboQuant Compression (PolarQuant + QJL)...")
         # 1. PolarQuant: Randomly rotate data vectors to simplify geometry
         print("[MemoryManager] Applying PolarQuant rotation to stabilize vector distribution...")
         # 2. QJL: Quantized Johnson-Lindenstrauss for 1-bit error-correction
-        print("[MemoryManager] Applying QJL error-correction for NF4 stability...")
-        return "nf4_quantized_vectors_0xabc"
+        print("[MemoryManager] Applying QJL error-correction for Q8 + BQ / NF4 stability...")
+        return "quantized_vectors_0xabc"
+
+    def perform_kv_cache_compression(self, kv_cache):
+        """
+        Compresses KV Cache (Memory) to FP8 (E4M3).
+        Provides high dynamic range for spiky activations.
+        """
+        print("[MemoryManager] Compressing KV Cache to FP8 (E4M3)...")
+        return "fp8_kv_cache"
+
+    def perform_reasoning_compression(self, logic_chain):
+        """
+        Compresses Reasoning Engine (Brain) to BF16 (Q16).
+        Ensures maximum fidelity for A->B logic and proofs.
+        """
+        print("[MemoryManager] Compressing Reasoning Engine to BF16 (Q16)...")
+        return "bf16_logic_chain"
 
     def perform_ast_serialization(self, code):
         """

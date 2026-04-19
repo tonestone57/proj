@@ -13,3 +13,7 @@ MAX_LIMIT = 8192 # Token limit
 
 # Workspace settings
 WORKSPACE_HISTORY_LIMIT = 100
+
+# Hardware limits
+CPU_CORES_MIN = 2
+CPU_CORES_MAX = 4

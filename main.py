@@ -5,9 +5,10 @@ import asyncio
 # Import existing module logic for reuse
 from actors.reasoner_actor import ReasonerActor as ReasonerLogic
 from actors.coding_actor import CodingActor as CodingLogic
+from core.config import CPU_CORES_MAX
 
 # Ray Initialization
-ray.init(ignore_reinit_error=True)
+ray.init(ignore_reinit_error=True, num_cpus=CPU_CORES_MAX)
 
 # Mock classes to allow existing modules to initialize without side effects
 class MockWorkspace:

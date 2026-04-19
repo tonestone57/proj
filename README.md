@@ -46,19 +46,21 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 ### Extraction Process
 1. **Probe**: The GGUF model is prompted to generate exhaustive information on target topics.
 2. **Embed**: Generated text is converted into mathematical vectors (embeddings).
-3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval using **Domain-Aware & Neural Codecs**.
+3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval using **Domain-Aware & Neural Codecs**. The system is optimized for **2 to 4 CPU cores**.
 
 ### Storage Options (2026 Standards)
 The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 
-| Database | Role | Speed (Latency) | Data Lifecycle | Codec (SGI Alt) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Semantic Cache** | **Message Bus** | **Sub-millisecond** | Ephemeral | **Flash-Optimized LZ4** |
-| **FAISS** | **The Reflex Arc** | **Sub-millisecond** | Transient (Volatile/RAM) | **TurboQuant (QJL)** |
-| **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) | **LLM-Arithmetic Coding** |
+| Component | Format | Reasoning |
+| :--- | :--- | :--- |
+| **Reasoning (Brain)** | **Q16 (BF16)** | Zero-compromise logic & proof-chaining. |
+| **Weights (Storage)** | **NF4** | Optimal for Gaussian weight distributions. |
+| **KV Cache (Memory)** | **FP8 (E4M3)** | High dynamic range for "spiky" activations. |
+| **Index (RAG)** | **Q8 + BQ** | INT8 for accuracy, Binary for massive scale. |
+| **Search/Text Logs** | **Zstd-19** | Standard high-ratio compression for raw text/logs. |
 
 - **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (QJL) for efficient storage.
-    - **TurboQuant**: Compresses vectors to **4-bit (NF4)** with **0% accuracy loss** using PolarQuant rotation and QJL error-correction.
+    - **TurboQuant**: Compresses RAG Index to **Q8 + BQ** and base weights to **NF4** using PolarQuant rotation and QJL error-correction.
 - **Qdrant**: Primary store for active reasoning and payload filtering.
 - **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** (Lossless Neural Archiving) for neural archiving.
     - **LLM-Zip**: Achieves **5x to 10x better** compression than Zstd for code by storing token probabilities predicted by the LLM.

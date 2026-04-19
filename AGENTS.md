@@ -11,7 +11,7 @@ The system operates as a central **Broadcast Center** (Hub) with **Specialized A
 
 ### The Actor Pattern
 - **Parallel Execution**: Modules operate as autonomous, concurrent units in isolated processes. The Hub broadcasts objectives to specialized actors (e.g., Symbolic Reasoner, Coding Module) and synthesizes the optimal response.
-- **Implementation**: Utilize **Ray** as the primary distributed orchestrator to bypass the Python GIL. Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
+- **Implementation**: Utilize **Ray** as the primary distributed orchestrator to bypass the Python GIL. The system is configured to use **2 to 4 CPU cores** (min/max). Use **gRPC** specifically for low-latency interfacing with non-Python or external microservices.
 - **Data Transfer**: Use **Ray Plasma** (shared memory object store) for zero-latency transfer of large technical data buffers between actors.
 
 ### The Cognitive Heartbeat (Curiosity Drive)
@@ -57,7 +57,11 @@ The system must follow an iterative loop: **Reason → Search → Ingest → Ind
 - **Contextual Retrieval**: Attach a document summary to every chunk to preserve global context.
 - **Vector Store**: Use **FAISS** for short-term/high-speed tasks and **LanceDB** for long-term/persistent knowledge storage.
 - **2026 Compression Landscape (Domain-Aware & Neural Codecs)**:
-    - **Vector Codecs (TurboQuant)**: Beyond standard PQ, use **PolarQuant** to rotate vectors and **Quantized Johnson-Lindenstrauss (QJL)** for 1-bit error correction. Compresses embeddings to **4-bit (NF4)** with **0% accuracy loss**.
+    - **Reasoning Engine**: **BF16 (Q16)** for maximum fidelity for A→B logic and proofs.
+    - **Base Model Weights**: **NF4** (Information-theoretically optimal storage for Gaussian weights).
+    - **Vector Index (RAG)**: **Q8 + BQ** (Binary/1-bit for speed, Q8 for high-accuracy re-ranking).
+    - **KV Cache (Memory)**: **FP8 (E4M3)** (The "Sweet Spot" for long-range coding context stability).
+    - **Search/Text Logs**: **Zstd-19** (Standard high-ratio compression for raw Markdown/Code storage).
     - **Text Codecs (LLM-Zip)**: Use **Arithmetic LLM Coding** where the LLM predicts probability distributions and an Arithmetic Encoder stores probabilities. Achieving **5x to 10x better** compression than Zstd for code.
     - **Structural Codecs (Tree-sitter)**: Instead of raw text, serialize the **Abstract Syntax Tree (AST)**. Stores code as tree-node operations, bypassing the need to re-parse and providing the Control Flow Graph immediately.
 - **License Guardian**: Every snippet must pass through a specialized **License Classifier Gate**.
@@ -105,12 +109,14 @@ Instead of pruning by recency, use a **Code Property Graph (CPG)** to identify t
 
 ### "Gold Standard" Tiered Memory Stack (2026 Standards)
 
-| Codec Type | Standard (The "Good") | SGI Alternative (The "Better") | Primary Benefit |
-| :--- | :--- | :--- | :--- |
-| **Hot Storage** | **LZ4** / **Zstd-1** | **Flash-Optimized LZ4** | Sub-millisecond latency for the "Reflex Arc." |
-| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | 4-bit (NF4) compression with **0%** accuracy loss. |
-| **Long-term Archive**| **7z (LZMA2)** | **LLM-Arithmetic Coding** | Massive ratio; "stores knowledge, not just data." |
-| **Video/Vision** | **H.265 / AV1** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
+| Component | Format | Reasoning |
+| :--- | :--- | :--- |
+| **Reasoning (Brain)** | **Q16 (BF16)** | Zero-compromise logic & proof-chaining. |
+| **Weights (Storage)** | **NF4** | Optimal for Gaussian weight distributions. |
+| **KV Cache (Memory)** | **FP8 (E4M3)** | High dynamic range for "spiky" activations. |
+| **Index (RAG)** | **Q8 + BQ** | INT8 for accuracy, Binary for massive scale. |
+| **Search/Text Logs** | **Zstd-19** | Standard high-ratio compression for raw text/logs. |
+| **Video/Vision** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
 
 ### Compression Tiering Logic
 1. **Tier 1 (Ephemeral)**: Use **LZ4** for the `Message Bus` (Ray/Dragonfly) for maximum speed.
