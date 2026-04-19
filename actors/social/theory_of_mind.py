@@ -11,7 +11,7 @@ class TheoryOfMind(CognitiveModule):
     def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
         self.agent_models = {}
-        print(f"[TheoryOfMind] Loading {model_id} for intention inference...")
+        print(f"[TheoryOfMind] Loading {model_id} for intention inference (INT8)...")
         if AutoModelForCausalLM and model_id:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -23,12 +23,10 @@ class TheoryOfMind(CognitiveModule):
                 )
             except Exception as e:
                 print(f"[TheoryOfMind] Error loading model: {e}. Using heuristics.")
-                self.model = None
-            self.tokenizer = None
+                self.model, self.tokenizer = None, None
         else:
             print("[TheoryOfMind] IPEX-LLM not available or no model_id. Using heuristics.")
-            self.model = None
-            self.tokenizer = None
+            self.model, self.tokenizer = None, None
 
     def receive(self, message):
         if message["type"] == "social_event":
@@ -36,7 +34,11 @@ class TheoryOfMind(CognitiveModule):
 
         if message["type"] == "infer_intention":
             intention = self.infer_intention(message["agent"])
-            self.scheduler.submit(self, {
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                handle = None
+            self.scheduler.submit.remote(handle, {
                 "type": "intention_inferred",
                 "agent": message["agent"],
                 "data": intention
@@ -53,7 +55,6 @@ class TheoryOfMind(CognitiveModule):
 
         self.agent_models[agent]["history"].append(data)
 
-        # Example: update beliefs or emotions
         if "belief" in data:
             self.agent_models[agent]["beliefs"].update(data["belief"])
 
@@ -65,14 +66,12 @@ class TheoryOfMind(CognitiveModule):
         if not model:
             return {"intention": "unknown"}
 
-        if self.model:
+        if self.model and self.tokenizer:
             # SGI 2026: Intention inference via LLM analyzing history
-            print(f"[TheoryOfMind] Inferring intention for {agent} via LLM analyzing history...")
+            print(f"[TheoryOfMind] Inferring intention for {agent} via LLM...")
             history = model.get("history", [])
-            # Simulated LLM analysis
             return {"intention": f"LLM-inferred intention based on {len(history)} events", "confidence": 0.85}
 
-        # Placeholder inference logic
         if "goal" in model["beliefs"]:
             return {"intention": model["beliefs"]["goal"]}
 

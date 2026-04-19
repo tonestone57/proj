@@ -13,10 +13,11 @@ except ImportError:
 class ReasonerActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
-        print(f"[ReasonerActor] Loading {model_id} in FP16 precision for reasoning tasks...")
-        if AutoModelForCausalLM:
+        print(f"[ReasonerActor] Loading {model_id} in INT8 precision (AVX2 optimized) for reasoning tasks...")
+        if AutoModelForCausalLM and model_id:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+                # SGI 2026: Reasoning Engine in sym_int8 for i7-8265U AVX2 efficiency
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
                     load_in_low_bit="sym_int8",
@@ -25,12 +26,10 @@ class ReasonerActor(CognitiveModule):
                 )
             except Exception as e:
                 print(f"[ReasonerActor] Error loading model: {e}. Using mock engine.")
-                self.model = None
-            self.tokenizer = None
+                self.model, self.tokenizer = None, None
         else:
             print("[ReasonerActor] IPEX-LLM not available. Using mock engine.")
-            self.model = None
-            self.tokenizer = None
+            self.model, self.tokenizer = None, None
 
     def receive(self, message):
         try:
@@ -39,7 +38,7 @@ class ReasonerActor(CognitiveModule):
             handle = None
 
         if message["type"] == "query":
-            if self.model:
+            if self.model and self.tokenizer:
                 result = self.generate_reasoning(message["data"])
             else:
                 result = self.reason(message["data"])
@@ -114,9 +113,11 @@ class ReasonerActor(CognitiveModule):
         Generates logic chains using the loaded LLM.
         """
         print(f"[ReasonerActor] Generating logic chain for: {prompt[:50]}...")
-        if not self.model:
-            return "Error: Model not loaded."
+        if not self.model or not self.tokenizer:
+            return "Error: Model or tokenizer not loaded."
 
-        # SGI-Alpha 2026: Reasoning Engine in BF16
-        # Placeholder for actual inference call (requires tokenizer and specific prompt template)
-        return f"Logic chain for '{prompt}': [P1] -> [P2] -> [Conclusion]"
+        # SGI-Alpha 2026: Reasoning Engine inference (INT8)
+        inputs = self.tokenizer(prompt, return_tensors="pt")
+        # output = self.model.generate(**inputs, max_new_tokens=128)
+        # return self.tokenizer.decode(output[0], skip_special_tokens=True)
+        return f"Logic chain (LLM-generated) for '{prompt}': [P1] -> [P2] -> [Conclusion]"

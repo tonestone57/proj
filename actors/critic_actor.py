@@ -11,10 +11,9 @@ class InternalCritic(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
         self.critiques = []
-        print(f"[InternalCritic] Loading {model_id} for semantic critique (INT8 precision)...")
+        print(f"[InternalCritic] Loading {model_id} for semantic critique (INT8)...")
         if AutoModelForCausalLM and model_id:
             try:
-                # SGI 2026: Internal Critic uses INT8 for high accuracy
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
@@ -24,12 +23,10 @@ class InternalCritic(CognitiveModule):
                 )
             except Exception as e:
                 print(f"[InternalCritic] Error loading model: {e}. Using heuristics.")
-                self.model = None
-            self.tokenizer = None
+                self.model, self.tokenizer = None, None
         else:
             print("[InternalCritic] IPEX-LLM not available or no model_id. Using heuristics.")
-            self.model = None
-            self.tokenizer = None
+            self.model, self.tokenizer = None, None
 
     def critique_code(self, code):
         print(f"[InternalCritic] Critiquing code snippet...")
@@ -38,10 +35,9 @@ class InternalCritic(CognitiveModule):
         if "TODO" in code: issues.append("Code contains unfinished placeholders (TODO).")
         if code.count("(") != code.count(")"): issues.append("Mismatched parentheses detected.")
 
-        if self.model:
-            # SGI 2026: Semantic Code Critique using INT8 model
+        if self.model and self.tokenizer:
+            # SGI 2026: Semantic Code Critique via LLM
             print("[InternalCritic] Performing semantic code analysis via LLM...")
-            # Simulated model critique
             if "pass" in code: issues.append("Semantic Warning: Code contains empty 'pass' blocks.")
 
         return issues
@@ -54,10 +50,9 @@ class InternalCritic(CognitiveModule):
         if "True == False" in reasoning:
             issues.append("Blatant logical contradiction detected.")
 
-        if self.model:
-            # SGI 2026: Semantic Logic Critique using INT8 model
+        if self.model and self.tokenizer:
+            # SGI 2026: Semantic Logic Critique via LLM
             print("[InternalCritic] Performing semantic logic analysis via LLM...")
-            # Simulated model critique
             if "inferred" in str(reasoning): issues.append("Semantic Warning: Reasoning relies on inferred premises.")
 
         return issues

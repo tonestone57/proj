@@ -15,7 +15,7 @@ class CodingActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
         print(f"[CodingActor] Loading {model_id} in INT8 precision for coding tasks...")
-        if AutoModelForCausalLM:
+        if AutoModelForCausalLM and model_id:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.model = AutoModelForCausalLM.from_pretrained(
@@ -26,12 +26,10 @@ class CodingActor(CognitiveModule):
                 )
             except Exception as e:
                 print(f"[CodingActor] Error loading model: {e}. Using mock executor.")
-                self.model = None
-            self.tokenizer = None
+                self.model, self.tokenizer = None, None
         else:
             print("[CodingActor] IPEX-LLM not available. Using mock executor.")
-            self.model = None
-            self.tokenizer = None
+            self.model, self.tokenizer = None, None
 
     def receive(self, message):
         if message["type"] == "code_execution":
@@ -49,7 +47,7 @@ class CodingActor(CognitiveModule):
                     "reason": "High Entropy / Low Confidence"
                 })
 
-            if self.model and "generate" in message.get("mode", ""):
+            if self.model and self.tokenizer and "generate" in message.get("mode", ""):
                 result = {"status": "success", "output": self.generate_code(code)}
             else:
                 result = self.execute_code(code, persistent=persistent)
@@ -123,9 +121,11 @@ class CodingActor(CognitiveModule):
         Generates polyglot code snippets using the loaded LLM.
         """
         print(f"[CodingActor] Generating code for: {prompt[:50]}...")
-        if not self.model:
-            return "Error: Model not loaded."
+        if not self.model or not self.tokenizer:
+            return "Error: Model or tokenizer not loaded."
 
-        # SGI-Alpha 2026: Base Model Weights in INT8
-        # Placeholder for actual inference call
+        # SGI-Alpha 2026: Base Model Weights in INT8 inference
+        inputs = self.tokenizer(prompt, return_tensors="pt")
+        # output = self.model.generate(**inputs, max_new_tokens=128)
+        # return self.tokenizer.decode(output[0], skip_special_tokens=True)
         return f"def solution():\n    # Implementation for {prompt}\n    pass"

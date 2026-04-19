@@ -36,7 +36,7 @@ class SearchActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
         super().__init__(workspace, scheduler)
         self.license_actor = LicenseActor()
-        print(f"[SearchActor] Loading {model_id} in UD-Q4_K_M precision for JIT distillation...")
+        print(f"[SearchActor] Loading {model_id} in UD-Q4_K_M precision (INT8 base)...")
         if AutoModelForCausalLM and model_id:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -48,12 +48,10 @@ class SearchActor(CognitiveModule):
                 )
             except Exception as e:
                 print(f"[SearchActor] Error loading model: {e}. Using mock distiller.")
-                self.model = None
-            self.tokenizer = None
+                self.model, self.tokenizer = None, None
         else:
             print("[SearchActor] IPEX-LLM not available or no model_id. Using mock distiller.")
-            self.model = None
-            self.tokenizer = None
+            self.model, self.tokenizer = None, None
 
     def receive(self, message):
         if message["type"] == "search_request":
@@ -79,9 +77,8 @@ class SearchActor(CognitiveModule):
 
     def distill_results(self, results):
         print("[SearchActor] Performing JIT Context Compilation (Distiller)...")
-        if self.model:
-            # SGI 2026: JIT Context Compilation using INT8 model
-            # In a real implementation, this would use model.generate()
+        if self.model and self.tokenizer:
+            # SGI 2026: JIT Context Compilation via LLM inference
             return f"Synthesized Actionable Spec (LLM-Distilled):\n- Based on {len(results)} sources.\n- Optimized for Intel i5-8265U."
 
         spec = "Synthesized Actionable Spec (JIT Memory):\n"

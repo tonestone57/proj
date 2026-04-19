@@ -41,7 +41,7 @@ On the i5-8265U, memory bandwidth is the bottleneck. Use these domain-aware code
 
 | Component | Format | Hardware Benefit |
 | :--- | :--- | :--- |
-| Reasoning Engine | FP16 | High-precision logic for A→B proofs. |
+| Reasoning Engine | sym_int8 | High-precision logic for A→B proofs. |
 | Base Model Weights | Q5_K_M | Optimized for Intel AVX-512/VNNI instructions. |
 | KV Cache (Memory) | INT8 (Q8_0) | Expands context window without OOM on 8GB/16GB RAM. Implement Per-Channel Scaling. |
 
@@ -67,7 +67,7 @@ This gives INT8 the flexibility to handle "spiky" data without needing the hardw
 - **Structural KV Compression (CodeComp)**: Use a Code Property Graph (CPG) to identify the "Control Flow Skeleton."
     - **Protect**: Function signatures, return types, and control logic (if/while).
     - **Evict**: Boilerplate, redundant comments, and "fluff" detected via token entropy.
-- **RAM Guard**: Monitor psutil.virtual_memory(). Pause ingestion if available RAM < 800MB.
+- **RAM Guard**: Monitor psutil.virtual_memory(). Pause ingestion if available RAM < 2000MB.
 
 ### Tiered Memory Stack
 1. **Reflex (FAISS)**: Sub-millisecond thought-deduplication using TurboQuant.
