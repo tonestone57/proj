@@ -30,9 +30,14 @@ On the i5-8265U, memory bandwidth is the bottleneck. Use these domain-aware code
 Component	Format	Hardware Benefit
 Reasoning Engine	FP16	High-precision logic for A→B proofs.
 Base Model Weights	Q5_K_M 	Optimized for Intel AVX-512/VNNI instructions.
-KV Cache (Memory)	INT8 (Q8_0)	Expands context window without OOM on 8GB/16GB RAM. Implement Per-Channel Scaling. Instead of one scale for the whole cache, you calculate a scaling factor for each "channel" of the KV vectors.
-$$q = \text{round} \left( \frac{x}{S} \right) \quad \text{where } S = \frac{\max(|x|)}{127}$$
+KV Cache (Memory)	INT8 (Q8_0)	Expands context window without OOM on 8GB/16GB RAM. Implement Per-Channel Scaling. Instead of one scale for the whole cache, you calculate a scaling factor $S_i$ for each channel $i$ of the KV vectors.
+$$q_i = \text{round} \left( \frac{x_i}{S_i} \right) \quad \text{where } S_i = \frac{\max(|x_i|)}{127}$$
 This gives INT8 the flexibility to handle "spiky" data without needing the hardware-heavy FP8 format.
+### Per-Channel Scaling Implementation:
+1. **Identify the Channel Vector**: Isolate the vector $x_i$ representing a single channel or block within the KV cache. Because activations in LLMs are "spiky" (having high-magnitude outliers in specific dimensions), calculating a global scale for the entire cache would squash the precision of smaller, more frequent values.
+2. **Calculate the Per-Channel Scale ($S_i$)**: Find the maximum absolute value within that specific channel. You divide this by $127$ (the maximum value for a signed 8-bit integer) to create a scaling factor that ensures the largest value fits exactly at the edge of the INT8 range.
+3. **Quantize the Values ($q_i$)**: Divide every element $x_i$ in that channel by its specific scale $S_i$ and round to the nearest integer. This effectively "stretches" the data to use the full 8-bit dynamic range.
+4. **Dequantization for Reasoning**: When the Reasoning (Brain) component needs to read from the KV Cache, it performs the inverse: $x_{i} \approx q_i \times S_i$.
 Vector Index	Q8 + BQ	TurboQuant (QJL): 4-bit with 0% accuracy loss.
 Deep Archive	LLM-Zip	Neural Arithmetic Coding; 5x-10x better than Zstd.
 

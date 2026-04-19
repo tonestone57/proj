@@ -33,9 +33,7 @@ To fit within the memory bandwidth of the 8265U, the model forces specific quant
 Component	Format	Reasoning
 Reasoning (Brain)	FP16	Zero-compromise logic & proof-chaining while saving RAM bandwidth.
 Weights (Storage)	Q5_K_M 	Optimal for Gaussian weight distributions.
-KV Cache (Memory)	INT8 (Q8_0)	High dynamic range for "spiky" activations. Implement Per-Channel Scaling. Instead of one scale for the whole cache, you calculate a scaling factor for each "channel" of the KV vectors.
-$$q = \text{round} \left( \frac{x}{S} \right) \quad \text{where } S = \frac{\max(|x|)}{127}$$
-This gives INT8 the flexibility to handle "spiky" data without needing the hardware-heavy FP8 format.
+KV Cache (Memory)	INT8 (Q8_0)	High dynamic range for "spiky" activations. Per-Channel Scaling ensures $S_i = \frac{\max(|x_i|)}{127}$ is calculated per vector, allowing INT8 to handle outliers without the hardware overhead of FP8.
 Index (RAG)	Q8 + BQ	INT8 for accuracy, Binary for massive scale.
 Search/Text Logs	Zstd-19	Standard high-ratio compression for raw text/logs.
 Active Storage	Zstd	Fast enough to keep your workflow fluid.
