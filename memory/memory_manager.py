@@ -46,7 +46,13 @@ class MemoryManager(CognitiveModule):
         elif message["type"] == "compression_check":
             context = message["data"]
             result = self.should_compress(context)
-            self.scheduler.submit.remote(ray.get_runtime_context().current_actor, {"type": "compression_result", "data": result})
+
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                handle = None
+
+            self.scheduler.submit.remote(handle, {"type": "compression_result", "data": result})
 
     def trigger_sleep_cycle(self):
         """
@@ -55,7 +61,7 @@ class MemoryManager(CognitiveModule):
         print("[MemoryManager] Starting Sleep Cycle...")
 
         # 1. Review Scratchpad and Active Context
-        patterns = ray.get(self.identify_recurring_patterns.remote())
+        patterns = self.identify_recurring_patterns()
 
         # 2. Synthesize new Knowledge Base Entry
         if patterns:
@@ -66,7 +72,6 @@ class MemoryManager(CognitiveModule):
 
         print("[MemoryManager] Sleep Cycle complete.")
 
-    @ray.method(num_returns=1)
     def identify_recurring_patterns(self):
         """
         Reviews Scratchpad and Workspace history to identify recurring patterns.

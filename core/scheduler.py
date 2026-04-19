@@ -17,4 +17,5 @@ class Scheduler:
         if not self.queue:
             return None
         neg_priority, count, module, message = heapq.heappop(self.queue)
+        # Return only priority, module, and message to match Hub's expected unpacking
         return (-neg_priority, module, message)

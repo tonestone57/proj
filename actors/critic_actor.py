@@ -37,6 +37,12 @@ class InternalCritic(CognitiveModule):
             data, category = message["data"], message.get("category", "general")
             issues = self.critique_code(data) if category == "code" else self.critique_logic(data) if category == "logic" else []
             if "goal" in message: issues.extend(self.verify_goal_alignment(data, message["goal"]))
-            self.scheduler.submit.remote(ray.get_runtime_context().current_actor, {
+
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                handle = None
+
+            self.scheduler.submit.remote(handle, {
                 "type": "critique_result", "issues": issues, "original_sender": message.get("sender")
             })
