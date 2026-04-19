@@ -46,7 +46,7 @@ class MemoryManager(CognitiveModule):
         elif message["type"] == "compression_check":
             context = message["data"]
             result = self.should_compress(context)
-            self.scheduler.submit.remote(ray.get_actor(ray.get_runtime_context().get_actor_name()) if ray.get_runtime_context().get_actor_name() else None, {"type": "compression_result", "data": result})
+            self.scheduler.submit.remote(ray.get_runtime_context().current_actor, {"type": "compression_result", "data": result})
 
     def trigger_sleep_cycle(self):
         """

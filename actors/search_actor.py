@@ -40,7 +40,7 @@ class SearchActor(CognitiveModule):
             for res in compliant_results:
                 if any(k in res for k in ["class", "def "]): self.perform_graph_indexing(res)
             actionable_spec = self.distill_results(compliant_results)
-            self.scheduler.submit.remote(ray.get_actor(ray.get_runtime_context().get_actor_name()) if ray.get_runtime_context().get_actor_name() else None, {
+            self.scheduler.submit.remote(ray.get_runtime_context().current_actor, {
                 "type": "search_result", "data": compliant_results, "actionable_spec": actionable_spec
             })
 
