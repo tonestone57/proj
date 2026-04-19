@@ -23,12 +23,12 @@ actors:
     priority: 1
 
   coding_actor:
-    precision: "sym_int8"           # Base weights (2026 standard)
+    precision: "UD-Q5_K_M"          # Base weights (2026 standard)
     cpu_cores: 2
     priority: 1
 
   search_actor:
-    precision: "UD-Q4_K_M"          # Web Data
+    precision: "sym_int8"           # Web Data
     cpu_cores: 1
     load_mode: "ipex_low_bit"
     priority: 3
@@ -39,7 +39,7 @@ memory_management:
   pruning_threshold_pct: 0.80
   summarization_depth: "recursive"
   compression:
-    vector_index: "Q8+BQ"           # 2026 Standard
+    vector_index: "sym_int8+BQ"     # 2026 Standard for AVX2
     kv_cache: "sym_int8"            # Fixed for 8265U (No FP8 support)
     reasoning_engine: "sym_int8"    # Fixed for AVX2 efficiency
     deep_archive: "LLM-Zip"         # Lossless Neural Archiving

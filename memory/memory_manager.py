@@ -47,6 +47,7 @@ class MemoryManager(CognitiveModule):
         if patterns:
             self.synthesize_knowledge(patterns)
         self.perform_synaptic_pruning()
+        self.check_ram_guard()
         print("[MemoryManager] Sleep Cycle complete.")
 
     def identify_recurring_patterns(self):

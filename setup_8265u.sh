@@ -4,11 +4,11 @@
 echo "Initializing SGI Environment for Intel Core i5-8265U..."
 
 # 1. Environment Variables for 4-thread limit
-export OMP_NUM_THREADS=4
-export MKL_NUM_THREADS=4
-export OPENBLAS_NUM_THREADS=4
-export VECLIB_MAXIMUM_THREADS=4
-export NUMEXPR_NUM_THREADS=4
+export OMP_NUM_THREADS=3
+export MKL_NUM_THREADS=3
+export OPENBLAS_NUM_THREADS=3
+export VECLIB_MAXIMUM_THREADS=3
+export NUMEXPR_NUM_THREADS=3
 export KMP_BLOCKTIME=1
 export PYTHONDONTWRITEBYTECODE=1
 

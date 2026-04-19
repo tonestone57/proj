@@ -1,32 +1,12 @@
 import ray
 from core.base import CognitiveModule
 
-try:
-    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
-except ImportError:
-    AutoModelForCausalLM, AutoTokenizer = None, None
-
 @ray.remote
 class TheoryOfMind(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_id="DeepSeek-Coder-V2-Lite"):
-        super().__init__(workspace, scheduler)
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.agent_models = {}
-        print(f"[TheoryOfMind] Loading {model_id} for intention inference (INT8)...")
-        if AutoModelForCausalLM and model_id:
-            try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_id,
-                    load_in_low_bit="sym_int8",
-                    trust_remote_code=True,
-                    use_cache=True
-                )
-            except Exception as e:
-                print(f"[TheoryOfMind] Error loading model: {e}. Using heuristics.")
-                self.model, self.tokenizer = None, None
-        else:
-            print("[TheoryOfMind] IPEX-LLM not available or no model_id. Using heuristics.")
-            self.model, self.tokenizer = None, None
+        print(f"[TheoryOfMind] Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if message["type"] == "social_event":
@@ -34,10 +14,8 @@ class TheoryOfMind(CognitiveModule):
 
         if message["type"] == "infer_intention":
             intention = self.infer_intention(message["agent"])
-            try:
-                handle = ray.get_runtime_context().current_actor
-            except Exception:
-                handle = None
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
             self.scheduler.submit.remote(handle, {
                 "type": "intention_inferred",
                 "agent": message["agent"],
@@ -46,33 +24,14 @@ class TheoryOfMind(CognitiveModule):
 
     def update_agent_model(self, agent, data):
         if agent not in self.agent_models:
-            self.agent_models[agent] = {
-                "beliefs": {},
-                "goals": {},
-                "emotions": {},
-                "history": []
-            }
-
+            self.agent_models[agent] = {"beliefs": {}, "goals": {}, "emotions": {}, "history": []}
         self.agent_models[agent]["history"].append(data)
 
-        if "belief" in data:
-            self.agent_models[agent]["beliefs"].update(data["belief"])
-
-        if "emotion" in data:
-            self.agent_models[agent]["emotions"].update(data["emotion"])
-
     def infer_intention(self, agent):
-        model = self.agent_models.get(agent, None)
-        if not model:
-            return {"intention": "unknown"}
+        print(f"[TheoryOfMind] Inferring intention for agent: {agent}")
+        if self.model_registry:
+            # SGI 2026: Complex intention inference via Shared Model Provider
+            prompt = f"Analyze agent history for {agent} and infer their current goal and mental state."
+            return ray.get(self.model_registry.generate.remote(prompt))
 
-        if self.model and self.tokenizer:
-            # SGI 2026: Intention inference via LLM analyzing history
-            print(f"[TheoryOfMind] Inferring intention for {agent} via LLM...")
-            history = model.get("history", [])
-            return {"intention": f"LLM-inferred intention based on {len(history)} events", "confidence": 0.85}
-
-        if "goal" in model["beliefs"]:
-            return {"intention": model["beliefs"]["goal"]}
-
-        return {"intention": "uncertain"}
+        return {"intention": "uncertain", "confidence": 0.5}
