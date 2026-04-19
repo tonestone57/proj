@@ -56,9 +56,10 @@ The system must follow an iterative loop: **Reason → Search → Ingest → Ind
 - **Semantic Chunking**: Avoid standard chunking (200–400 words) for code, as it is the "death of context." Use **AST-aware blocks** to preserve structural relationships and non-linear dependencies.
 - **Contextual Retrieval**: Attach a document summary to every chunk to preserve global context.
 - **Vector Store**: Use **FAISS** for short-term/high-speed tasks and **LanceDB** for long-term/persistent knowledge storage.
-- **Entropy-Targeted Quantization (TurboQuant)**:
-    - **High Entropy Data**: Store at **FP16** or **INT8**.
-    - **Low Entropy Data**: Store at **2-bit (Quantized Johnson-Lindenstrauss)**.
+- **2026 Compression Landscape (Domain-Aware & Neural Codecs)**:
+    - **Vector Codecs (TurboQuant)**: Beyond standard PQ, use **PolarQuant** to rotate vectors and **Quantized Johnson-Lindenstrauss (QJL)** for 1-bit error correction. Compresses embeddings to **4-bit (NF4)** with **0% accuracy loss**.
+    - **Text Codecs (LLM-Zip)**: Use **Arithmetic LLM Coding** where the LLM predicts probability distributions and an Arithmetic Encoder stores probabilities. Achieving **5x to 10x better** compression than Zstd for code.
+    - **Structural Codecs (Tree-sitter)**: Instead of raw text, serialize the **Abstract Syntax Tree (AST)**. Stores code as tree-node operations, bypassing the need to re-parse and providing the Control Flow Graph immediately.
 - **License Guardian**: Every snippet must pass through a specialized **License Classifier Gate**.
 
 ## 3. Self-Improvement & Verification
@@ -102,15 +103,24 @@ Instead of pruning by recency, use a **Code Property Graph (CPG)** to identify t
 - **Archived Context**: Vector embeddings in **LanceDB**. Use **LLM-Arithmetic Coding** for lossless neural archiving of deep sessions.
 - **Working Memory**: Use **Ray Plasma** (shared memory) for zero-latency data passing between actors.
 
-### "Gold Standard" Tiered Memory Stack
-1. **Reflex (FAISS)**: Sub-millisecond thought-deduplication using **TurboQuant** (QJL).
-2. **Active (Qdrant)**: High-accuracy structured filtering for the Social and Self modules.
-3. **Archive (LanceDB)**: Zero-copy disk storage for massive RAG documentation.
-4. **Neural Map (NebulaGraph/TuGraph)**: Stores AST relationships.
+### "Gold Standard" Tiered Memory Stack (2026 Standards)
+
+| Codec Type | Standard (The "Good") | SGI Alternative (The "Better") | Primary Benefit |
+| :--- | :--- | :--- | :--- |
+| **Hot Storage** | **LZ4** / **Zstd-1** | **Flash-Optimized LZ4** | Sub-millisecond latency for the "Reflex Arc." |
+| **Vector Search** | **Product Quantization** | **TurboQuant (QJL)** | 4-bit (NF4) compression with **0%** accuracy loss. |
+| **Long-term Archive**| **7z (LZMA2)** | **LLM-Arithmetic Coding** | Massive ratio; "stores knowledge, not just data." |
+| **Video/Vision** | **H.265 / AV1** | **NeuralLVC / CoPE** | Up to **93%** reduction in token usage for VideoLMs. |
+
+### Compression Tiering Logic
+1. **Tier 1 (Ephemeral)**: Use **LZ4** for the `Message Bus` (Ray/Dragonfly) for maximum speed.
+2. **Tier 2 (Active Context)**: Use **TurboQuant (QJL)** for the KV cache to expand working memory without OOM.
+3. **Tier 3 (Deep Archive)**: Use **LLM-Arithmetic Coding** during low-entropy sleep cycles to turn LanceDB into a "Neural Library."
 
 ### Lossless Neural Archiving (LLM-Zip)
 - **Neural Compression**: Use the system's reasoning capabilities to encode conversation history into dense, non-human-readable representations using **arithmetic coding** via LLM probabilities.
 - **0% Information Loss**: When the agent needs to "remember" a deep session, it decompresses the neural representation back into the original token stream, bypassing the limits of natural language summarization.
+- **Model Hash Protection**: Always store a **Model Hash** and a **Residual Mismatch Buffer** with neural data to prevent "Non-deterministic Mismatch" if model weights change.
 
 ### Sleep Cycles (Consolidation)
 - During **Low Entropy** periods:

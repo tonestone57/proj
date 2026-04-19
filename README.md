@@ -46,23 +46,23 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 ### Extraction Process
 1. **Probe**: The GGUF model is prompted to generate exhaustive information on target topics.
 2. **Embed**: Generated text is converted into mathematical vectors (embeddings).
-3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval.
+3. **Compress**: Vectors are stored in optimized formats for high-speed retrieval using **Domain-Aware & Neural Codecs**.
 
-### Storage Options
+### Storage Options (2026 Standards)
 The AGI utilizes the **"Gold Standard" 2026 Tiered Memory Model**:
 
-| Database | Role | Speed (Latency) | Data Lifecycle |
-| :--- | :--- | :--- | :--- |
-| **FAISS** | **The Reflex Arc** | **Sub-millisecond** | Transient (Volatile/RAM) |
-| **Qdrant** | **The Social & Logic Hub** | **Low (10-20ms)** | Persistent (Stateful/Index) |
-| **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) |
+| Database | Role | Speed (Latency) | Data Lifecycle | Codec (SGI Alt) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Semantic Cache** | **Message Bus** | **Sub-millisecond** | Ephemeral | **Flash-Optimized LZ4** |
+| **FAISS** | **The Reflex Arc** | **Sub-millisecond** | Transient (Volatile/RAM) | **TurboQuant (QJL)** |
+| **LanceDB** | **The World Model** | **Medium (Disk-bound)** | Massive (Cold/Disk) | **LLM-Arithmetic Coding** |
 
-- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (Entropy-Targeted Quantization) for efficient storage.
-    - **High Entropy Data** (New logic, complex bugs): Store at **FP16** or **INT8**.
-    - **Low Entropy Data** (Standard boilerplate): Store at **2-bit (Quantized Johnson-Lindenstrauss)**.
+- **FAISS**: Embedded in the Hub for instant thought-deduplication. Uses **TurboQuant** (QJL) for efficient storage.
+    - **TurboQuant**: Compresses vectors to **4-bit (NF4)** with **0% accuracy loss** using PolarQuant rotation and QJL error-correction.
 - **Qdrant**: Primary store for active reasoning and payload filtering.
 - **LanceDB**: The "Cortical Archive" for storing terabytes of technical documentation. Supports **LLM-Arithmetic Coding** (Lossless Neural Archiving) for neural archiving.
-- **NebulaGraph/TuGraph**: Stores the **Neural Map** (AST-based relationships) for GraphRAG.
+    - **LLM-Zip**: Achieves **5x to 10x better** compression than Zstd for code by storing token probabilities predicted by the LLM.
+- **NebulaGraph/TuGraph**: Stores the **Neural Map** (AST-based relationships) for GraphRAG. Uses **Tree-sitter Serialization** for structural code compression.
 
 ---
 

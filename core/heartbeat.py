@@ -31,10 +31,14 @@ class CognitiveHeartbeat:
                 })
         elif entropy < THRESHOLD_CONSOLIDATE:
             # Low uncertainty: The agent is "bored"
-            print("[Heartbeat] Low System Entropy detected. Triggering sleep cycle.")
+            print("[Heartbeat] Low System Entropy detected. Triggering sleep cycle & Neural Archiving.")
             if self.memory_manager:
                 # Trigger background consolidation: refactoring, indexing, synthetic data gen
                 self.scheduler.submit(self.memory_manager, {"type": "trigger_sleep_cycle"})
+
+                # Proactively trigger Tier 3 (Deep Archive) Neural Archiving (LLM-Zip)
+                state_data = str(state)
+                self.memory_manager.perform_neural_archiving(state_data)
 
         self.drive_engine.update_objective_priorities()
 

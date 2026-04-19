@@ -62,6 +62,14 @@ class CodingActor(CognitiveModule):
         print(f"[CodingActor] Preservation complete. Key schema elements retained.")
         return "\n".join(preserved)
 
+    def DigitalTwin_Branching(self, branch_name):
+        """
+        Simulates branching the Firecracker VM state for speculative execution.
+        """
+        print(f"[CodingActor] Creating speculative branch: {branch_name}")
+        # In 2026, this allows risky refactors without affecting the main twin
+        return f"vm_branch_{branch_name}_0xdeadbeef"
+
     def execute_code(self, code, persistent=False):
         """
         Executes Python code in a restricted environment and captures output.
@@ -75,11 +83,41 @@ class CodingActor(CognitiveModule):
         if persistent:
             print(f"[CodingActor] Connecting to Persistent Digital Twin (Firecracker VM).")
             # Simulate Speculative Execution: branching the VM state
-            print(f"[CodingActor] Branching VM state for speculative execution...")
+            branch_id = self.DigitalTwin_Branching("speculative_run")
+            print(f"[CodingActor] Branch {branch_id} ready.")
 
             # Observe side effects on the "World" (system resources, logs, network)
-            print(f"[CodingActor] Observing side effects on runtime environment...")
+            self.Runtime_Observation_Hook(branch_id)
 
+        return self.execute_logic_internal(code)
+
+    def Runtime_Observation_Hook(self, context_id):
+        """
+        Simulates real-time monitoring of side effects during code execution.
+        """
+        print(f"[CodingActor] [{context_id}] Hooking into runtime for observation...")
+        # Simulate monitoring resources and logs
+        obs = {"cpu_spike": False, "network_io": 0, "logs": "Success"}
+        print(f"[CodingActor] Observation complete: {obs}")
+        return obs
+
+    def VM_State_Rollback(self, branch_id):
+        """
+        Simulates rolling back the VM state after a speculative failure.
+        """
+        print(f"[CodingActor] REWINDING branch {branch_id} to parent state.")
+        return True
+
+    def UnitTest_Synthesizer(self, code):
+        """
+        Simulates automated unit test generation for a code snippet.
+        """
+        print("[CodingActor] Synthesizing unit tests for code...")
+        # Simulate generating a simple assert test
+        test_code = "def test_generated():\n    # Mocked test logic\n    assert True"
+        return test_code
+
+    def execute_logic_internal(self, code):
         stdout = io.StringIO()
         stderr = io.StringIO()
 
