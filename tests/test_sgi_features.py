@@ -1,4 +1,5 @@
 import unittest
+import asyncio
 from core.workspace import GlobalWorkspace
 from core.drives import DriveEngine, calculate_entropy, THRESHOLD_REPLAN, THRESHOLD_CONSOLIDATE
 from core.heartbeat import CognitiveHeartbeat
@@ -8,27 +9,10 @@ from actors.reasoner_actor import ReasonerActor
 from actors.planner import Planner
 import ray
 
-class MockScheduler:
-    def __init__(self):
-        self.queue = []
-    def submit(self, module, message, priority=1.0):
-        self.queue.append((priority, module, message))
-    def next(self):
-        if not self.queue: return None
-        return self.queue.pop(0)
-    def submit_remote(self, module, message, priority=1.0):
-        self.queue.append((priority, module, message))
-
-class MockDPS:
-    def __init__(self):
-        self.processed = []
-    def process(self, message):
-        self.processed.append(message)
-
 class TestSGIIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, num_cpus=1)
 
     def test_entropy_calculation(self):
         state = {"history": [{"type": "msg1"}, {"type": "msg1"}, {"type": "msg2"}]}
@@ -36,22 +20,30 @@ class TestSGIIntegration(unittest.TestCase):
         self.assertGreater(entropy, 0)
 
     def test_heartbeat_logic(self):
-        # We test the logic without Ray for unit testing
-        class SimpleWorkspace:
-            def __init__(self): self.history = []
-            def get_current_state(self): return {"history": self.history}
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        workspace = SimpleWorkspace()
+        # Use actual Ray actors for a more realistic test
+        workspace = GlobalWorkspace.remote()
+
+        class MockScheduler:
+            @ray.remote
+            class SchedulerActor:
+                async def submit(self, *args, **kwargs): return None
+            def __init__(self):
+                self.actor = self.SchedulerActor.remote()
+            @property
+            def remote(self): return self.actor
+
         scheduler = MockScheduler()
-        dps = MockDPS()
+        heartbeat = CognitiveHeartbeat(workspace, scheduler.actor)
 
-        heartbeat = CognitiveHeartbeat(workspace, scheduler, dps)
+        # We need to populate workspace history
+        for _ in range(10):
+            ray.get(workspace.broadcast.remote({"type": "msg1"}))
 
-        # Low entropy case
-        workspace.history = [{"type": "msg1"}] * 10
-        heartbeat.heartbeat_tick()
-        # Should trigger consolidation (since entropy is 0)
-        # Note: heartbeat_tick calls scheduler.submit
+        # Heartbeat tick should now run without crash
+        loop.run_until_complete(heartbeat.heartbeat_tick())
 
     def test_license_guardian(self):
         license_actor = LicenseActor()

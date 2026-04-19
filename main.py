@@ -17,6 +17,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = MAX_THREADS
 from core.workspace import GlobalWorkspace
 from core.scheduler import Scheduler
 from core.drives import DriveEngine
+from core.heartbeat import CognitiveHeartbeat
 
 # Actors
 from actors.reasoner_actor import ReasonerActor
@@ -55,13 +56,6 @@ class SGIHub:
             await asyncio.sleep(5)
             return "Task delayed due to thermal pressure."
 
-    async def integrate(self, results):
-        for res in results:
-            print(f"[Hub] Integrating result: {res}")
-            self.state["history"].append(res)
-            await self.workspace.broadcast.remote(res)
-        return self.state
-
 async def cognitive_cycle():
     # Initialize Core Actors
     workspace = GlobalWorkspace.remote()
@@ -86,7 +80,7 @@ async def cognitive_cycle():
     await workspace.register.remote(memory_manager)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
-    drives = DriveEngine()
+    heartbeat = CognitiveHeartbeat(workspace, scheduler, planner=planner, memory_manager=memory_manager)
 
     print(f"--- {config['system_identity']['name']} Initialized for Intel i5-8265U ---")
     print(f"Mode: {config['system_identity']['mode']}")
@@ -99,19 +93,15 @@ async def cognitive_cycle():
         health = await thermal_guard.get_thermal_state.remote()
         print(f"[Hub] Thermal State: Load={health['load']}%, Temp Throttled={health['is_throttled']}")
 
-        # 2. Drive: Proactive task triggering
-        state = await workspace.get_current_state.remote()
-        entropy = drives.evaluate_state(state)
-        print(f"[Hub] System Entropy: {entropy:.4f}")
+        # 2. Heartbeat: entropy and proactive tasks
+        await heartbeat.heartbeat_tick()
 
-        if entropy > config['drive_engine']['entropy_threshold']:
-            print("[Drives] High Entropy detected. Triggering proactive tasks.")
-            if tick % 2 == 0:
-                await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
-            else:
-                await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
+        # 3. Manual proactive triggers for demo if needed
+        # (Usually handled by heartbeat/entropy, but we can add some here)
+        if tick % 2 == 0:
+            await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
 
-        # 3. Process Scheduler Queue
+        # 4. Process Scheduler Queue
         task = await scheduler.next.remote()
         if task:
             priority, handle, msg = task
@@ -119,7 +109,7 @@ async def cognitive_cycle():
                 print(f"[Hub] Processing scheduled task: {msg['type']}")
                 result = await handle.receive.remote(msg)
                 if result:
-                    await workspace.broadcast.remote(result)
+                    await self.workspace.broadcast.remote(result)
 
         await asyncio.sleep(1)
 

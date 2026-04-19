@@ -19,7 +19,7 @@ pip install psutil transformers==4.36.2 omegaconf pandas lancedb sentence-transf
 
 # 5. Set Runtime Environment Variables
 # Ensures correct thread management for 8265U (4 Cores / 8 Threads)
-echo "export OMP_NUM_THREADS=8" >> ~/.bashrc
+echo "export OMP_NUM_THREADS=4" >> ~/.bashrc
 echo "export KMP_BLOCKTIME=1" >> ~/.bashrc
 # source ~/.bashrc
 
