@@ -23,6 +23,7 @@ from actors.reasoner_actor import ReasonerActor
 from actors.coding_actor import CodingActor
 from actors.search_actor import SearchActor
 from actors.critic_actor import InternalCritic
+from actors.planner import Planner
 from memory.memory_manager import MemoryManager
 from monitoring.thermal_guard import ThermalGuard
 
@@ -70,6 +71,7 @@ async def cognitive_cycle():
     coder = CodingActor.remote(workspace, scheduler, model_id=model_id)
     searcher = SearchActor.remote(workspace, scheduler, model_id=model_id)
     critic = InternalCritic.remote(workspace, scheduler, model_id=model_id)
+    planner = Planner.remote(workspace, scheduler)
     memory_manager = MemoryManager.remote(workspace, scheduler)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)

@@ -27,6 +27,7 @@ Modules operate as autonomous, concurrent units in isolated processes. The Hub b
 - **Drive Engine (Drives Module)**: Calculates a **Surprise/Entropy Metric** to proactively trigger re-planning or background consolidation.
 - **Internal Critic**: Verifies the logic and safety of outputs before they are finalized using **IPEX-LLM** accelerated models.
 - **Memory Manager**: Manages the tiered memory stack and context integrity.
+- **Scratchpad Memory**: A dedicated working memory area for intermediate reasoning steps.
 
 ---
 
@@ -70,6 +71,33 @@ The system adheres to the **2026 SGI Operations** standard for vector embeddings
 - **Coding Module**: Stateful execution in **Firecracker microVMs** (Digital Twin). Supports **Speculative Execution**, **Runtime Observation**, and **Structural Distillation (CodeComp)**.
 - **Search Agent**: Autonomous search using **Tavily/SearXNG**. Implements **GraphRAG (The Neural Map)** and **JIT Context Compilation**.
 - **License Guardian**: Strict enforcement of permissive licensing. **GPL/LGPL code is strictly prohibited.**
+
+---
+
+## Directory Structure
+
+```text
+├── core/
+│   ├── message_bus/       # Pub/Sub event router (Ray)
+│   ├── heartbeat.py       # The autonomous cognitive loop
+│   ├── drives.py          # Entropy/Surprise calculator (Curiosity Drive)
+│   └── config.py          # System constants and config loader
+├── actors/                # Specialized Actors (Independent processes)
+│   ├── coding_actor.py    # Polyglot sandbox & Stateful Digital Twin
+│   ├── reasoner_actor.py  # Z3/SMT-LIB integration (Formal verification)
+│   ├── search_actor.py    # Tavily/GraphRAG & JIT Context Compilation
+│   ├── critic_actor.py    # Output verification and safety
+│   └── planner.py         # Objective-to-task decomposition
+├── memory/
+│   ├── long_term/         # LanceDB (Archived Context)
+│   ├── short_term/        # FAISS (Active Context)
+│   ├── memory_manager.py  # Sleep Cycles & Context Integrity Check
+│   └── scratchpad.py      # Transient reasoning steps
+├── monitoring/
+│   └── thermal_guard.py   # Hardware health circuit breaker
+├── world_model/           # External reality representation
+└── safety_ethics/         # License compliance (License Guardian)
+```
 
 ---
 
