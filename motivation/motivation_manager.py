@@ -7,7 +7,7 @@ from motivation.novelty import NoveltyModule
 
 @ray.remote
 class MotivationManager(CognitiveModule):
-    def __init__(self, world_model, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, world_model=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.reward_engine = IntrinsicRewardEngine()
         self.curiosity = CuriosityModule(world_model)

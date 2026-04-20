@@ -9,7 +9,7 @@ from orchestration.state_manager import StateManager
 
 @ray.remote
 class OrchestrationManager(CognitiveModule):
-    def __init__(self, agents, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, agents=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.router = EventRouter()
         self.priority_scheduler = PriorityScheduler()

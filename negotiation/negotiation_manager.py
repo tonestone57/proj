@@ -10,7 +10,7 @@ from negotiation.compliance_engine import ComplianceEngine
 
 @ray.remote
 class NegotiationManager(CognitiveModule):
-    def __init__(self, workspace=None, scheduler=None, model_registry=None, role_weights=None):
+    def __init__(self, role_weights=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.protocol = NegotiationProtocol()
         self.proposals = ProposalEngine()

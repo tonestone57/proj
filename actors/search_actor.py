@@ -21,23 +21,18 @@ class SearchActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.license_actor = LicenseActor.remote(workspace, scheduler, model_registry)
-        print(f"[SearchActor] Initialized with Shared Model Provider.")
+        print(f"[SearchActor] Initialized.")
 
     def receive(self, message):
-        print(f"[SearchActor] Received message type: {message['type']}")
         if message["type"] == "search_request":
             query = message["data"]
             results = self.perform_search(query)
             compliant_results = [res for res in results if ray.get(self.license_actor.is_compliant.remote(res))]
             actionable_spec = self.distill_results(compliant_results)
-
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
-
             self.scheduler.submit.remote(handle, {
-                "type": "search_result",
-                "data": compliant_results,
-                "actionable_spec": actionable_spec
+                "type": "search_result", "data": compliant_results, "actionable_spec": actionable_spec
             })
 
     def distill_results(self, results):

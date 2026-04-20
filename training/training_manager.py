@@ -8,7 +8,7 @@ from training.meta_learning import MetaLearning
 
 @ray.remote
 class TrainingManager(CognitiveModule):
-    def __init__(self, modules, world_model, motivation, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, modules=None, world_model=None, motivation=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.self_supervised = SelfSupervisedTrainer(modules)
         self.rl = RLTrainer(world_model, motivation)

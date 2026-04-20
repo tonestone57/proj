@@ -19,7 +19,6 @@ class SocialReasoner(CognitiveModule):
     def get_context(self):
         if self.episodic_memory:
             try:
-                # Standard async recall for episodic memory
                 return ray.get(self.episodic_memory.recall_recent.remote(n=10))
             except Exception:
                 return []
@@ -27,7 +26,6 @@ class SocialReasoner(CognitiveModule):
 
     def social_process(self, data, context):
         if self.model_registry:
-            print("[SocialReasoner] Requesting response from Shared Model Provider...")
             prompt = f"Interaction Context: {context}\nUser Request: {data}\nResponse:"
             return ray.get(self.model_registry.generate.remote(prompt))
         return f"Socially aware response to {data} based on {len(context)} past interactions."
