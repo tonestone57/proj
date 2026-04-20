@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from economics.resource_model import Resource, Task
 from economics.agent_policy import AgentPolicy
 from economics.coordination_protocol import CoordinationProtocol
@@ -7,8 +9,10 @@ from economics.fairness_engine import FairnessEngine
 from economics.optimizer import Optimizer
 from economics.orchestration_layer import OrchestrationLayer
 
-class EconomicManager:
-    def __init__(self):
+@ray.remote
+class EconomicManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.context = ContextEngine()
         self.utility = UtilityEngine()
         self.fairness_engine = FairnessEngine()
@@ -28,3 +32,7 @@ class EconomicManager:
             "utilities": utilities,
             "fairness": fairness
         }
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for EconomicManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

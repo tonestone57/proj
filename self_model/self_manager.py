@@ -1,11 +1,15 @@
+import ray
+from core.base import CognitiveModule
 from self_model.identity_kernel import IdentityKernel
 from self_model.autobiographical_memory import AutobiographicalMemory
 from self_model.temporal_self import TemporalSelf
 from self_model.continuity_metrics import ContinuityMetrics
 from self_model.reflective_endorsement import ReflectiveEndorsement
 
-class SelfManager:
-    def __init__(self):
+@ray.remote
+class SelfManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.kernel = IdentityKernel()
         self.memory = AutobiographicalMemory()
         self.temporal = TemporalSelf()
@@ -27,3 +31,7 @@ class SelfManager:
 
     def approve_update(self, proposed_update):
         return self.endorsement.endorse(self.kernel, proposed_update)
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for SelfManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

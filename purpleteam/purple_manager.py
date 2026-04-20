@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from purpleteam.red_agent import RedAgent
 from purpleteam.blue_agent import BlueAgent
 from purpleteam.fusion_orchestrator import FusionOrchestrator
@@ -6,8 +8,10 @@ from purpleteam.scoring_engine import ScoringEngine
 from purpleteam.selfplay_engine import SelfPlayEngine
 from purpleteam.remediation_engine import RemediationEngine
 
-class PurpleManager:
-    def __init__(self):
+@ray.remote
+class PurpleManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.red = RedAgent()
         self.blue = BlueAgent()
         self.fusion = FusionOrchestrator()
@@ -26,8 +30,12 @@ class PurpleManager:
         self.red, self.blue = self.selfplay.evolve(self.red, self.blue, self.history)
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
 
+    def receive(self, message):
+        # Standard SGI 2026 message handling for PurpleManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+
 class GovernanceLayer:
-    def __init__(self, governance_graph, oversight_agent):
+    def __init__(self, governance_graph=None, oversight_agent=None):
         self.graph = governance_graph
         self.oversight = oversight_agent
 
@@ -39,7 +47,7 @@ class GovernanceLayer:
         return {"authorized": True}
 
 class GovernanceAwareRedAgent:
-    def __init__(self, governance):
+    def __init__(self, governance=None):
         self.gov = governance
 
     def attack(self, state):
@@ -49,7 +57,7 @@ class GovernanceAwareRedAgent:
         return {"attack": "policy_evasion", "success": "weak_policy" in state}
 
 class GovernanceAwareBlueAgent:
-    def __init__(self, governance):
+    def __init__(self, governance=None):
         self.gov = governance
 
     def defend(self, attack):
@@ -87,8 +95,10 @@ class GovernanceRemediationEngine:
             state["weak_policy"] = False
         return state
 
-class GovernanceIntegratedPurpleManager:
-    def __init__(self, governance):
+@ray.remote
+class GovernanceIntegratedPurpleManager(CognitiveModule):
+    def __init__(self, governance=None, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.red = GovernanceAwareRedAgent(governance)
         self.blue = GovernanceAwareBlueAgent(governance)
         self.fusion = GovernanceFusionOrchestrator()
@@ -106,3 +116,7 @@ class GovernanceIntegratedPurpleManager:
         self.history.append({"fusion": fusion, "breach": breach, "score": score})
         self.red, self.blue = self.selfplay.evolve(self.red, self.blue, self.history)
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for GovernanceIntegratedPurpleManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from blueteam.forensic_agent import ForensicAgent
 from blueteam.detection_engine import DetectionEngine
 from blueteam.adaptive_defense_agent import AdaptiveDefenseAgent
@@ -6,8 +8,10 @@ from blueteam.firewall_agent import FirewallAgent
 from blueteam.dlp_agent import DLPAagent
 from blueteam.cyber_range import CyberRange
 
-class BlueTeamManager:
-    def __init__(self):
+@ray.remote
+class BlueTeamManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.forensics = ForensicAgent()
         self.detect = DetectionEngine()
         self.adaptive = AdaptiveDefenseAgent()
@@ -27,3 +31,7 @@ class BlueTeamManager:
             "firewall": firewall,
             "dlp": dlp
         }
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for BlueTeamManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -47,7 +47,7 @@ memory_management:
   vector_store:
     engine: "LanceDB"
     path: "./data/sgi_archived_memory"
-    embedding_model: "all-MiniLM-L6-v2"
+    embedding_model: "nomic-embed-text-v1.5"
 
 # SECTION 4: Compliance & Drive Engine
 compliance:

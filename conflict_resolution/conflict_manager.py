@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from conflict_resolution.contradiction_detector import ContradictionDetector
 from conflict_resolution.moral_agents import MoralAgent
 from conflict_resolution.ethical_appraisal import EthicalAppraisal
@@ -6,8 +8,10 @@ from conflict_resolution.value_arbitration import ValueArbitration
 from conflict_resolution.survivability_engine import SurvivabilityEngine
 from conflict_resolution.resolution_protocol import ResolutionProtocol
 
-class ConflictManager:
-    def __init__(self):
+@ray.remote
+class ConflictManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.detector = ContradictionDetector()
         self.agents = [MoralAgent(d) for d in ["neuroscience", "psychology", "sociology", "evolution"]]
         self.ethics = EthicalAppraisal()
@@ -31,6 +35,10 @@ class ConflictManager:
             "survivability": surv,
             "final": final
         }
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for ConflictManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
 
 class GovernanceLayer:
     def __init__(self, policy_engine, oversight_agent):
@@ -87,8 +95,10 @@ class OmniAgent:
             "response": response
         }
 
-class ASOCManager:
-    def __init__(self, governance):
+@ray.remote
+class ASOCManager(CognitiveModule):
+    def __init__(self, governance, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.gov = governance
         self.agents = {
             "detection": DetectionAgent(),
@@ -106,3 +116,7 @@ class ASOCManager:
 
         result = self.omni.orchestrate(self.agents, event)
         return {"blocked": False, "result": result}
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for ASOCManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -1,5 +1,9 @@
-class SchemaManager:
-    def __init__(self):
+from core.base import CognitiveModule
+import ray
+@ray.remote
+class SchemaManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.schemas = {}
 
     def update_schema(self, episode):
@@ -24,3 +28,7 @@ class SchemaManager:
             }
             return enriched
         return partial_memory
+
+    def receive(self, message):
+        """Standard SGI message receiver."""
+        pass

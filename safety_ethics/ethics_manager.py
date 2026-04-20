@@ -1,5 +1,9 @@
-class EthicsManager:
-    def __init__(self, norm_library):
+from core.base import CognitiveModule
+import ray
+@ray.remote
+class EthicsManager(CognitiveModule):
+    def __init__(self, norm_library, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.norm_library = norm_library
 
     def is_safe(self, message):
@@ -23,3 +27,7 @@ class EthicsManager:
             return 0.4
 
         return 1.0
+
+    def receive(self, message):
+        """Standard SGI message receiver."""
+        pass

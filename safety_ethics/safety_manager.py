@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from safety_ethics.risk_classifier import RiskClassifier
 from safety_ethics.oversight_agent import OversightAgent
 from safety_ethics.governance_graph import GovernanceGraph
@@ -6,8 +8,10 @@ from safety_ethics.deception_detector import DeceptionDetector
 from safety_ethics.constraint_enforcer import ConstraintEnforcer
 from safety_ethics.shutdown_controller import ShutdownController
 
-class SafetyManager:
-    def __init__(self):
+@ray.remote
+class SafetyManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.risk = RiskClassifier()
         self.oversight = OversightAgent(self.risk)
         self.gov = GovernanceGraph()
@@ -34,3 +38,7 @@ class SafetyManager:
             return {"approved": False, "reason": f"risk: {oversight['risk']}"}
 
         return {"approved": True, "reason": "safe"}
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for SafetyManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

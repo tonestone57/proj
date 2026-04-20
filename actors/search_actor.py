@@ -3,8 +3,10 @@ import ray
 from core.base import CognitiveModule
 from core.config import CORES_SEARCH
 
-class LicenseActor:
-    def __init__(self):
+@ray.remote
+class LicenseActor(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.prohibited_patterns = [
             re.compile(r"GPL", re.IGNORECASE),
             re.compile(r"LGPL", re.IGNORECASE)
@@ -18,17 +20,21 @@ class LicenseActor:
 class SearchActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        self.license_actor = LicenseActor()
-        print(f"[SearchActor] Initialized with Shared Model Provider.")
+        self.license_actor = LicenseActor.remote(workspace, scheduler, model_registry)
+        print(f"[SearchActor] Initialized.")
 
     def receive(self, message):
+        print(f"[SearchActor] Received message: {message['type']}")
         if message["type"] == "search_request":
             query = message["data"]
             results = self.perform_search(query)
-            compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
+            print(f"[SearchActor] Search results: {results}")
+            compliant_results = [res for res in results if ray.get(self.license_actor.is_compliant.remote(res))]
+            print(f"[SearchActor] Compliant results: {compliant_results}")
             actionable_spec = self.distill_results(compliant_results)
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
+            print(f"[SearchActor] Submitting to scheduler...")
             self.scheduler.submit.remote(handle, {
                 "type": "search_result", "data": compliant_results, "actionable_spec": actionable_spec
             })

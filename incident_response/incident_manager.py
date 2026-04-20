@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from incident_response.incident_classifier import IncidentClassifier
 from incident_response.semantic_checks import SemanticChecks
 from incident_response.detectors import Detectors
@@ -6,8 +8,10 @@ from incident_response.eradication_engine import EradicationEngine
 from incident_response.recovery_engine import RecoveryEngine
 from incident_response.audit_logger import AuditLogger
 
-class IncidentManager:
-    def __init__(self):
+@ray.remote
+class IncidentManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.classifier = IncidentClassifier()
         self.semantic = SemanticChecks()
         self.detectors = Detectors()
@@ -35,3 +39,7 @@ class IncidentManager:
             }
 
         return {"status": "no_incident"}
+
+    def receive(self, message):
+        # Standard SGI 2026 message handling for IncidentManager
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

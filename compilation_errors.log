@@ -1,4 +1,0 @@
-  File "./blueteam/firewall_agent.py", line 1
-    Based on ELISAR Next-Gen Firewall, which performs real-time detection and adaptive filtering Springer.
-          ^^
-SyntaxError: invalid syntax
