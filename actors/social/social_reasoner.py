@@ -18,7 +18,11 @@ class SocialReasoner(CognitiveModule):
 
     def get_context(self):
         if self.episodic_memory:
-            return self.episodic_memory.recall_recent(n=10)
+            try:
+                # Standard async recall for episodic memory
+                return ray.get(self.episodic_memory.recall_recent.remote(n=10))
+            except Exception:
+                return []
         return []
 
     def social_process(self, data, context):

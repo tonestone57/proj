@@ -12,36 +12,34 @@ class OrchestrationManager(CognitiveModule):
     def __init__(self, agents, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.router = EventRouter()
-        self.scheduler = PriorityScheduler()
-        self.concurrent = ConcurrencyManager()
-        self.groupchat = GroupChatCoordinator(agents)
-        self.interrupts = InterruptHandler()
+        self.priority_scheduler = PriorityScheduler()
+        self.concurrency = ConcurrencyManager()
+        self.group_chat = GroupChatCoordinator(agents)
+        self.interrupt_handler = InterruptHandler()
         self.state = StateManager()
         self.agents = agents
 
     def handle_event(self, event):
-        if self.interrupts.check_interrupt(event):
+        if self.interrupt_handler.check_interrupt(event):
             return {"interrupt": True}
-
         self.router.route(event)
 
     def run_sequential(self, tasks):
         for t in tasks:
-            self.scheduler.schedule(t, priority=1)
-
+            self.priority_scheduler.schedule(t, priority=1)
         results = []
         while True:
-            task = self.scheduler.next()
+            task = self.priority_scheduler.next()
             if not task:
                 break
             results.append(task())
         return results
 
     def run_concurrent(self, input_data):
-        return self.concurrent.run_parallel(self.agents, input_data)
+        return self.concurrency.run_parallel(self.agents, input_data)
 
     def run_groupchat(self, message):
-        return self.groupchat.step(message)
+        return self.group_chat.step(message)
 
     def receive(self, message):
         # Standard SGI 2026 message handling for OrchestrationManager
