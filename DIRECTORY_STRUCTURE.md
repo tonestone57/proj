@@ -35,11 +35,11 @@ This document lists every file in the repository, its purpose, and how it integr
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | blueteam/adaptive_defense_agent.py | Implements core logic for Adaptive Defense Agent functionality. | Class/Logic Component |
-| blueteam/blueteam_manager.py | Orchestrates sub-components within the blueteam module. | Class/Logic Component |
+| blueteam/blueteam_manager.py | Orchestrates sub-components within the blueteam module. | Ray Actor (LLM Interface) |
 | blueteam/cyber_range.py | Implements core logic for Cyber Range functionality. | Class/Logic Component |
 | blueteam/deception_layer.py | Implements core logic for Deception Layer functionality. | Class/Logic Component |
-| blueteam/defense_orchestrator.py | Implements core logic for Defense Orchestrator functionality. | Class/Logic Component |
-| blueteam/detection_engine.py | Implements core logic for Detection Engine functionality. | Class/Logic Component |
+| blueteam/defense_orchestrator.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| blueteam/detection_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | blueteam/dlp_agent.py | Implements core logic for Dlp Agent functionality. | Class/Logic Component |
 | blueteam/firewall_agent.py | Implements core logic for Firewall Agent functionality. | Class/Logic Component |
 | blueteam/forensic_agent.py | Implements core logic for Forensic Agent functionality. | Class/Logic Component |
@@ -48,7 +48,7 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| cee_layer/cee_manager.py | Orchestrates sub-components within the cee_layer module. | Class/Logic Component |
+| cee_layer/cee_manager.py | Orchestrates sub-components within the cee_layer module. | Ray Actor (LLM Interface) |
 | cee_layer/cognitive_affective_bridge.py | Implements core logic for Cognitive Affective Bridge functionality. | Class/Logic Component |
 | cee_layer/emotion_appraisal.py | Implements core logic for Emotion Appraisal functionality. | Class/Logic Component |
 | cee_layer/emotion_generator.py | Implements core logic for Emotion Generator functionality. | Class/Logic Component |
@@ -60,13 +60,13 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| conflict_resolution/conflict_manager.py | Orchestrates sub-components within the conflict_resolution module. | Class/Logic Component |
+| conflict_resolution/conflict_manager.py | Orchestrates sub-components within the conflict_resolution module. | Ray Actor (LLM Interface) |
 | conflict_resolution/contradiction_detector.py | Implements core logic for Contradiction Detector functionality. | Class/Logic Component |
 | conflict_resolution/ethical_appraisal.py | Implements core logic for Ethical Appraisal functionality. | Class/Logic Component |
 | conflict_resolution/moral_agents.py | Implements core logic for Moral Agents functionality. | Class/Logic Component |
 | conflict_resolution/probabilistic_reasoner.py | Implements core logic for Probabilistic Reasoner functionality. | Class/Logic Component |
 | conflict_resolution/resolution_protocol.py | Implements core logic for Resolution Protocol functionality. | Class/Logic Component |
-| conflict_resolution/survivability_engine.py | Implements core logic for Survivability Engine functionality. | Class/Logic Component |
+| conflict_resolution/survivability_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | conflict_resolution/value_arbitration.py | Implements core logic for Value Arbitration functionality. | Class/Logic Component |
 
 ## Console (`console/`)
@@ -74,11 +74,11 @@ This document lists every file in the repository, its purpose, and how it integr
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | console/action_queue.py | Implements core logic for Action Queue functionality. | Class/Logic Component |
-| console/approval_gateway.py | Implements core logic for Approval Gateway functionality. | Class/Logic Component |
-| console/audit_log.py | Implements core logic for Audit Log functionality. | Class/Logic Component |
-| console/confidence_monitor.py | Implements core logic for Confidence Monitor functionality. | Class/Logic Component |
-| console/console_manager.py | Orchestrates sub-components within the console module. | Class/Logic Component |
-| console/escalation_engine.py | Implements core logic for Escalation Engine functionality. | Class/Logic Component |
+| console/approval_gateway.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| console/audit_log.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| console/confidence_monitor.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| console/console_manager.py | Orchestrates sub-components within the console module. | Ray Actor (LLM Interface) |
+| console/escalation_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | console/human_interface.py | Placeholder for UI integration | Class/Logic Component |
 | console/oversight_dashboard.py | Implements core logic for Oversight Dashboard functionality. | Class/Logic Component |
 
@@ -88,8 +88,8 @@ This document lists every file in the repository, its purpose, and how it integr
 | :--- | :--- | :--- |
 | core/base.py | Implements core logic for Base functionality. | Cognitive Actor (LLM-Integrated) |
 | core/config.py | Dynamic configuration loader for parsing and validating config settings. | Utility/Component |
-| core/controller.py | Tracks pulse-active modules. | Class/Logic Component |
-| core/drives.py | Calculates the entropy of the system state based on message history. | Class/Logic Component |
+| core/controller.py | Tracks pulse-active modules. | Ray Actor (LLM Interface) |
+| core/drives.py | Calculates the entropy of the system state based on message history. | Ray Actor (LLM Interface) |
 | core/heartbeat.py | High uncertainty: The agent is "confused" or facing a new problem | Class/Logic Component |
 | core/message_bus/fast_path.py | Simulates Flash-Optimized LZ4 compression for Tier 1 (Ephemeral) storage. | Class/Logic Component |
 | core/message_bus/priority_engine.py | Time-sensitive messages get higher priority | Class/Logic Component |
@@ -102,25 +102,25 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| deployment/agent_registry.py | Implements core logic for Agent Registry functionality. | Class/Logic Component |
-| deployment/deployment_manager.py | Orchestrates sub-components within the deployment module. | Class/Logic Component |
+| deployment/agent_registry.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| deployment/deployment_manager.py | Orchestrates sub-components within the deployment module. | Ray Actor (LLM Interface) |
 | deployment/policy_loader.py | Implements core logic for Policy Loader functionality. | Class/Logic Component |
 | deployment/runtime_env.py | Implements core logic for Runtime Env functionality. | Class/Logic Component |
-| deployment/version_manager.py | Orchestrates sub-components within the deployment module. | Class/Logic Component |
+| deployment/version_manager.py | Orchestrates sub-components within the deployment module. | Ray Actor (LLM Interface) |
 
 ## Economics (`economics/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | economics/agent_policy.py | Implements core logic for Agent Policy functionality. | Class/Logic Component |
-| economics/context_engine.py | Implements core logic for Context Engine functionality. | Class/Logic Component |
+| economics/context_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | economics/coordination_protocol.py | Implements core logic for Coordination Protocol functionality. | Class/Logic Component |
-| economics/economic_manager.py | Orchestrates sub-components within the economics module. | Class/Logic Component |
-| economics/fairness_engine.py | Implements core logic for Fairness Engine functionality. | Class/Logic Component |
+| economics/economic_manager.py | Orchestrates sub-components within the economics module. | Ray Actor (LLM Interface) |
+| economics/fairness_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | economics/optimizer.py | Implements core logic for Optimizer functionality. | Class/Logic Component |
 | economics/orchestration_layer.py | Implements core logic for Orchestration Layer functionality. | Class/Logic Component |
 | economics/resource_model.py | Implements core logic for Resource Model functionality. | Class/Logic Component |
-| economics/utility_engine.py | Implements core logic for Utility Engine functionality. | Class/Logic Component |
+| economics/utility_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 
 ## Emotion (`emotion/`)
 
@@ -129,19 +129,19 @@ This document lists every file in the repository, its purpose, and how it integr
 | emotion/affective_reasoner.py | Example reasoning logic | Class/Logic Component |
 | emotion/affective_state.py | Simple affective dynamics | Class/Logic Component |
 | emotion/appraisal.py | Implements core logic for Appraisal functionality. | Class/Logic Component |
-| emotion/emotion_manager.py | Orchestrates sub-components within the emotion module. | Class/Logic Component |
+| emotion/emotion_manager.py | Orchestrates sub-components within the emotion module. | Ray Actor (LLM Interface) |
 
 ## Incident Response (`incident_response/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| incident_response/audit_logger.py | Implements core logic for Audit Logger functionality. | Class/Logic Component |
-| incident_response/containment_engine.py | Implements core logic for Containment Engine functionality. | Class/Logic Component |
+| incident_response/audit_logger.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| incident_response/containment_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | incident_response/detectors.py | Implements core logic for Detectors functionality. | Class/Logic Component |
-| incident_response/eradication_engine.py | Implements core logic for Eradication Engine functionality. | Class/Logic Component |
+| incident_response/eradication_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | incident_response/incident_classifier.py | Implements core logic for Incident Classifier functionality. | Class/Logic Component |
-| incident_response/incident_manager.py | Orchestrates sub-components within the incident_response module. | Class/Logic Component |
-| incident_response/recovery_engine.py | Implements core logic for Recovery Engine functionality. | Class/Logic Component |
+| incident_response/incident_manager.py | Orchestrates sub-components within the incident_response module. | Ray Actor (LLM Interface) |
+| incident_response/recovery_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | incident_response/semantic_checks.py | Implements core logic for Semantic Checks functionality. | Class/Logic Component |
 
 ## Institutional Ai (`institutional_ai/`)
@@ -150,14 +150,14 @@ This document lists every file in the repository, its purpose, and how it integr
 | :--- | :--- | :--- |
 | institutional_ai/coordination_layer.py | Implements core logic for Coordination Layer functionality. | Class/Logic Component |
 | institutional_ai/governance_graph.py | Implements core logic for Governance Graph functionality. | Class/Logic Component |
-| institutional_ai/incentive_engine.py | Implements core logic for Incentive Engine functionality. | Class/Logic Component |
-| institutional_ai/institutional_manager.py | Orchestrates sub-components within the institutional_ai module. | Class/Logic Component |
+| institutional_ai/incentive_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| institutional_ai/institutional_manager.py | Orchestrates sub-components within the institutional_ai module. | Ray Actor (LLM Interface) |
 | institutional_ai/oversight_agents.py | Implements core logic for Oversight Agents functionality. | Class/Logic Component |
 | institutional_ai/real_time_control.py | Implements core logic for Real Time Control functionality. | Class/Logic Component |
 | institutional_ai/role_definitions.py | Implements core logic for Role Definitions functionality. | Class/Logic Component |
-| institutional_ai/rule_engine.py | Implements core logic for Rule Engine functionality. | Class/Logic Component |
-| institutional_ai/sanction_engine.py | Implements core logic for Sanction Engine functionality. | Class/Logic Component |
-| institutional_ai/trust_engine.py | Implements core logic for Trust Engine functionality. | Class/Logic Component |
+| institutional_ai/rule_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| institutional_ai/sanction_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| institutional_ai/trust_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 
 ## Memory (`memory/`)
 
@@ -172,18 +172,18 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| memory_consolidation/consolidation_manager.py | Orchestrates sub-components within the memory_consolidation module. | Class/Logic Component |
+| memory_consolidation/consolidation_manager.py | Orchestrates sub-components within the memory_consolidation module. | Ray Actor (LLM Interface) |
 | memory_consolidation/consolidation_scheduler.py | Implements core logic for Consolidation Scheduler functionality. | Class/Logic Component |
 | memory_consolidation/generative_trainer.py | Implements core logic for Generative Trainer functionality. | Class/Logic Component |
 | memory_consolidation/hippocampal_replay.py | Simple sequential replay | Class/Logic Component |
-| memory_consolidation/schema_manager.py | Orchestrates sub-components within the memory_consolidation module. | Class/Logic Component |
+| memory_consolidation/schema_manager.py | Orchestrates sub-components within the memory_consolidation module. | Ray Actor (LLM Interface) |
 
 ## Meta Learning (`meta_learning/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| meta_learning/adaptation_engine.py | Implements core logic for Adaptation Engine functionality. | Class/Logic Component |
-| meta_learning/meta_manager.py | Orchestrates sub-components within the meta_learning module. | Class/Logic Component |
+| meta_learning/adaptation_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| meta_learning/meta_manager.py | Orchestrates sub-components within the meta_learning module. | Ray Actor (LLM Interface) |
 | meta_learning/meta_policy.py | Implements core logic for Meta Policy functionality. | Class/Logic Component |
 | meta_learning/performance_tracker.py | Implements core logic for Performance Tracker functionality. | Class/Logic Component |
 | meta_learning/strategy_optimizer.py | Implements core logic for Strategy Optimizer functionality. | Class/Logic Component |
@@ -192,23 +192,23 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| metacognition/adaptation_engine.py | Implements core logic for Adaptation Engine functionality. | Class/Logic Component |
-| metacognition/consensus_controller.py | Implements core logic for Consensus Controller functionality. | Class/Logic Component |
+| metacognition/adaptation_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| metacognition/consensus_controller.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | metacognition/mape_k_loop.py | Implements core logic for Mape K Loop functionality. | Class/Logic Component |
-| metacognition/meta_monitor.py | Implements core logic for Meta Monitor functionality. | Class/Logic Component |
+| metacognition/meta_monitor.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | metacognition/meta_reasoner.py | SGI 2026: Semantic quality evaluation via LLM inference | Ray Actor (LLM Interface) |
-| metacognition/metacognition_manager.py | Orchestrates sub-components within the metacognition module. | Class/Logic Component |
+| metacognition/metacognition_manager.py | Orchestrates sub-components within the metacognition module. | Ray Actor (LLM Interface) |
 | metacognition/perception_reflector.py | Implements core logic for Perception Reflector functionality. | Class/Logic Component |
-| metacognition/transparency_engine.py | Implements core logic for Transparency Engine functionality. | Class/Logic Component |
+| metacognition/transparency_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 
 ## Monitoring (`monitoring/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| monitoring/conformance_engine.py | Implements core logic for Conformance Engine functionality. | Class/Logic Component |
+| monitoring/conformance_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | monitoring/drift_detector.py | Implements core logic for Drift Detector functionality. | Class/Logic Component |
-| monitoring/monitoring_manager.py | Orchestrates sub-components within the monitoring module. | Class/Logic Component |
-| monitoring/risk_monitor.py | Implements core logic for Risk Monitor functionality. | Class/Logic Component |
+| monitoring/monitoring_manager.py | Orchestrates sub-components within the monitoring module. | Ray Actor (LLM Interface) |
+| monitoring/risk_monitor.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | monitoring/semantic_trace.py | Implements core logic for Semantic Trace functionality. | Class/Logic Component |
 | monitoring/telemetry_collector.py | Implements core logic for Telemetry Collector functionality. | Class/Logic Component |
 | monitoring/thermal_guard.py | Monitors CPU temperature and load. | Ray Actor (LLM Interface) |
@@ -218,19 +218,19 @@ This document lists every file in the repository, its purpose, and how it integr
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | motivation/curiosity.py | Implements core logic for Curiosity functionality. | Class/Logic Component |
-| motivation/motivation_manager.py | Orchestrates sub-components within the motivation module. | Class/Logic Component |
+| motivation/motivation_manager.py | Orchestrates sub-components within the motivation module. | Ray Actor (LLM Interface) |
 | motivation/novelty.py | Implements core logic for Novelty functionality. | Class/Logic Component |
-| motivation/reward_engine.py | Implements core logic for Reward Engine functionality. | Class/Logic Component |
+| motivation/reward_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | motivation/uncertainty.py | Implements core logic for Uncertainty functionality. | Class/Logic Component |
 
 ## Negotiation (`negotiation/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| negotiation/compliance_engine.py | Implements core logic for Compliance Engine functionality. | Class/Logic Component |
+| negotiation/compliance_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | negotiation/concession.py | Implements core logic for Concession functionality. | Class/Logic Component |
-| negotiation/consensus_engine.py | Implements core logic for Consensus Engine functionality. | Class/Logic Component |
-| negotiation/negotiation_manager.py | Orchestrates sub-components within the negotiation module. | Class/Logic Component |
+| negotiation/consensus_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| negotiation/negotiation_manager.py | Orchestrates sub-components within the negotiation module. | Ray Actor (LLM Interface) |
 | negotiation/negotiation_protocol.py | Implements core logic for Negotiation Protocol functionality. | Class/Logic Component |
 | negotiation/proposal.py | Implements core logic for Proposal functionality. | Class/Logic Component |
 | negotiation/treaty_graph.py | Implements core logic for Treaty Graph functionality. | Class/Logic Component |
@@ -240,26 +240,26 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| orchestration/concurrency_manager.py | Orchestrates sub-components within the orchestration module. | Class/Logic Component |
+| orchestration/concurrency_manager.py | Orchestrates sub-components within the orchestration module. | Ray Actor (LLM Interface) |
 | orchestration/event_router.py | Implements core logic for Event Router functionality. | Class/Logic Component |
 | orchestration/group_chat_coordinator.py | Implements core logic for Group Chat Coordinator functionality. | Class/Logic Component |
 | orchestration/interrupt_handler.py | Implements core logic for Interrupt Handler functionality. | Class/Logic Component |
-| orchestration/orchestration_manager.py | Orchestrates sub-components within the orchestration module. | Class/Logic Component |
+| orchestration/orchestration_manager.py | Orchestrates sub-components within the orchestration module. | Ray Actor (LLM Interface) |
 | orchestration/priority_scheduler.py | Implements core logic for Priority Scheduler functionality. | Class/Logic Component |
-| orchestration/state_manager.py | Orchestrates sub-components within the orchestration module. | Class/Logic Component |
+| orchestration/state_manager.py | Orchestrates sub-components within the orchestration module. | Ray Actor (LLM Interface) |
 
 ## Purpleteam (`purpleteam/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| purpleteam/bas_engine.py | Implements core logic for Bas Engine functionality. | Class/Logic Component |
+| purpleteam/bas_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | purpleteam/blue_agent.py | Implements core logic for Blue Agent functionality. | Class/Logic Component |
-| purpleteam/fusion_orchestrator.py | Implements core logic for Fusion Orchestrator functionality. | Class/Logic Component |
-| purpleteam/purple_manager.py | Orchestrates sub-components within the purpleteam module. | Class/Logic Component |
+| purpleteam/fusion_orchestrator.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| purpleteam/purple_manager.py | Orchestrates sub-components within the purpleteam module. | Ray Actor (LLM Interface) |
 | purpleteam/red_agent.py | Implements core logic for Red Agent functionality. | Class/Logic Component |
-| purpleteam/remediation_engine.py | Implements core logic for Remediation Engine functionality. | Class/Logic Component |
-| purpleteam/scoring_engine.py | Implements core logic for Scoring Engine functionality. | Class/Logic Component |
-| purpleteam/selfplay_engine.py | Implements core logic for Selfplay Engine functionality. | Class/Logic Component |
+| purpleteam/remediation_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| purpleteam/scoring_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
+| purpleteam/selfplay_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 
 ## Redteam (`redteam/`)
 
@@ -269,8 +269,8 @@ This document lists every file in the repository, its purpose, and how it integr
 | redteam/attack_library.py | Implements core logic for Attack Library functionality. | Class/Logic Component |
 | redteam/ecosystem_simulator.py | Implements core logic for Ecosystem Simulator functionality. | Class/Logic Component |
 | redteam/exploit_generator.py | Implements core logic for Exploit Generator functionality. | Class/Logic Component |
-| redteam/redteam_manager.py | Orchestrates sub-components within the redteam module. | Class/Logic Component |
-| redteam/scenario_engine.py | Implements core logic for Scenario Engine functionality. | Class/Logic Component |
+| redteam/redteam_manager.py | Orchestrates sub-components within the redteam module. | Ray Actor (LLM Interface) |
+| redteam/scenario_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | redteam/trajectory_simulator.py | Implements core logic for Trajectory Simulator functionality. | Class/Logic Component |
 | redteam/vulnerability_scoring.py | Implements core logic for Vulnerability Scoring functionality. | Class/Logic Component |
 
@@ -281,7 +281,7 @@ This document lists every file in the repository, its purpose, and how it integr
 | runtime/agi_runtime.py | Implements core logic for Agi Runtime functionality. | Class/Logic Component |
 | runtime/agi_state.py | Implements core logic for Agi State functionality. | Class/Logic Component |
 | runtime/event_bus.py | Implements core logic for Event Bus functionality. | Class/Logic Component |
-| runtime/governance_gateway.py | Implements core logic for Governance Gateway functionality. | Class/Logic Component |
+| runtime/governance_gateway.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | runtime/runtime_logger.py | Implements core logic for Runtime Logger functionality. | Class/Logic Component |
 | runtime/safety_hooks.py | Implements core logic for Safety Hooks functionality. | Class/Logic Component |
 | runtime/scheduler.py | Implements core logic for Scheduler functionality. | Class/Logic Component |
@@ -290,20 +290,20 @@ This document lists every file in the repository, its purpose, and how it integr
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| safety_ethics/attention_gate.py | Calculates cognitive load based on message frequency in a sliding window. | Class/Logic Component |
+| safety_ethics/attention_gate.py | Calculates cognitive load based on message frequency in a sliding window. | Ray Actor (LLM Interface) |
 | safety_ethics/conflict_resolver.py | Each option is a dict: {"action": ..., "ethical_score": ...} | Class/Logic Component |
 | safety_ethics/constraint_enforcer.py | Implements core logic for Constraint Enforcer functionality. | Class/Logic Component |
 | safety_ethics/deception_detector.py | Implements core logic for Deception Detector functionality. | Class/Logic Component |
 | safety_ethics/ethical_appraisal.py | Placeholder logic | Class/Logic Component |
-| safety_ethics/ethics_manager.py | Provides a safety score between 0 and 1. | Class/Logic Component |
+| safety_ethics/ethics_manager.py | Provides a safety score between 0 and 1. | Ray Actor (LLM Interface) |
 | safety_ethics/governance_graph.py | Implements core logic for Governance Graph functionality. | Class/Logic Component |
-| safety_ethics/interpretability_monitor.py | Placeholder: detect suspicious circuits or anomalous activations | Class/Logic Component |
+| safety_ethics/interpretability_monitor.py | Placeholder: detect suspicious circuits or anomalous activations | Ray Actor (LLM Interface) |
 | safety_ethics/moral_reasoner.py | Implements core logic for Moral Reasoner functionality. | Class/Logic Component |
 | safety_ethics/norm_library.py | Implements core logic for Norm Library functionality. | Class/Logic Component |
 | safety_ethics/oversight_agent.py | Implements core logic for Oversight Agent functionality. | Class/Logic Component |
 | safety_ethics/risk_classifier.py | Implements core logic for Risk Classifier functionality. | Class/Logic Component |
-| safety_ethics/safety_manager.py | Orchestrates sub-components within the safety_ethics module. | Class/Logic Component |
-| safety_ethics/shutdown_controller.py | Implements core logic for Shutdown Controller functionality. | Class/Logic Component |
+| safety_ethics/safety_manager.py | Orchestrates sub-components within the safety_ethics module. | Ray Actor (LLM Interface) |
+| safety_ethics/shutdown_controller.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 
 ## Self Model (`self_model/`)
 
@@ -313,7 +313,7 @@ This document lists every file in the repository, its purpose, and how it integr
 | self_model/continuity_metrics.py | Implements core logic for Continuity Metrics functionality. | Class/Logic Component |
 | self_model/identity_kernel.py | Implements core logic for Identity Kernel functionality. | Class/Logic Component |
 | self_model/reflective_endorsement.py | Implements core logic for Reflective Endorsement functionality. | Class/Logic Component |
-| self_model/self_manager.py | Orchestrates sub-components within the self_model module. | Class/Logic Component |
+| self_model/self_manager.py | Orchestrates sub-components within the self_model module. | Ray Actor (LLM Interface) |
 | self_model/temporal_self.py | Implements core logic for Temporal Self functionality. | Class/Logic Component |
 
 ## Simulation (`simulation/`)
@@ -324,10 +324,10 @@ This document lists every file in the repository, its purpose, and how it integr
 | simulation/environment.py | Implements core logic for Environment functionality. | Class/Logic Component |
 | simulation/governance_interventions.py | Implements core logic for Governance Interventions functionality. | Class/Logic Component |
 | simulation/interaction_protocol.py | Implements core logic for Interaction Protocol functionality. | Class/Logic Component |
-| simulation/metrics_engine.py | Implements core logic for Metrics Engine functionality. | Class/Logic Component |
+| simulation/metrics_engine.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | simulation/replay_buffer.py | Implements core logic for Replay Buffer functionality. | Class/Logic Component |
 | simulation/sim_core.py | Implements core logic for Sim Core functionality. | Class/Logic Component |
-| simulation/simulation_manager.py | Orchestrates sub-components within the simulation module. | Class/Logic Component |
+| simulation/simulation_manager.py | Orchestrates sub-components within the simulation module. | Ray Actor (LLM Interface) |
 
 ## Tests (`tests/`)
 
@@ -343,7 +343,7 @@ This document lists every file in the repository, its purpose, and how it integr
 | training/meta_learning.py | Implements core logic for Meta Learning functionality. | Class/Logic Component |
 | training/rl_trainer.py | Placeholder: choose best known action | Class/Logic Component |
 | training/self_supervised.py | Implements core logic for Self Supervised functionality. | Class/Logic Component |
-| training/training_manager.py | Orchestrates sub-components within the training module. | Class/Logic Component |
+| training/training_manager.py | Orchestrates sub-components within the training module. | Ray Actor (LLM Interface) |
 | training/world_model_trainer.py | Update causal graph or state based on new data | Class/Logic Component |
 
 ## World Model (`world_model/`)
@@ -352,7 +352,7 @@ This document lists every file in the repository, its purpose, and how it integr
 | :--- | :--- | :--- |
 | world_model/causal_graph.py | Implements core logic for Causal Graph functionality. | Class/Logic Component |
 | world_model/counterfactuals.py | Implements core logic for Counterfactuals functionality. | Class/Logic Component |
-| world_model/manager.py | Orchestrates sub-components within the world_model module. | Class/Logic Component |
-| world_model/prediction.py | Implements core logic for Prediction functionality. | Class/Logic Component |
+| world_model/manager.py | Orchestrates sub-components within the world_model module. | Ray Actor (LLM Interface) |
+| world_model/prediction.py | SGI 2026: Standardized message handling for LLM integration | Ray Actor (LLM Interface) |
 | world_model/simulator.py | Update external entities based on causal effects | Class/Logic Component |
 | world_model/state.py | Identifies discrepancies between predicted and observed states. | Class/Logic Component |

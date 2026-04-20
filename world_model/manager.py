@@ -1,11 +1,15 @@
+import ray
+from core.base import CognitiveModule
 from world_model.state import WorldState
 from world_model.causal_graph import CausalGraph
 from world_model.simulator import Simulator
 from world_model.prediction import PredictionEngine
 from world_model.counterfactuals import CounterfactualGenerator
 
-class WorldModelManager:
-    def __init__(self):
+@ray.remote
+class WorldModelManager(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.state = WorldState()
         self.causal_graph = CausalGraph()
         self.simulator = Simulator(self.state, self.causal_graph)
@@ -25,3 +29,7 @@ class WorldModelManager:
 
     def imagine_alternative(self, actions):
         return self.counterfactuals.generate(actions)
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

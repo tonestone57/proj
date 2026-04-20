@@ -1,10 +1,13 @@
+import ray
+from core.base import CognitiveModule
 from training.self_supervised import SelfSupervisedTrainer
 from training.rl_trainer import RLTrainer
 from training.curriculum import Curriculum
 from training.world_model_trainer import WorldModelTrainer
 from training.meta_learning import MetaLearning
 
-class TrainingManager:
+@ray.remote
+class TrainingManager(CognitiveModule):
     def __init__(self, modules, world_model, motivation):
         self.self_supervised = SelfSupervisedTrainer(modules)
         self.rl = RLTrainer(world_model, motivation)
@@ -33,3 +36,7 @@ class TrainingManager:
             "reward": reward,
             "curriculum_level": self.curriculum.level
         }
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

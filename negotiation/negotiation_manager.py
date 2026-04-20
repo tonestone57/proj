@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from negotiation.proposal import Proposal
 from negotiation.utility import UtilitySystem
 from negotiation.concession import ConcessionStrategy
@@ -6,7 +8,8 @@ from negotiation.negotiation_protocol import NegotiationProtocol
 from negotiation.treaty_graph import TreatyGraph
 from negotiation.compliance_engine import ComplianceEngine
 
-class NegotiationManager:
+@ray.remote
+class NegotiationManager(CognitiveModule):
     def __init__(self, role_weights):
         self.utility = UtilitySystem()
         self.concession = ConcessionStrategy()
@@ -23,3 +26,7 @@ class NegotiationManager:
 
 Cognition (reasoning, planning, world-modeling)
 Emotion (generation, appraisal, regulation)
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

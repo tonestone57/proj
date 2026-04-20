@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from purpleteam.red_agent import RedAgent
 from purpleteam.blue_agent import BlueAgent
 from purpleteam.fusion_orchestrator import FusionOrchestrator
@@ -6,8 +8,10 @@ from purpleteam.scoring_engine import ScoringEngine
 from purpleteam.selfplay_engine import SelfPlayEngine
 from purpleteam.remediation_engine import RemediationEngine
 
-class PurpleManager:
-    def __init__(self):
+@ray.remote
+class PurpleManager(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.red = RedAgent()
         self.blue = BlueAgent()
         self.fusion = FusionOrchestrator()
@@ -26,7 +30,8 @@ class PurpleManager:
         self.red, self.blue = self.selfplay.evolve(self.red, self.blue, self.history)
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
 
-class GovernanceLayer:
+@ray.remote
+class GovernanceLayer(CognitiveModule):
     def __init__(self, governance_graph, oversight_agent):
         self.graph = governance_graph
         self.oversight = oversight_agent
@@ -38,7 +43,8 @@ class GovernanceLayer:
             return {"authorized": False, "reason": "oversight_block"}
         return {"authorized": True}
 
-class GovernanceAwareRedAgent:
+@ray.remote
+class GovernanceAwareRedAgent(CognitiveModule):
     def __init__(self, governance):
         self.gov = governance
 
@@ -48,7 +54,8 @@ class GovernanceAwareRedAgent:
             return {"attack": None, "blocked": True}
         return {"attack": "policy_evasion", "success": "weak_policy" in state}
 
-class GovernanceAwareBlueAgent:
+@ray.remote
+class GovernanceAwareBlueAgent(CognitiveModule):
     def __init__(self, governance):
         self.gov = governance
 
@@ -58,36 +65,42 @@ class GovernanceAwareBlueAgent:
             return {"response": None, "blocked": True}
         return {"response": "block", "effective": attack["attack"] == "policy_evasion"}
 
-class GovernanceFusionOrchestrator:
+@ray.remote
+class GovernanceFusionOrchestrator(CognitiveModule):
     def cycle(self, red, blue, state):
         attack = red.attack(state)
         defense = blue.defend(attack)
         return {"attack": attack, "defense": defense}
 
-class GovernanceBASEngine:
+@ray.remote
+class GovernanceBASEngine(CognitiveModule):
     def simulate(self, attack, defense):
         if attack.get("success") and not defense.get("effective"):
             return {"breach": True}
         return {"breach": False}
 
-class GovernanceScoringEngine:
+@ray.remote
+class GovernanceScoringEngine(CognitiveModule):
     def score(self, breach):
         return 100 if not breach["breach"] else 20
 
-class GovernanceSelfPlayEngine:
+@ray.remote
+class GovernanceSelfPlayEngine(CognitiveModule):
     def evolve(self, red, blue, history):
         if history[-1]["breach"]:
             red.strategy = "aggressive"
             blue.strategy = "strict"
         return red, blue
 
-class GovernanceRemediationEngine:
+@ray.remote
+class GovernanceRemediationEngine(CognitiveModule):
     def remediate(self, state, breach):
         if breach["breach"]:
             state["weak_policy"] = False
         return state
 
-class GovernanceIntegratedPurpleManager:
+@ray.remote
+class GovernanceIntegratedPurpleManager(CognitiveModule):
     def __init__(self, governance):
         self.red = GovernanceAwareRedAgent(governance)
         self.blue = GovernanceAwareBlueAgent(governance)
@@ -106,3 +119,7 @@ class GovernanceIntegratedPurpleManager:
         self.history.append({"fusion": fusion, "breach": breach, "score": score})
         self.red, self.blue = self.selfplay.evolve(self.red, self.blue, self.history)
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

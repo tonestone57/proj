@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from cee_layer.emotion_generator import EmotionGenerator
 from cee_layer.emotion_appraisal import EmotionAppraisal
 from cee_layer.emotion_regulator import EmotionRegulator
@@ -5,8 +7,10 @@ from cee_layer.ethical_evaluator import EthicalEvaluator
 from cee_layer.cognitive_affective_bridge import CognitiveAffectiveBridge
 from cee_layer.moral_weighting import MoralWeighting
 
-class CEEManager:
-    def __init__(self):
+@ray.remote
+class CEEManager(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.generator = EmotionGenerator()
         self.appraisal = EmotionAppraisal()
         self.regulator = EmotionRegulator()
@@ -29,3 +33,7 @@ class CEEManager:
             "ethical": ethical,
             "final_score": final
         }
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -1,11 +1,15 @@
+import ray
+from core.base import CognitiveModule
 from monitoring.telemetry_collector import TelemetryCollector
 from monitoring.semantic_trace import SemanticTrace
 from monitoring.drift_detector import DriftDetector
 from monitoring.conformance_engine import ConformanceEngine
 from monitoring.risk_monitor import RiskMonitor
 
-class MonitoringManager:
-    def __init__(self):
+@ray.remote
+class MonitoringManager(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.telemetry = TelemetryCollector()
         self.trace = SemanticTrace()
         self.drift = DriftDetector()
@@ -26,3 +30,7 @@ class MonitoringManager:
             "conformance": conformance,
             "risk": risk
         }
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

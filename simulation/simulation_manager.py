@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from simulation.sim_core import SimulationCore
 from simulation.environment import Environment
 from simulation.interaction_protocol import InteractionProtocol
@@ -5,7 +7,8 @@ from simulation.governance_interventions import GovernanceInterventions
 from simulation.metrics_engine import MetricsEngine
 from simulation.replay_buffer import ReplayBuffer
 
-class SimulationManager:
+@ray.remote
+class SimulationManager(CognitiveModule):
     def __init__(self, agents):
         self.core = SimulationCore()
         self.env = Environment()
@@ -30,3 +33,7 @@ class SimulationManager:
                 self.metrics.score(interaction)
 
 # OK: What you now have
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

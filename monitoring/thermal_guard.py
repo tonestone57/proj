@@ -1,9 +1,10 @@
+from core.base import CognitiveModule
 import ray
 import psutil
 import time
 
 @ray.remote
-class ThermalGuard:
+class ThermalGuard(CognitiveModule):
     def __init__(self, threshold_temp=78.0, threshold_load=95.0):
         self.threshold_temp = threshold_temp
         self.threshold_load = threshold_load
@@ -47,3 +48,7 @@ class ThermalGuard:
             print(f"⚠️ [ThermalGuard] System Alert! Temp: {state['temp']}C, Load: {state['load']}%")
             return False
         return True
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

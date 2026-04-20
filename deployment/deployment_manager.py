@@ -1,4 +1,7 @@
-class DeploymentManager:
+import ray
+from core.base import CognitiveModule
+@ray.remote
+class DeploymentManager(CognitiveModule):
     def __init__(self, env, registry, version_manager, policy_loader):
         self.env = env
         self.registry = registry
@@ -9,3 +12,7 @@ class DeploymentManager:
         self.registry.register(agent_id, metadata)
         self.version_manager.record_version(agent_id, version)
         self.env.launch_agent(agent_id, agent)
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

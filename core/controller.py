@@ -1,6 +1,9 @@
+import ray
+from core.base import CognitiveModule
 import time
 
-class DPSController:
+@ray.remote
+class DPSController(CognitiveModule):
     def __init__(self, workspace, scheduler, router, priority_engine, attention_gate):
         self.workspace = workspace
         self.scheduler = scheduler

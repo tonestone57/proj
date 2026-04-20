@@ -3,8 +3,10 @@ import ray
 from core.base import CognitiveModule
 from core.config import CORES_SEARCH
 
-class LicenseActor:
-    def __init__(self):
+@ray.remote
+class LicenseActor(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.prohibited_patterns = [
             re.compile(r"GPL", re.IGNORECASE),
             re.compile(r"LGPL", re.IGNORECASE)
@@ -18,14 +20,16 @@ class LicenseActor:
 class SearchActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        self.license_actor = LicenseActor()
+        # SGI 2026: Instantiate LicenseActor as a nested Ray actor
+        self.license_actor = LicenseActor.remote(workspace, scheduler, model_registry)
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if message["type"] == "search_request":
             query = message["data"]
             results = self.perform_search(query)
-            compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
+            # Use ray.get() as LicenseActor is now remote
+            compliant_results = [res for res in results if ray.get(self.license_actor.is_compliant.remote(res))]
             actionable_spec = self.distill_results(compliant_results)
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None

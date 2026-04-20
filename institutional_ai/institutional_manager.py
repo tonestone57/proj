@@ -1,3 +1,5 @@
+import ray
+from core.base import CognitiveModule
 from institutional_ai.governance_graph import GovernanceGraph
 from institutional_ai.trust_engine import TrustEngine
 from institutional_ai.rule_engine import RuleEngine
@@ -6,8 +8,10 @@ from institutional_ai.incentive_engine import IncentiveEngine
 from institutional_ai.oversight_agents import OversightAgent
 from institutional_ai.real_time_control import RealTimeControl
 
-class InstitutionalManager:
-    def __init__(self):
+@ray.remote
+class InstitutionalManager(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.graph = GovernanceGraph()
         self.trust = TrustEngine()
         self.rules = RuleEngine()
@@ -40,3 +44,7 @@ class InstitutionalManager:
             "incentive": incentive,
             "trust": self.trust.get_score(agent_id)
         }
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

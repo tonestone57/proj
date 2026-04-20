@@ -1,9 +1,12 @@
+import ray
+from core.base import CognitiveModule
 from meta_learning.performance_tracker import PerformanceTracker
 from meta_learning.adaptation_engine import AdaptationEngine
 from meta_learning.strategy_optimizer import StrategyOptimizer
 from meta_learning.meta_policy import MetaPolicy
 
-class MetaManager:
+@ray.remote
+class MetaManager(CognitiveModule):
     def __init__(self, modules, rl_trainer):
         self.tracker = PerformanceTracker()
         self.adaptation = AdaptationEngine()
@@ -40,3 +43,7 @@ from meta_learning.meta_manager import MetaManager
 self.meta_manager = MetaManager(modules, self.rl)
 
 strategy = self.meta_manager.update("planner", reward)
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -1,9 +1,12 @@
+import ray
+from core.base import CognitiveModule
 from memory_consolidation.hippocampal_replay import HippocampalReplay
 from memory_consolidation.generative_trainer import GenerativeTrainer
 from memory_consolidation.consolidation_scheduler import ConsolidationScheduler
 from memory_consolidation.schema_manager import SchemaManager
 
-class ConsolidationManager:
+@ray.remote
+class ConsolidationManager(CognitiveModule):
     def __init__(self, episodic_memory, generative_model, world_model):
         self.replay = HippocampalReplay(episodic_memory)
         self.trainer = GenerativeTrainer(generative_model)
@@ -42,3 +45,7 @@ modules["consolidation"] = consolidation
 
 if msg_type in ["consolidate_memory"]:
     return module_registry.get("consolidation")
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

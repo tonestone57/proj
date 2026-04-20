@@ -29,6 +29,9 @@ def calculate_information_density(words):
 
 @ray.remote
 class MemoryManager(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
+
     def receive(self, message):
         if message["type"] == "trigger_sleep_cycle":
             self.trigger_sleep_cycle()

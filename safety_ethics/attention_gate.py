@@ -1,6 +1,9 @@
+import ray
+from core.base import CognitiveModule
 import time
 
-class AttentionGate:
+@ray.remote
+class AttentionGate(CognitiveModule):
     def __init__(self, ethics_manager=None):
         self.threshold = 0.1
         self.ethics_manager = ethics_manager
@@ -66,3 +69,7 @@ class AttentionGate:
         else:
             message["strength"] = priority
         return message
+
+    def receive(self, message):
+        # SGI 2026: Standardized message handling for LLM integration
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
