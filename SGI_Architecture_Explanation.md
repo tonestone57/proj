@@ -43,3 +43,12 @@ SGI-Alpha is designed to operate without human intervention:
 | **Safety Gate** | License Guardian / Z3 | Prohibits GPL code and proves logic safety |
 
 This architecture ensures that the system is not just "predicting the next token," but actively managing its resources, verifying its own logic, and improving its capabilities over time.
+
+## 6. Can it run with ONLY the Generative Brain?
+Technically, yes. The system can function without the second "Retriever" model, but it faces the **"Amnesia Problem"**:
+
+1.  **Without the Retriever**: The LLM only knows what is in its immediate "Active Context" (the last few turns). It cannot "remember" facts from a file it read 2 hours ago if that file is no longer in the context window.
+2.  **The Alternative (Keyword Search)**: We could use a non-neural keyword index (like BM25). This requires no extra model but lacks the "semantic" ability to find ideas that don't use exact word matches.
+3.  **The Alternative (Unified Model)**: The DeepSeek model could generate its own embeddings. However, on the i7-8265U, this is **100x slower** than using the tiny `all-MiniLM` model, leading to system lag and thermal throttling.
+
+The current dual-model setup is the **2026 Efficiency Standard**: use a tiny, fast model to "look things up" and a large, smart model to "think about them."
