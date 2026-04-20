@@ -16,23 +16,19 @@ class ConsolidationManager(CognitiveModule):
         self.world_model = world_model
 
     def consolidate(self):
-        # 1. Select episodes for replay
         selected = self.scheduler.select_for_replay(self.replay.episodic_memory)
-
-        # 2. Train generative model on replay
         replay_batch = [ep["sensory"] for ep in selected]
         loss = self.trainer.train_on_replay(replay_batch)
-
-        # 3. Update schemas
         for ep in selected:
             self.schemas.update_schema(ep)
-
-        # 4. Update world-model with consolidated knowledge
         for ep in selected:
             enriched = self.schemas.apply_schema(ep)
             if self.world_model:
-                self.world_model.state.update_entity(ep["id"], enriched)
-
+                # Handle as potential remote actor
+                try:
+                    ray.get(self.world_model.update_entity.remote(ep["id"], enriched))
+                except Exception:
+                    pass
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
     def receive(self, message):

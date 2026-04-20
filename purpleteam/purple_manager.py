@@ -35,7 +35,7 @@ class PurpleManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
 
 class GovernanceLayer:
-    def __init__(self, governance_graph, oversight_agent):
+    def __init__(self, governance_graph=None, oversight_agent=None):
         self.graph = governance_graph
         self.oversight = oversight_agent
 
@@ -47,7 +47,7 @@ class GovernanceLayer:
         return {"authorized": True}
 
 class GovernanceAwareRedAgent:
-    def __init__(self, governance):
+    def __init__(self, governance=None):
         self.gov = governance
 
     def attack(self, state):
@@ -57,7 +57,7 @@ class GovernanceAwareRedAgent:
         return {"attack": "policy_evasion", "success": "weak_policy" in state}
 
 class GovernanceAwareBlueAgent:
-    def __init__(self, governance):
+    def __init__(self, governance=None):
         self.gov = governance
 
     def defend(self, attack):
@@ -97,7 +97,7 @@ class GovernanceRemediationEngine:
 
 @ray.remote
 class GovernanceIntegratedPurpleManager(CognitiveModule):
-    def __init__(self, governance, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, governance=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.red = GovernanceAwareRedAgent(governance)
         self.blue = GovernanceAwareBlueAgent(governance)
@@ -118,5 +118,5 @@ class GovernanceIntegratedPurpleManager(CognitiveModule):
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
 
     def receive(self, message):
-        # Standard SGI 2026 message handling
+        # Standard SGI 2026 message handling for GovernanceIntegratedPurpleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

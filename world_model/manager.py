@@ -18,7 +18,6 @@ class WorldModelManager(CognitiveModule):
 
     def update_world(self, message):
         if message["type"] == "world_update":
-            # Correcting call to method that should exist in WorldState
             self.state.update_external("entities", message["entity"], message["data"])
 
         if message["type"] == "causal_update":
@@ -29,6 +28,10 @@ class WorldModelManager(CognitiveModule):
 
     def imagine_alternative(self, actions):
         return self.counterfactuals.generate(actions)
+
+    def update_entity(self, entity_id, data):
+        # API used by ConsolidationManager
+        self.state.update_external("entities", entity_id, data)
 
     def receive(self, message):
         # Standard SGI 2026 message handling for WorldModelManager

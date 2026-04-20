@@ -27,7 +27,6 @@ class NegotiationManager(CognitiveModule):
                 proposal = self.proposals.generate(agent, context)
                 concession = self.concessions.calculate(agent, proposal)
                 context = self.protocol.update(context, agent, concession)
-
         treaty = self.treaties.formulate(context)
         return self.compliance.verify(treaty)
 

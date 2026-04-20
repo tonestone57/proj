@@ -9,7 +9,7 @@ from simulation.replay_buffer import ReplayBuffer
 
 @ray.remote
 class SimulationManager(CognitiveModule):
-    def __init__(self, agents, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, agents=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.core = SimulationCore()
         self.env = Environment()
@@ -23,7 +23,6 @@ class SimulationManager(CognitiveModule):
         event = self.core.tick()
         if event:
             self.env.update(event)
-
         for agent in self.agents:
             obs = self.env.state
             action = agent.step(obs)

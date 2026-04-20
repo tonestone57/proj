@@ -8,10 +8,10 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | :--- | :--- | :--- |
 | AGENTS.md | Implements core AGENTS.md logic. Supports the primary <br>functional requirements of the  subsystem within the SGI framework. | Utility/Config |
 | README.md | Implements core README.md logic. Supports the primary <br>functional requirements of the  subsystem within the SGI framework. | Utility/Config |
-| compilation_errors.log | Implements core compilation errors.log logic. Supports the primary <br>functional requirements of the  subsystem within the SGI framework. | Utility/Config |
+| compilation_errors.log | System diagnostic log file capturing detailed telemetry and runtime events for compilation errors monitoring. | Utility/Config |
 | config.yaml | The authoritative system configuration manifest. It defines hardware-specific thread limits, thermal thresholds for the 15W TDP CPU, memory safety guards to prevent system crashes on 16GB RAM, and tiered precision standards for various cognitive components. | Utility/Config |
 | find_invalid_py.py | Implements core find invalid py logic. Supports the primary <br>functional requirements of the  subsystem within the SGI framework. | Utility/Config |
-| hardware_verification.log | Implements core hardware verification.log logic. Supports the primary <br>functional requirements of the  subsystem within the SGI framework. | Utility/Config |
+| hardware_verification.log | System diagnostic log file capturing detailed telemetry and runtime events for hardware verification monitoring. | Utility/Config |
 | main.py | The primary system entry point for SGI-Alpha. It orchestrates the initialization of Ray distributed compute, the shared singleton model registry for memory-efficient LLM inference, and the main cognitive heartbeat loop that drives autonomous operation on Intel i5-8265U hardware. | Logic Component |
 | setup_8265u.sh | Implements core setup 8265u.sh logic. Supports the primary <br>functional requirements of the  subsystem within the SGI framework. | Utility/Config |
 
@@ -35,7 +35,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | blueteam/adaptive_defense_agent.py | Implements core adaptive defense agent logic. Supports the primary <br>functional requirements of the blueteam subsystem within the SGI framework. | Logic Component |
-| blueteam/blueteam_manager.py | Orchestration layer for Blueteam sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| blueteam/blueteam_manager.py | Orchestration layer for Blueteam operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | blueteam/cyber_range.py | Implements core cyber range logic. Supports the primary <br>functional requirements of the blueteam subsystem within the SGI framework. | Logic Component |
 | blueteam/deception_layer.py | Implements core deception layer logic. Supports the primary <br>functional requirements of the blueteam subsystem within the SGI framework. | Logic Component |
 | blueteam/defense_orchestrator.py | Implements core defense orchestrator logic. Supports the primary <br>functional requirements of the blueteam subsystem within the SGI framework. | Logic Component |
@@ -48,7 +48,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| cee_layer/cee_manager.py | Orchestration layer for Cee Layer sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| cee_layer/cee_manager.py | Orchestration layer for Cee Layer operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | cee_layer/cognitive_affective_bridge.py | Implements core cognitive affective bridge logic. Supports the primary <br>functional requirements of the cee_layer subsystem within the SGI framework. | Logic Component |
 | cee_layer/emotion_appraisal.py | Implements core emotion appraisal logic. Supports the primary <br>functional requirements of the cee_layer subsystem within the SGI framework. | Logic Component |
 | cee_layer/emotion_generator.py | Implements core emotion generator logic. Supports the primary <br>functional requirements of the cee_layer subsystem within the SGI framework. | Logic Component |
@@ -60,7 +60,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| conflict_resolution/conflict_manager.py | Orchestration layer for Conflict Resolution sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| conflict_resolution/conflict_manager.py | Orchestration layer for Conflict Resolution operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | conflict_resolution/contradiction_detector.py | Implements core contradiction detector logic. Supports the primary <br>functional requirements of the conflict_resolution subsystem within the SGI framework. | Logic Component |
 | conflict_resolution/ethical_appraisal.py | Implements core ethical appraisal logic. Supports the primary <br>functional requirements of the conflict_resolution subsystem within the SGI framework. | Logic Component |
 | conflict_resolution/moral_agents.py | Implements core moral agents logic. Supports the primary <br>functional requirements of the conflict_resolution subsystem within the SGI framework. | Logic Component |
@@ -77,7 +77,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | console/approval_gateway.py | Implements core approval gateway logic. Supports the primary <br>functional requirements of the console subsystem within the SGI framework. | Logic Component |
 | console/audit_log.py | Implements core audit log logic. Supports the primary <br>functional requirements of the console subsystem within the SGI framework. | Logic Component |
 | console/confidence_monitor.py | Implements core confidence monitor logic. Supports the primary <br>functional requirements of the console subsystem within the SGI framework. | Logic Component |
-| console/console_manager.py | Orchestration layer for Console sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| console/console_manager.py | Orchestration layer for Console operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | console/escalation_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | console/human_interface.py | Implements core human interface logic. Supports the primary <br>functional requirements of the console subsystem within the SGI framework. | Logic Component |
 | console/oversight_dashboard.py | Implements core oversight dashboard logic. Supports the primary <br>functional requirements of the console subsystem within the SGI framework. | Logic Component |
@@ -103,10 +103,10 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | deployment/agent_registry.py | Implements core agent registry logic. Supports the primary <br>functional requirements of the deployment subsystem within the SGI framework. | Logic Component |
-| deployment/deployment_manager.py | Orchestration layer for Deployment sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
+| deployment/deployment_manager.py | Orchestration layer for Deployment operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
 | deployment/policy_loader.py | Implements core policy loader logic. Supports the primary <br>functional requirements of the deployment subsystem within the SGI framework. | Logic Component |
 | deployment/runtime_env.py | Implements core runtime env logic. Supports the primary <br>functional requirements of the deployment subsystem within the SGI framework. | Logic Component |
-| deployment/version_manager.py | Orchestration layer for Deployment sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
+| deployment/version_manager.py | Orchestration layer for Deployment operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
 
 ## Economics (`economics/`)
 
@@ -115,7 +115,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | economics/agent_policy.py | Implements core agent policy logic. Supports the primary <br>functional requirements of the economics subsystem within the SGI framework. | Logic Component |
 | economics/context_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | economics/coordination_protocol.py | Implements core coordination protocol logic. Supports the primary <br>functional requirements of the economics subsystem within the SGI framework. | Logic Component |
-| economics/economic_manager.py | Orchestration layer for Economics sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| economics/economic_manager.py | Orchestration layer for Economics operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | economics/fairness_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | economics/optimizer.py | Implements core optimizer logic. Supports the primary <br>functional requirements of the economics subsystem within the SGI framework. | Logic Component |
 | economics/orchestration_layer.py | Implements core orchestration layer logic. Supports the primary <br>functional requirements of the economics subsystem within the SGI framework. | Logic Component |
@@ -129,7 +129,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | emotion/affective_reasoner.py | Implements core affective reasoner logic. Supports the primary <br>functional requirements of the emotion subsystem within the SGI framework. | Logic Component |
 | emotion/affective_state.py | Implements core affective state logic. Supports the primary <br>functional requirements of the emotion subsystem within the SGI framework. | Logic Component |
 | emotion/appraisal.py | Implements core appraisal logic. Supports the primary <br>functional requirements of the emotion subsystem within the SGI framework. | Logic Component |
-| emotion/emotion_manager.py | Orchestration layer for Emotion sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| emotion/emotion_manager.py | Orchestration layer for Emotion operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 
 ## Incident Response (`incident_response/`)
 
@@ -140,7 +140,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | incident_response/detectors.py | Implements core detectors logic. Supports the primary <br>functional requirements of the incident_response subsystem within the SGI framework. | Logic Component |
 | incident_response/eradication_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | incident_response/incident_classifier.py | Implements core incident classifier logic. Supports the primary <br>functional requirements of the incident_response subsystem within the SGI framework. | Logic Component |
-| incident_response/incident_manager.py | Orchestration layer for Incident Response sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| incident_response/incident_manager.py | Orchestration layer for Incident Response operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | incident_response/recovery_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | incident_response/semantic_checks.py | Implements core semantic checks logic. Supports the primary <br>functional requirements of the incident_response subsystem within the SGI framework. | Logic Component |
 
@@ -151,7 +151,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | institutional_ai/coordination_layer.py | Implements core coordination layer logic. Supports the primary <br>functional requirements of the institutional_ai subsystem within the SGI framework. | Logic Component |
 | institutional_ai/governance_graph.py | Implements core governance graph logic. Supports the primary <br>functional requirements of the institutional_ai subsystem within the SGI framework. | Logic Component |
 | institutional_ai/incentive_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
-| institutional_ai/institutional_manager.py | Orchestration layer for Institutional Ai sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
+| institutional_ai/institutional_manager.py | Orchestration layer for Institutional Ai operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
 | institutional_ai/oversight_agents.py | Implements core oversight agents logic. Supports the primary <br>functional requirements of the institutional_ai subsystem within the SGI framework. | Logic Component |
 | institutional_ai/real_time_control.py | Implements core real time control logic. Supports the primary <br>functional requirements of the institutional_ai subsystem within the SGI framework. | Logic Component |
 | institutional_ai/role_definitions.py | Implements core role definitions logic. Supports the primary <br>functional requirements of the institutional_ai subsystem within the SGI framework. | Logic Component |
@@ -172,18 +172,18 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| memory_consolidation/consolidation_manager.py | Orchestration layer for Memory Consolidation sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| memory_consolidation/consolidation_manager.py | Orchestration layer for Memory Consolidation operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | memory_consolidation/consolidation_scheduler.py | Implements core consolidation scheduler logic. Supports the primary <br>functional requirements of the memory_consolidation subsystem within the SGI framework. | Logic Component |
 | memory_consolidation/generative_trainer.py | Implements core generative trainer logic. Supports the primary <br>functional requirements of the memory_consolidation subsystem within the SGI framework. | Logic Component |
 | memory_consolidation/hippocampal_replay.py | Implements core hippocampal replay logic. Supports the primary <br>functional requirements of the memory_consolidation subsystem within the SGI framework. | Logic Component |
-| memory_consolidation/schema_manager.py | Orchestration layer for Memory Consolidation sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
+| memory_consolidation/schema_manager.py | Orchestration layer for Memory Consolidation operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
 
 ## Meta Learning (`meta_learning/`)
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | meta_learning/adaptation_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
-| meta_learning/meta_manager.py | Orchestration layer for Meta Learning sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| meta_learning/meta_manager.py | Orchestration layer for Meta Learning operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | meta_learning/meta_policy.py | Implements core meta policy logic. Supports the primary <br>functional requirements of the meta_learning subsystem within the SGI framework. | Logic Component |
 | meta_learning/performance_tracker.py | Implements core performance tracker logic. Supports the primary <br>functional requirements of the meta_learning subsystem within the SGI framework. | Logic Component |
 | meta_learning/strategy_optimizer.py | Implements core strategy optimizer logic. Supports the primary <br>functional requirements of the meta_learning subsystem within the SGI framework. | Logic Component |
@@ -197,7 +197,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | metacognition/mape_k_loop.py | Implements core mape k loop logic. Supports the primary <br>functional requirements of the metacognition subsystem within the SGI framework. | Logic Component |
 | metacognition/meta_monitor.py | Implements core meta monitor logic. Supports the primary <br>functional requirements of the metacognition subsystem within the SGI framework. | Logic Component |
 | metacognition/meta_reasoner.py | Implements core meta reasoner logic. Supports the primary <br>functional requirements of the metacognition subsystem within the SGI framework. | Ray Actor (Distributed) |
-| metacognition/metacognition_manager.py | Orchestration layer for Metacognition sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| metacognition/metacognition_manager.py | Orchestration layer for Metacognition operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | metacognition/perception_reflector.py | Implements core perception reflector logic. Supports the primary <br>functional requirements of the metacognition subsystem within the SGI framework. | Logic Component |
 | metacognition/transparency_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 
@@ -207,7 +207,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | :--- | :--- | :--- |
 | monitoring/conformance_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | monitoring/drift_detector.py | Implements core drift detector logic. Supports the primary <br>functional requirements of the monitoring subsystem within the SGI framework. | Logic Component |
-| monitoring/monitoring_manager.py | Orchestration layer for Monitoring sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| monitoring/monitoring_manager.py | Orchestration layer for Monitoring operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | monitoring/risk_monitor.py | Implements core risk monitor logic. Supports the primary <br>functional requirements of the monitoring subsystem within the SGI framework. | Logic Component |
 | monitoring/semantic_trace.py | Implements core semantic trace logic. Supports the primary <br>functional requirements of the monitoring subsystem within the SGI framework. | Logic Component |
 | monitoring/telemetry_collector.py | Implements core telemetry collector logic. Supports the primary <br>functional requirements of the monitoring subsystem within the SGI framework. | Logic Component |
@@ -218,7 +218,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | motivation/curiosity.py | Implements core curiosity logic. Supports the primary <br>functional requirements of the motivation subsystem within the SGI framework. | Logic Component |
-| motivation/motivation_manager.py | Orchestration layer for Motivation sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| motivation/motivation_manager.py | Orchestration layer for Motivation operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | motivation/novelty.py | Implements core novelty logic. Supports the primary <br>functional requirements of the motivation subsystem within the SGI framework. | Logic Component |
 | motivation/reward_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | motivation/uncertainty.py | Implements core uncertainty logic. Supports the primary <br>functional requirements of the motivation subsystem within the SGI framework. | Logic Component |
@@ -230,7 +230,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | negotiation/compliance_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | negotiation/concession.py | Implements core concession logic. Supports the primary <br>functional requirements of the negotiation subsystem within the SGI framework. | Logic Component |
 | negotiation/consensus_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
-| negotiation/negotiation_manager.py | Orchestration layer for Negotiation sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| negotiation/negotiation_manager.py | Orchestration layer for Negotiation operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | negotiation/negotiation_protocol.py | Implements core negotiation protocol logic. Supports the primary <br>functional requirements of the negotiation subsystem within the SGI framework. | Logic Component |
 | negotiation/proposal.py | Implements core proposal logic. Supports the primary <br>functional requirements of the negotiation subsystem within the SGI framework. | Logic Component |
 | negotiation/treaty_graph.py | Implements core treaty graph logic. Supports the primary <br>functional requirements of the negotiation subsystem within the SGI framework. | Logic Component |
@@ -240,13 +240,13 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
-| orchestration/concurrency_manager.py | Orchestration layer for Orchestration sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
+| orchestration/concurrency_manager.py | Orchestration layer for Orchestration operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
 | orchestration/event_router.py | Implements core event router logic. Supports the primary <br>functional requirements of the orchestration subsystem within the SGI framework. | Logic Component |
 | orchestration/group_chat_coordinator.py | Implements core group chat coordinator logic. Supports the primary <br>functional requirements of the orchestration subsystem within the SGI framework. | Logic Component |
 | orchestration/interrupt_handler.py | Implements core interrupt handler logic. Supports the primary <br>functional requirements of the orchestration subsystem within the SGI framework. | Logic Component |
 | orchestration/orchestration_manager.py | A high-level coordinator for multi-agent workflows. It manages group chat sessions, concurrent task execution, and resource allocation across the actor pool to ensure efficient and conflict-free collaboration on complex objectives. | Ray Actor (Distributed) |
 | orchestration/priority_scheduler.py | Implements core priority scheduler logic. Supports the primary <br>functional requirements of the orchestration subsystem within the SGI framework. | Logic Component |
-| orchestration/state_manager.py | Orchestration layer for Orchestration sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
+| orchestration/state_manager.py | Orchestration layer for Orchestration operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Logic Component |
 
 ## Purpleteam (`purpleteam/`)
 
@@ -269,7 +269,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | redteam/attack_library.py | Implements core attack library logic. Supports the primary <br>functional requirements of the redteam subsystem within the SGI framework. | Logic Component |
 | redteam/ecosystem_simulator.py | Implements core ecosystem simulator logic. Supports the primary <br>functional requirements of the redteam subsystem within the SGI framework. | Logic Component |
 | redteam/exploit_generator.py | Implements core exploit generator logic. Supports the primary <br>functional requirements of the redteam subsystem within the SGI framework. | Logic Component |
-| redteam/redteam_manager.py | Orchestration layer for Redteam sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| redteam/redteam_manager.py | Orchestration layer for Redteam operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | redteam/scenario_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | redteam/trajectory_simulator.py | Implements core trajectory simulator logic. Supports the primary <br>functional requirements of the redteam subsystem within the SGI framework. | Logic Component |
 | redteam/vulnerability_scoring.py | Implements core vulnerability scoring logic. Supports the primary <br>functional requirements of the redteam subsystem within the SGI framework. | Logic Component |
@@ -302,7 +302,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | safety_ethics/norm_library.py | Implements core norm library logic. Supports the primary <br>functional requirements of the safety_ethics subsystem within the SGI framework. | Logic Component |
 | safety_ethics/oversight_agent.py | Implements core oversight agent logic. Supports the primary <br>functional requirements of the safety_ethics subsystem within the SGI framework. | Logic Component |
 | safety_ethics/risk_classifier.py | Implements core risk classifier logic. Supports the primary <br>functional requirements of the safety_ethics subsystem within the SGI framework. | Logic Component |
-| safety_ethics/safety_manager.py | Orchestration layer for Safety Ethics sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| safety_ethics/safety_manager.py | Orchestration layer for Safety Ethics operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | safety_ethics/shutdown_controller.py | Implements core shutdown controller logic. Supports the primary <br>functional requirements of the safety_ethics subsystem within the SGI framework. | Logic Component |
 
 ## Self Model (`self_model/`)
@@ -313,7 +313,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | self_model/continuity_metrics.py | Implements core continuity metrics logic. Supports the primary <br>functional requirements of the self_model subsystem within the SGI framework. | Logic Component |
 | self_model/identity_kernel.py | Implements core identity kernel logic. Supports the primary <br>functional requirements of the self_model subsystem within the SGI framework. | Logic Component |
 | self_model/reflective_endorsement.py | Implements core reflective endorsement logic. Supports the primary <br>functional requirements of the self_model subsystem within the SGI framework. | Logic Component |
-| self_model/self_manager.py | Orchestration layer for Self Model sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| self_model/self_manager.py | Orchestration layer for Self Model operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | self_model/temporal_self.py | Implements core temporal self logic. Supports the primary <br>functional requirements of the self_model subsystem within the SGI framework. | Logic Component |
 
 ## Simulation (`simulation/`)
@@ -327,7 +327,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | simulation/metrics_engine.py | A core logic engine for specialized domain processing. Implements the underlying <br>algorithms and state transformations required for functional objectives within the system. | Logic Component |
 | simulation/replay_buffer.py | Implements core replay buffer logic. Supports the primary <br>functional requirements of the simulation subsystem within the SGI framework. | Logic Component |
 | simulation/sim_core.py | Implements core sim core logic. Supports the primary <br>functional requirements of the simulation subsystem within the SGI framework. | Logic Component |
-| simulation/simulation_manager.py | Orchestration layer for Simulation sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| simulation/simulation_manager.py | Orchestration layer for Simulation operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 
 ## Tests (`tests/`)
 
@@ -352,7 +352,7 @@ This document provides a detailed overview of every file in the SGI-Alpha reposi
 | :--- | :--- | :--- |
 | world_model/causal_graph.py | Implements core causal graph logic. Supports the primary <br>functional requirements of the world_model subsystem within the SGI framework. | Logic Component |
 | world_model/counterfactuals.py | Implements core counterfactuals logic. Supports the primary <br>functional requirements of the world_model subsystem within the SGI framework. | Logic Component |
-| world_model/manager.py | Orchestration layer for World Model sub-modules. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
+| world_model/manager.py | Orchestration layer for World Model operations. Coordinates communication <br>and manages the life-cycle of specialized agents within the distributed workspace architecture. | Ray Actor (Distributed) |
 | world_model/prediction.py | Implements core prediction logic. Supports the primary <br>functional requirements of the world_model subsystem within the SGI framework. | Logic Component |
 | world_model/simulator.py | Implements core simulator logic. Supports the primary <br>functional requirements of the world_model subsystem within the SGI framework. | Logic Component |
 | world_model/state.py | Identifies discrepancies between predicted and observed states. | Logic Component |

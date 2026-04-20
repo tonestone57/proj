@@ -17,13 +17,9 @@ class MetaManager(CognitiveModule):
         self.rl = rl_trainer
 
     def update_meta_strategy(self, experience_batch):
-        # 1. Track performance
         metrics = self.tracker.analyze(experience_batch)
-        # 2. Optimize high-level strategy
         new_strategy = self.optimizer.optimize(metrics)
-        # 3. Adapt module parameters
         self.adapter.apply(self.modules, new_strategy)
-        # 4. Update meta-policy
         return self.policy.update(new_strategy)
 
     def receive(self, message):
