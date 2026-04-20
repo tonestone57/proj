@@ -52,3 +52,26 @@ Technically, yes. The system can function without the second "Retriever" model, 
 3.  **The Alternative (Unified Model)**: The DeepSeek model could generate its own embeddings. However, on the i7-8265U, this is **100x slower** than using the tiny `all-MiniLM` model, leading to system lag and thermal throttling.
 
 The current dual-model setup is the **2026 Efficiency Standard**: use a tiny, fast model to "look things up" and a large, smart model to "think about them."
+
+## 7. Can the Brain be Python-Only (No DeepSeek)?
+**Yes**, it is absolutely an option to build a "brain" in pure Python without a large LLM. This is known as **Symbolic AI** or **GOFAI** (Good Old-Fashioned AI).
+
+### How a Python-Only Brain Works:
+Instead of a neural network "predicting" an answer, a Python brain uses:
+1.  **Expert Systems**: A massive collection of `if/then` rules and heuristics.
+2.  **Symbolic Reasoning**: Using logic solvers like **Z3** (which SGI-Alpha already uses in the `ReasonerActor`) to prove mathematical truths.
+3.  **AST Manipulation**: Using Python's `ast` module to analyze and transform code structurally without "reading" it.
+4.  **Search Algorithms**: Using Monte Carlo Tree Search (MCTS) or A* to find the best path through a set of logical possibilities.
+
+### Is the Large Model "Required" to Think?
+It depends on what you define as "thinking":
+*   **Logical Thinking**: Python is **better** than an LLM at this. A Python script using Z3 will never make a math error, whereas an LLM might.
+*   **Creative/Semantic Thinking**: This is where the LLM is required. If you ask, *"Write a function that feels like it was written by a senior BeOS engineer,"* a pure Python script cannot do that because it doesn't understand "feeling" or "style." It only understands rules.
+
+### SGI-Alpha's Hybrid Approach:
+SGI-Alpha is actually a **Neuro-Symbolic** system. It uses:
+*   **The LLM**: For intuition, natural language, and creative coding.
+*   **Python Logic**: For the "Reflex Arc" (Safety, Thermal Guard, License Checking).
+*   **Z3 (Symbolic logic)**: For formal verification of mission-critical math.
+
+**To remove the LLM entirely**, you would replace the `ModelRegistry` with a series of complex Python modules (Heuristic Engines) that use regex, AST parsers, and logic solvers to make decisions. The system would be **much faster** and use **zero RAM**, but it would become "rigid"—it could only solve problems that you have specifically written a Python rule for.
