@@ -7,8 +7,6 @@ This document lists every file in the repository, its purpose, and how it integr
 | File | Description | Integration Role |
 | :--- | :--- | :--- |
 | AGENTS.md | SGI Roadmap: i7-8265U Optimized | Utility/Component |
-| AGI.docx | Binary or unreadable file | Static Resource |
-| DIRECTORY_STRUCTURE.md | Empty file | N/A |
 | README.md | SGI-Alpha: AGI LLM for Coding, Math and Logic | Utility/Component |
 | compilation_errors.log | Logic for compilation_errors.log | Utility/Component |
 | config.yaml | SGI Configuration Manifest (v1.0) | Utility/Component |
