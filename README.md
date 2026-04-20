@@ -80,8 +80,8 @@ To fit within the memory bandwidth and thermal envelope of the 8265U, the model 
 - **LanceDB**: The "Cortical Archive." Supports LLM-Arithmetic Coding (Lossless Neural Archiving/LLM-Zip), achieving 5x to 10x better compression than Zstd/7z by storing token probabilities predicted by the LLM.
 - **NebulaGraph/TuGraph**: Stores the Neural Map for GraphRAG. Uses Tree-sitter Serialization to compactly store code as Abstract Syntax Tree (AST) node operations, bypassing re-parsing for immediate Control Flow Graphs.
 
-## Model: Apriel-1.6-15B-Thinker
-Apriel-1.6-15B-Thinker is required for its high reasoning density and optimized parameter footprint, ideal for the i7-8265U's 15W TDP. It is utilized across all cognitive actors as a shared "Singleton Model" via the ModelRegistry to minimize RAM usage and prevent system crashes on 16GB hardware.
+## Model: DeepSeek-Coder-V2-Lite
+DeepSeek-Coder-V2-Lite is required for its high reasoning density and optimized parameter footprint, ideal for the i7-8265U's 15W TDP. It is utilized across all cognitive actors as a shared "Singleton Model" via the ModelRegistry to minimize RAM usage and prevent system crashes on 16GB hardware.
 
 ## Getting Started
 

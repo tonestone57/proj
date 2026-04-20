@@ -75,7 +75,7 @@ async def cognitive_cycle():
     thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
 
     # Initialize Shared Model (Singleton) to prevent RAM crash
-    model_id = "Apriel-1.6-15B-Thinker"
+    model_id = "DeepSeek-Coder-V2-Lite"
     model_provider = ModelRegistry.remote(model_id=model_id)
 
     # Initialize Specialized Actors using the shared model provider

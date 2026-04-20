@@ -10,7 +10,7 @@ class ModelRegistry:
     Singleton Model Provider to prevent RAM crash on 16GB systems.
     Loads the model once and provides inference for specialized actors.
     """
-    def __init__(self, model_id="Apriel-1.6-15B-Thinker"):
+    def __init__(self, model_id="DeepSeek-Coder-V2-Lite"):
         self.model_id = model_id
         self.model = None
         self.tokenizer = None
