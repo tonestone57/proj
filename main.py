@@ -2,22 +2,25 @@ import ray
 import time
 import asyncio
 import os
+import psutil
 
 # Core components
 from core.workspace import GlobalWorkspace
 from core.scheduler import Scheduler
 from core.drives import DriveEngine
-from core.config import CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME, THERMAL_THRESHOLD_C
+from core.config import CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME, THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB
+from core.model_registry import ModelRegistry
 
 # Actors
 from actors.reasoner_actor import ReasonerActor
 from actors.coding_actor import CodingActor
 from actors.search_actor import SearchActor
 from actors.critic_actor import InternalCritic
+from actors.planner import Planner
 from memory.memory_manager import MemoryManager
 from monitoring.thermal_guard import ThermalGuard
 
-# Enforce thread limits for Intel i5-8265U (15W TDP)
+# Enforce thread limits for Intel i7-8265U (15W TDP)
 os.environ["OMP_NUM_THREADS"] = str(MAX_THREADS)
 os.environ["MKL_NUM_THREADS"] = str(MAX_THREADS)
 os.environ["OPENBLAS_NUM_THREADS"] = str(MAX_THREADS)
@@ -34,10 +37,24 @@ class SGIHub:
         self.thermal_guard = thermal_guard
         self.state = {"focus": "idle", "history": []}
 
+    def check_ram_guard(self):
+        """
+        Proactive RAM Guard to prevent swap lag and system crash.
+        Threshold: 2000MB (Configured for 16GB system).
+        """
+        mem = psutil.virtual_memory()
+        available_mb = mem.available / (1024 * 1024)
+        if available_mb < LOW_MEMORY_THRESHOLD_MB:
+            print(f"🚨 [RAM Guard] Critical memory pressure: {available_mb:.2f}MB available. Pausing ingestion.")
+            return False
+        return True
+
     async def safe_delegate(self, actor_handle, task_type, payload):
-        """Check thermal health before every task."""
+        if not self.check_ram_guard():
+            return False
+
         if await self.thermal_guard.check_health.remote():
-            print(f"[Hub] System is cool. Delegating {task_type}...")
+            print(f"[Hub] System is healthy. Delegating {task_type}...")
             actor_handle.receive.remote({"type": task_type, "data": payload})
             return True
         else:
@@ -45,7 +62,6 @@ class SGIHub:
             return False
 
     async def poll_scheduler(self):
-        """Poll the scheduler and broadcast results to the workspace."""
         res_obj = await self.scheduler.next.remote()
         if res_obj:
             priority, actor_handle, message = res_obj
@@ -58,44 +74,42 @@ async def cognitive_cycle():
     scheduler = Scheduler.remote()
     thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
 
-    # Initialize Specialized Actors
-    model_id = "intel/neural-chat-14b-v3-3"
-    reasoner = ReasonerActor.remote(workspace, scheduler, model_id=model_id)
-    coder = CodingActor.remote(workspace, scheduler, model_id=model_id)
-    searcher = SearchActor.remote(workspace, scheduler, model_id=model_id)
-    critic = InternalCritic.remote(workspace, scheduler, model_id=model_id)
+    # Initialize Shared Model (Singleton) to prevent RAM crash
+    model_id = "DeepSeek-Coder-V2-Lite"
+    model_provider = ModelRegistry.remote(model_id=model_id)
+
+    # Initialize Specialized Actors using the shared model provider
+    reasoner = ReasonerActor.remote(workspace, scheduler, model_registry=model_provider)
+    coder = CodingActor.remote(workspace, scheduler, model_registry=model_provider)
+    searcher = SearchActor.remote(workspace, scheduler, model_registry=model_provider)
+    critic = InternalCritic.remote(workspace, scheduler, model_registry=model_provider)
+    planner = Planner.remote(workspace, scheduler, model_registry=model_provider)
     memory_manager = MemoryManager.remote(workspace, scheduler)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
 
-    print(f"--- {SYSTEM_NAME} Initialized for Intel i5-8265U ---")
+    print(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")
     print("Architecture: Asynchronous Predictive Workspace (APW)")
+    print(f"[Hub] RAM Status: {psutil.virtual_memory().available / (1024**3):.2f}GB / 16GB available.")
 
     # The Heartbeat Loop
     for tick in range(10):
         print(f"\n--- Heartbeat Tick {tick+1} ---")
-
-        # 1. Thermal & Resource Check
         health = await thermal_guard.get_thermal_state.remote()
         print(f"[Hub] Thermal State: Load={health['load']}%, Temp={health['temp']}C, Throttled={health['is_throttled']}")
 
-        # 2. Drive: Proactive task triggering based on Entropy
         state = await workspace.get_current_state.remote()
-        # Fixed nitpick: Use initialized DriveEngine instance
         entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
-        if entropy > 0.7: # Threshold from config.yaml
-            print("[Drives] High Entropy detected. Triggering proactive tasks.")
+        if entropy > 0.7:
             if tick % 2 == 0:
                 await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
             else:
                 await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
 
-        # 3. Poll Scheduler for asynchronous results
         await hub.poll_scheduler()
-
         await asyncio.sleep(TICK_INTERVAL)
 
     print(f"\n{SYSTEM_NAME} Demo complete.")

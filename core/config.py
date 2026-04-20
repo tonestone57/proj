@@ -12,9 +12,10 @@ else:
 
 # Hardware & System
 SYSTEM_NAME = manifest.get("system_identity", {}).get("name", "SGI-Alpha")
-CPU_CORES_MAX = manifest.get("hardware_limits", {}).get("ray_reserved_threads", 4)
-MAX_THREADS = manifest.get("hardware_limits", {}).get("max_threads", 4)
+CPU_CORES_MAX = manifest.get("hardware_limits", {}).get("ray_reserved_threads", 3)
+MAX_THREADS = manifest.get("hardware_limits", {}).get("max_threads", 3)
 THERMAL_THRESHOLD_C = manifest.get("hardware_limits", {}).get("thermal_threshold_celsius", 78.0)
+LOW_MEMORY_THRESHOLD_MB = manifest.get("hardware_limits", {}).get("low_memory_warning_mb", 2000)
 
 # Entropy/Drive thresholds
 THRESHOLD_REPLAN = manifest.get("drive_engine", {}).get("threshold_replan", 2.0)
@@ -25,7 +26,7 @@ TICK_INTERVAL = manifest.get("drive_engine", {}).get("heartbeat_interval_seconds
 
 # Context management
 CONTEXT_SALIENCY_FLOOR = 0.5
-MAX_LIMIT = manifest.get("memory_management", {}).get("active_context_limit", 2048)
+MAX_LIMIT = manifest.get("memory_management", {}).get("active_context_limit", 4096)
 
 # Workspace settings
 WORKSPACE_HISTORY_LIMIT = 100

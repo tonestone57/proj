@@ -14,7 +14,8 @@ class WorldModelManager:
 
     def update_world(self, message):
         if message["type"] == "world_update":
-            self.state.update_entity(message["entity"], message["data"])
+            # Correcting call to method that should exist in WorldState
+            self.state.update_external("entities", message["entity"], message["data"])
 
         if message["type"] == "causal_update":
             self.causal_graph.add_causal_link(message["cause"], message["effect"])
@@ -24,11 +25,3 @@ class WorldModelManager:
 
     def imagine_alternative(self, actions):
         return self.counterfactuals.generate(actions)
-
-from world_model.manager import WorldModelManager
-
-world_model = WorldModelManager()
-modules["world_model"] = world_model
-
-if msg_type in ["world_update", "causal_update"]:
-    return module_registry.get("world_model")

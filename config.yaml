@@ -1,5 +1,5 @@
 # SGI Configuration Manifest (v1.0)
-# Target Architecture: Intel Core i5-8265U (Whiskey Lake)
+# Target Architecture: Intel Core i7-8265U (Whiskey Lake)
 # Orchestration: Ray + IPEX-LLM
 
 system_identity:
@@ -9,39 +9,39 @@ system_identity:
 # SECTION 1: Hardware Resource Allocation (TDP: 15W)
 hardware_limits:
   total_cpu_threads: 8
-  ray_reserved_threads: 4           # Conserving for i5-8265U stability
-  max_threads: 4                    # 4-thread limit for SGI operations
+  ray_reserved_threads: 4           # Conserving for i7-8265U stability
+  max_threads: 3                    # Reduced to 3 for thermal headroom (15W TDP)
   thermal_threshold_celsius: 78.0   # Trigger "Cool-down" mode at 78C
-  low_memory_warning_mb: 800        # Pause ingestion if RAM < 800MB
+  low_memory_warning_mb: 2000       # Ensuring Heartbeat stays in physical RAM (16GB system)
   shared_gpu_memory: true           # Enable optimizations for HD 620 iGPU
 
 # SECTION 2: Specialized Actor Precision Tiers
 actors:
   symbolic_reasoner:
-    precision: "bf16"               # Logic/Math (2026 standard)
+    precision: "sym_int8"           # Fixed for AVX2 efficiency (No AVX-512)
     cpu_cores: 2
     priority: 1
 
   coding_actor:
-    precision: "nf4"                # Base weights (2026 standard)
+    precision: "UD-Q5_K_M"          # Base weights (2026 standard)
     cpu_cores: 2
     priority: 1
 
   search_actor:
-    precision: "nf4"                # Web Data
+    precision: "sym_int8"           # Web Data
     cpu_cores: 1
     load_mode: "ipex_low_bit"
     priority: 3
 
 # SECTION 3: Memory & Context Management
 memory_management:
-  active_context_limit: 2048
+  active_context_limit: 4096        # Optimized for 16GB RAM
   pruning_threshold_pct: 0.80
   summarization_depth: "recursive"
   compression:
-    vector_index: "Q8+BQ"           # 2026 Standard
-    kv_cache: "FP8-E4M3"            # 2026 Standard
-    reasoning_engine: "BF16"        # 2026 Standard
+    vector_index: "sym_int8+BQ"     # 2026 Standard for AVX2
+    kv_cache: "sym_int8"            # Fixed for 8265U (No FP8 support)
+    reasoning_engine: "sym_int8"    # Fixed for AVX2 efficiency
     deep_archive: "LLM-Zip"         # Lossless Neural Archiving
     logs: "Zstd-19"                 # 2026 Standard for text logs
   vector_store:

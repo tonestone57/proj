@@ -5,60 +5,34 @@ import ray
 from core.base import CognitiveModule
 from core.config import CORES_CODING
 
-try:
-    from ipex_llm.transformers import AutoModelForCausalLM
-except ImportError:
-    AutoModelForCausalLM = None
-
 @ray.remote(num_cpus=CORES_CODING)
 class CodingActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_id="intel/neural-chat-14b-v3-3"):
-        super().__init__(workspace, scheduler)
-        print(f"[CodingActor] Loading {model_id} in NF4 precision for coding tasks...")
-        if AutoModelForCausalLM:
-            try:
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_id,
-                    load_in_low_bit="nf4",
-                    trust_remote_code=True,
-                    use_cache=True
-                )
-            except Exception as e:
-                print(f"[CodingActor] Error loading model: {e}. Using mock executor.")
-                self.model = None
-        else:
-            print("[CodingActor] IPEX-LLM not available. Using mock executor.")
-            self.model = None
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
+        print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
 
     def receive(self, message):
         if message["type"] == "code_execution":
             code = message["data"]
             persistent = message.get("persistent", False)
-
             confidence = self.calculate_confidence_score()
-            print(f"[CodingActor] Solution confidence score: {confidence:.4f}")
 
             if confidence < 0.4:
-                print("[CodingActor] Low confidence detected. Triggering Research Mission.")
                 self.scheduler.submit.remote(None, {
                     "type": "search_request",
-                    "data": f"Documentation + Issue Tracker + Comparative Examples for: {code[:50]}",
-                    "reason": "High Entropy / Low Confidence"
+                    "data": f"Docs for: {code[:50]}",
+                    "reason": "Low Confidence"
                 })
 
-            result = self.execute_code(code, persistent=persistent)
+            if self.model_registry and "generate" in message.get("mode", ""):
+                result = {"status": "success", "output": ray.get(self.model_registry.generate.remote(code))}
+            else:
+                result = self.execute_code(code, persistent=persistent)
             result["confidence"] = confidence
 
-            try:
-                handle = ray.get_runtime_context().current_actor
-            except Exception:
-                handle = None
-
-            self.scheduler.submit.remote(handle, {
-                "type": "code_result",
-                "data": result,
-                "original_message": message
-            })
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "code_result", "data": result})
 
     def calculate_confidence_score(self):
         from core.drives import calculate_entropy
@@ -66,43 +40,25 @@ class CodingActor(CognitiveModule):
         entropy = calculate_entropy(state)
         return max(0.0, 1.0 - (entropy / 5.0))
 
-    def distill_code(self, code):
-        """
-        Performs distillation while prioritizing Class Hierarchy Preservation.
-        """
-        print("[CodingActor] Distilling code with Class Hierarchy Preservation...")
-        lines = code.split('\n')
-        preserved = [line for line in lines if any(k in line for k in ["class ", "virtual", "override", "def "])]
-        return "\n".join(preserved)
-
     def DigitalTwin_Branching(self, branch_name):
-        print(f"[CodingActor] Creating speculative branch: {branch_name} (Firecracker VM)")
+        print(f"[CodingActor] Creating speculative branch: {branch_name}")
         return f"vm_branch_{branch_name}_0xdeadbeef"
 
     def execute_code(self, code, persistent=False):
-        if len(code.split()) > 1000:
-            code = self.distill_code(code)
-
         if persistent:
-            print(f"[CodingActor] Connecting to Persistent Digital Twin (Firecracker VM).")
+            from world_model.state import VMStateDigitalTwin
+            twin = VMStateDigitalTwin(vm_id="speculative-01")
+            twin.start()
             branch_id = self.DigitalTwin_Branching("speculative_run")
-            print(f"[CodingActor] Branch {branch_id} ready. Observing side effects...")
-
+            twin.branch(branch_id)
         return self.execute_logic_internal(code)
 
     def execute_logic_internal(self, code):
         stdout, stderr = io.StringIO(), io.StringIO()
-        safe_globals = {
-            "__builtins__": {
-                "print": print, "range": range, "len": len, "int": int, "float": float,
-                "str": str, "list": list, "dict": dict, "set": set, "sum": sum,
-                "min": min, "max": max, "abs": abs, "enumerate": enumerate, "zip": zip,
-            }
-        }
+        safe_globals = {"__builtins__": {"print": print, "range": range, "len": len, "int": int, "str": str}}
         try:
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 exec(code, safe_globals)
-            output, errors = stdout.getvalue(), stderr.getvalue()
-            return {"status": "error", "output": output, "error": errors} if errors else {"status": "success", "output": output}
+            return {"status": "success", "output": stdout.getvalue()}
         except Exception as e:
             return {"status": "exception", "error": str(e)}

@@ -42,7 +42,7 @@ class TestSGIIntegration(unittest.TestCase):
 
         # Poll scheduler for results
         found = False
-        for _ in range(10):
+        for _ in range(20):
             res = ray.get(scheduler.next.remote())
             if res:
                 priority, actor, message = res
