@@ -14,9 +14,9 @@ The agent operates under the MDL principle: the best understanding of any data i
 The system utilizes a Broadcast Center (Hub) and Specialized Actors (Spokes) communicating via an asynchronous Message Bus.
 
 ### Hardware-Aware Actor Pattern
-- **Parallel Execution**: Use Ray as the distributed orchestrator. To manage the thermal load of the i7-8265U (4 cores/8 threads), limit actors to num_cpus=1 or 2.
+- **Parallel Execution**: Limit actors to `num_cpus=1` or `2` using Ray as the distributed orchestrator. To manage the thermal load of the i7-8265U (4 cores/8 threads), this prevents frequency throttling.
 - **Intel Acceleration**: Implement IPEX-LLM (Intel Extension for PyTorch) for optimized inference on CPU.
-- **Threading**: Configure for a maximum of 3 concurrent threads to avoid context-switching overhead and frequency throttling.
+- **Threading**: Maximum 3 concurrent threads to prevent thermal throttling (15W TDP limit) and avoid excessive context-switching overhead.
 - **Data Transfer**: Use Ray Plasma (shared memory) for zero-latency buffer transfers between the Symbolic Reasoner and the Coding Module.
 
 ### The Cognitive Heartbeat (Curiosity Drive)
@@ -40,9 +40,10 @@ On the i7-8265U, memory bandwidth is the bottleneck. Use these domain-aware code
 
 | Component | Format | Hardware Benefit |
 | :--- | :--- | :--- |
-| Reasoning Engine | sym_int8 | High-precision logic for A→B proofs. |
-| Base Model Weights | UD-Q5_K_M | Optimized for Intel AVX2 instructions. |
-| KV Cache (Memory) | sym_int8 | Expands context window without OOM on 16GB RAM. Implement Per-Channel Scaling. |
+| Reasoning Engine | sym_int8 | AVX2-optimized logic (Zero-point offset removed). |
+| Base Model Weights | Q4_K_M | Best accuracy-to-RAM ratio for 16GB systems (4-bit). |
+| Search Results | Q5_K_M | Balanced precision for online data indexing (5-bit). |
+| KV Cache (Memory) | sym_int8 | Per-Channel Scaling ($S_i = \max(|x_i|)/127$) for spiky activations. |
 
 $$q_i = \text{round} \left( \frac{x_i}{S_i} \right) \quad \text{where } S_i = \frac{\max(|x_i|)}{127}$$
 
@@ -56,17 +57,17 @@ This gives sym_int8 the flexibility to handle "spiky" data without needing the h
 
 | Component | Format | Hardware Benefit |
 | :--- | :--- | :--- |
-| Vector Index | sym_int8 + BQ | Symmetric INT8 for AVX2 efficiency. |
-| Deep Archive | LLM-Zip | Neural Arithmetic Coding; 5x-10x better than Zstd. |
+| Vector Index | sym_int8 + BQ | Optimized for fast Dot Product/Reflex search. Symmetric INT8 for AVX2 efficiency. |
+| Deep Archive | LLM-Zip | Neural Arithmetic Coding for long-term storage. 5x-10x better than Zstd. |
 
 ## 3. Memory Management (Adaptive)
 
 ### Adaptive Context Manager
-- **Context Threshold**: When context > 80% (e.g., 3276 tokens of a 4k window), trigger a pruning cycle.
+- **Context Threshold**: Trigger pruning at 80% (approx 3276/4096 tokens).
 - **Structural KV Compression (CodeComp)**: Use a Code Property Graph (CPG) to identify the "Control Flow Skeleton."
     - **Protect**: Function signatures, return types, and control logic (if/while).
     - **Evict**: Boilerplate, redundant comments, and "fluff" detected via token entropy.
-- **RAM Guard**: Monitor psutil.virtual_memory(). Pause ingestion if available RAM < 2000MB.
+- **RAM Guard**: Monitor `psutil.virtual_memory()`. Pause ingestion if available RAM < 2000MB.
 
 ### Tiered Memory Stack
 1. **Reflex (FAISS)**: Sub-millisecond thought-deduplication using sym_int8.

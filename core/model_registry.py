@@ -15,14 +15,14 @@ class ModelRegistry:
         self.model = None
         self.tokenizer = None
 
-        print(f"[ModelRegistry] Loading {model_id} (UD-Q5_K_M) as Shared World Model...")
+        print(f"[ModelRegistry] Loading {model_id} (Q4_K_M) as Shared World Model...")
         if AutoModelForCausalLM and AutoTokenizer:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-                # SGI 2026: Shared model weights in UD-Q5_K_M
+                # SGI 2026: Shared model weights in Q4_K_M
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
-                    load_in_low_bit="UD-Q5_K_M",
+                    load_in_low_bit="Q4_K_M",
                     trust_remote_code=True,
                     use_cache=True
                 )
@@ -49,6 +49,6 @@ class ModelRegistry:
     def get_model_info(self):
         return {
             "model_id": self.model_id,
-            "precision": "UD-Q5_K_M",
+            "precision": "Q4_K_M",
             "status": "active" if self.model else "mock"
         }
