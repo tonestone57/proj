@@ -1,35 +1,37 @@
 import ray
 from core.base import CognitiveModule
 from simulation.sim_core import SimulationCore
-from simulation.environment import SimulatedEnvironment
+from simulation.environment import Environment
 from simulation.interaction_protocol import InteractionProtocol
-from simulation.metrics_engine import SimulationMetrics
-from simulation.agent_adapter import AgentAdapter
 from simulation.governance_interventions import GovernanceInterventions
+from simulation.metrics_engine import MetricsEngine
 from simulation.replay_buffer import ReplayBuffer
 
 @ray.remote
 class SimulationManager(CognitiveModule):
-    def __init__(self, agents=None, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, agents, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.core = SimulationCore()
-        self.env = SimulatedEnvironment()
+        self.env = Environment()
         self.protocol = InteractionProtocol()
-        self.metrics = SimulationMetrics()
-        self.adapter = AgentAdapter(agents or [])
-        self.interventions = GovernanceInterventions()
+        self.gov = GovernanceInterventions()
+        self.metrics = MetricsEngine()
         self.replay = ReplayBuffer()
+        self.agents = agents
 
-    def run_simulation(self, scenario, steps=100):
-        state = self.env.reset(scenario)
-        for _ in range(steps):
-            actions = self.adapter.get_actions(state)
-            next_state, results = self.core.step(state, actions)
-            self.protocol.validate(results)
-            self.interventions.apply(next_state)
-            self.replay.store(state, actions, next_state)
-            state = next_state
-        return self.metrics.analyze(self.replay)
+    def step(self):
+        event = self.core.tick()
+        if event:
+            self.env.update(event)
+
+        for agent in self.agents:
+            obs = self.env.state
+            action = agent.step(obs)
+            interaction = self.protocol.mediate(agent, "env", action)
+            blocked = self.gov.apply(interaction)
+            if not blocked["blocked"]:
+                self.replay.record(interaction)
+                self.metrics.score(interaction)
 
     def receive(self, message):
         # Standard SGI 2026 message handling for SimulationManager

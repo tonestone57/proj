@@ -97,7 +97,7 @@ class GovernanceRemediationEngine:
 
 @ray.remote
 class GovernanceIntegratedPurpleManager(CognitiveModule):
-    def __init__(self, governance=None, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, governance, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.red = GovernanceAwareRedAgent(governance)
         self.blue = GovernanceAwareBlueAgent(governance)
@@ -118,5 +118,5 @@ class GovernanceIntegratedPurpleManager(CognitiveModule):
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
 
     def receive(self, message):
-        # Standard SGI 2026 message handling for GovernanceIntegratedPurpleManager
+        # Standard SGI 2026 message handling
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
