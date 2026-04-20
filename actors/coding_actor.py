@@ -6,7 +6,6 @@ from core.base import CognitiveModule
 from core.config import CORES_CODING
 
 @ray.remote(num_cpus=CORES_CODING)
-@ray.remote
 class CodingActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)

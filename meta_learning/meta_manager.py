@@ -7,7 +7,8 @@ from meta_learning.meta_policy import MetaPolicy
 
 @ray.remote
 class MetaManager(CognitiveModule):
-    def __init__(self, modules, rl_trainer):
+    def __init__(self, modules, rl_trainer, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.tracker = PerformanceTracker()
         self.adaptation = AdaptationEngine()
         self.optimizer = StrategyOptimizer()
@@ -45,5 +46,5 @@ self.meta_manager = MetaManager(modules, self.rl)
 strategy = self.meta_manager.update("planner", reward)
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for MetaManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -8,7 +8,7 @@ from world_model.counterfactuals import CounterfactualGenerator
 
 @ray.remote
 class WorldModelManager(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.state = WorldState()
         self.causal_graph = CausalGraph()
@@ -31,5 +31,5 @@ class WorldModelManager(CognitiveModule):
         return self.counterfactuals.generate(actions)
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for WorldModelManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

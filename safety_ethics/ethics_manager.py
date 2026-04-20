@@ -1,7 +1,4 @@
-import ray
-from core.base import CognitiveModule
-@ray.remote
-class EthicsManager(CognitiveModule):
+class EthicsManager:
     def __init__(self, norm_library):
         self.norm_library = norm_library
 
@@ -26,7 +23,3 @@ class EthicsManager(CognitiveModule):
             return 0.4
 
         return 1.0
-
-    def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

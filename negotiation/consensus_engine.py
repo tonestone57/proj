@@ -1,7 +1,4 @@
-import ray
-from core.base import CognitiveModule
-@ray.remote
-class ConsensusEngine(CognitiveModule):
+class ConsensusEngine:
     def __init__(self, role_weights):
         self.role_weights = role_weights  # e.g. {"worker":1, "coordinator":2}
 
@@ -14,7 +11,3 @@ class ConsensusEngine(CognitiveModule):
 
     def consensus(self, agents, proposals):
         return max(proposals, key=lambda p: self.vote(agents, p))
-
-    def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

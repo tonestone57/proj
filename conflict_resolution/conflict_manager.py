@@ -1,5 +1,3 @@
-import ray
-from core.base import CognitiveModule
 from conflict_resolution.contradiction_detector import ContradictionDetector
 from conflict_resolution.moral_agents import MoralAgent
 from conflict_resolution.ethical_appraisal import EthicalAppraisal
@@ -8,10 +6,8 @@ from conflict_resolution.value_arbitration import ValueArbitration
 from conflict_resolution.survivability_engine import SurvivabilityEngine
 from conflict_resolution.resolution_protocol import ResolutionProtocol
 
-@ray.remote
-class ConflictManager(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
-        super().__init__(workspace, scheduler, model_registry)
+class ConflictManager:
+    def __init__(self):
         self.detector = ContradictionDetector()
         self.agents = [MoralAgent(d) for d in ["neuroscience", "psychology", "sociology", "evolution"]]
         self.ethics = EthicalAppraisal()
@@ -36,8 +32,7 @@ class ConflictManager(CognitiveModule):
             "final": final
         }
 
-@ray.remote
-class GovernanceLayer(CognitiveModule):
+class GovernanceLayer:
     def __init__(self, policy_engine, oversight_agent):
         self.policy = policy_engine
         self.oversight = oversight_agent
@@ -49,43 +44,37 @@ class GovernanceLayer(CognitiveModule):
             return {"authorized": False, "reason": "oversight_block"}
         return {"authorized": True}
 
-@ray.remote
-class DetectionAgent(CognitiveModule):
+class DetectionAgent:
     def detect(self, event):
         if "anomalous" in event:
             return {"alert": True, "context": "suspicious_behavior"}
         return {"alert": False}
 
-@ray.remote
-class TriageAgent(CognitiveModule):
+class TriageAgent:
     def investigate(self, alert):
         if alert["alert"]:
             return {"verdict": "malicious", "confidence": 0.92}
         return {"verdict": "benign", "confidence": 0.1}
 
-@ray.remote
-class MalwareAnalysisAgent(CognitiveModule):
+class MalwareAnalysisAgent:
     def analyze(self, sample):
         if "encoded_payload" in sample:
             return {"malware": True, "family": "Unknown"}
         return {"malware": False}
 
-@ray.remote
-class ThreatIntelAgent(CognitiveModule):
+class ThreatIntelAgent:
     def correlate(self, indicators):
         if "C2" in indicators:
             return {"threat_level": "high"}
         return {"threat_level": "low"}
 
-@ray.remote
-class ResponseAgent(CognitiveModule):
+class ResponseAgent:
     def respond(self, verdict):
         if verdict["verdict"] == "malicious":
             return {"action": "block_ip", "success": True}
         return {"action": "none", "success": False}
 
-@ray.remote
-class OmniAgent(CognitiveModule):
+class OmniAgent:
     def orchestrate(self, agents, event):
         detection = agents["detection"].detect(event)
         triage = agents["triage"].investigate(detection)
@@ -98,8 +87,7 @@ class OmniAgent(CognitiveModule):
             "response": response
         }
 
-@ray.remote
-class ASOCManager(CognitiveModule):
+class ASOCManager:
     def __init__(self, governance):
         self.gov = governance
         self.agents = {
@@ -118,7 +106,3 @@ class ASOCManager(CognitiveModule):
 
         result = self.omni.orchestrate(self.agents, event)
         return {"blocked": False, "result": result}
-
-    def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

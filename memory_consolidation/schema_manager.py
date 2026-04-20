@@ -1,9 +1,5 @@
-import ray
-from core.base import CognitiveModule
-@ray.remote
-class SchemaManager(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
-        super().__init__(workspace, scheduler, model_registry)
+class SchemaManager:
+    def __init__(self):
         self.schemas = {}
 
     def update_schema(self, episode):
@@ -28,7 +24,3 @@ class SchemaManager(CognitiveModule):
             }
             return enriched
         return partial_memory
-
-    def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

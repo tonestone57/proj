@@ -8,7 +8,7 @@ from monitoring.risk_monitor import RiskMonitor
 
 @ray.remote
 class MonitoringManager(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.telemetry = TelemetryCollector()
         self.trace = SemanticTrace()
@@ -32,5 +32,5 @@ class MonitoringManager(CognitiveModule):
         }
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for MonitoringManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

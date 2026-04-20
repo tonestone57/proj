@@ -5,7 +5,6 @@ from core.base import CognitiveModule
 from core.config import CORES_REASONER
 
 @ray.remote(num_cpus=CORES_REASONER)
-@ray.remote
 class ReasonerActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)

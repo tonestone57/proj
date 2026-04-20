@@ -10,7 +10,8 @@ from negotiation.compliance_engine import ComplianceEngine
 
 @ray.remote
 class NegotiationManager(CognitiveModule):
-    def __init__(self, role_weights):
+    def __init__(self, role_weights, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.utility = UtilitySystem()
         self.concession = ConcessionStrategy()
         self.consensus = ConsensusEngine(role_weights)
@@ -28,5 +29,5 @@ Cognition (reasoning, planning, world-modeling)
 Emotion (generation, appraisal, regulation)
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for NegotiationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

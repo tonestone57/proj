@@ -9,7 +9,8 @@ from orchestration.state_manager import StateManager
 
 @ray.remote
 class OrchestrationManager(CognitiveModule):
-    def __init__(self, agents):
+    def __init__(self, agents, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.router = EventRouter()
         self.scheduler = PriorityScheduler()
         self.concurrent = ConcurrencyManager()
@@ -43,5 +44,5 @@ class OrchestrationManager(CognitiveModule):
         return self.groupchat.step(message)
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for OrchestrationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

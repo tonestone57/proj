@@ -8,7 +8,8 @@ from training.meta_learning import MetaLearning
 
 @ray.remote
 class TrainingManager(CognitiveModule):
-    def __init__(self, modules, world_model, motivation):
+    def __init__(self, modules, world_model, motivation, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.self_supervised = SelfSupervisedTrainer(modules)
         self.rl = RLTrainer(world_model, motivation)
         self.curriculum = Curriculum()
@@ -38,5 +39,5 @@ class TrainingManager(CognitiveModule):
         }
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for TrainingManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

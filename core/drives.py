@@ -1,5 +1,3 @@
-import ray
-from core.base import CognitiveModule
 import math
 from core.config import THRESHOLD_REPLAN, THRESHOLD_CONSOLIDATE
 
@@ -41,10 +39,8 @@ def calculate_entropy(state):
 
     return entropy
 
-@ray.remote
-class DriveEngine(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
-        super().__init__(workspace, scheduler, model_registry)
+class DriveEngine:
+    def __init__(self):
         self.entropy = 0.0
 
     def evaluate_state(self, state):

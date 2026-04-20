@@ -9,7 +9,8 @@ from simulation.replay_buffer import ReplayBuffer
 
 @ray.remote
 class SimulationManager(CognitiveModule):
-    def __init__(self, agents):
+    def __init__(self, agents, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.core = SimulationCore()
         self.env = Environment()
         self.protocol = InteractionProtocol()
@@ -35,5 +36,5 @@ class SimulationManager(CognitiveModule):
 # OK: What you now have
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for SimulationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

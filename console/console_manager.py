@@ -10,7 +10,7 @@ from console.human_interface import HumanInterface
 
 @ray.remote
 class ConsoleManager(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.approvals = ApprovalGateway()
         self.dashboard = OversightDashboard()
@@ -46,5 +46,5 @@ class ConsoleManager(CognitiveModule):
             self.audit.record({"action_id": action_id, "decision": "rejected"})
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for ConsoleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

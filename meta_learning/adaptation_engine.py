@@ -1,10 +1,4 @@
-import ray
-from core.base import CognitiveModule
-@ray.remote
-class AdaptationEngine(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
-        super().__init__(workspace, scheduler, model_registry)
-
+class AdaptationEngine:
     def adjust_learning_rate(self, module, performance_delta):
         if hasattr(module, "learning_rate"):
             if performance_delta < 0:
@@ -18,7 +12,3 @@ class AdaptationEngine(CognitiveModule):
                 rl_trainer.exploration_rate *= 1.1
             else:
                 rl_trainer.exploration_rate *= 0.95
-
-    def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")

@@ -8,7 +8,7 @@ from self_model.reflective_endorsement import ReflectiveEndorsement
 
 @ray.remote
 class SelfManager(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.kernel = IdentityKernel()
         self.memory = AutobiographicalMemory()
@@ -33,5 +33,5 @@ class SelfManager(CognitiveModule):
         return self.endorsement.endorse(self.kernel, proposed_update)
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for SelfManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

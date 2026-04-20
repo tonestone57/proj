@@ -7,7 +7,8 @@ from motivation.novelty import NoveltyModule
 
 @ray.remote
 class MotivationManager(CognitiveModule):
-    def __init__(self, world_model):
+    def __init__(self, world_model, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.reward_engine = IntrinsicRewardEngine()
         self.curiosity = CuriosityModule(world_model)
         self.uncertainty = UncertaintyModule()
@@ -44,5 +45,5 @@ if msg_type in ["evaluate_action"]:
     return module_registry.get("motivation")
 
     def receive(self, message):
-        # SGI 2026: Standardized message handling for LLM integration
+        # Standard SGI 2026 message handling for MotivationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
