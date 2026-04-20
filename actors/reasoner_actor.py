@@ -1,29 +1,8 @@
 import math
 import re
 import ray
-from core.base import CognitiveModule
-from core.config import CORES_REASONER
 
-@ray.remote(num_cpus=CORES_REASONER)
-class ReasonerActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
-        super().__init__(workspace, scheduler, model_registry)
-        print(f"[ReasonerActor] Initialized. Using Shared Model Provider for reasoning tasks...")
-
-    def receive(self, message):
-        try: handle = ray.get_runtime_context().current_actor
-        except Exception: handle = None
-
-        if message["type"] == "query":
-            if self.model_registry:
-                result = ray.get(self.model_registry.generate.remote(message["data"]))
-            else:
-                result = self.reason(message["data"])
-            self.scheduler.submit.remote(handle, {"type": "symbolic_result", "data": result})
-        elif message["type"] == "verification_request":
-            result = self.verify_logic(message["data"])
-            self.scheduler.submit.remote(handle, {"type": "verification_result", "data": result})
-
+class SymbolicReasonerLogic:
     def reason(self, query):
         if not isinstance(query, str): return "Error: Query must be a string."
         processed_query = re.sub(r'\band\b', 'and', query, flags=re.IGNORECASE)
@@ -36,6 +15,38 @@ class ReasonerActor(CognitiveModule):
             if not name.startswith("__"): safe_dict[name] = getattr(math, name)
         try: return eval(processed_query, {"__builtins__": {}}, safe_dict)
         except Exception as e: return f"Error evaluating query: {e}"
+
+from core.base import CognitiveModule
+from core.config import CORES_REASONER
+
+@ray.remote(num_cpus=CORES_REASONER)
+class ReasonerActor(CognitiveModule):
+    def __init__(self, workspace, scheduler, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
+        self.logic = SymbolicReasonerLogic()
+        print(f"[ReasonerActor] Initialized. Using Shared Model Provider for reasoning tasks...")
+
+    def receive(self, message):
+        try: handle = ray.get_runtime_context().current_actor
+        except Exception: handle = None
+
+        if message["type"] == "query":
+            # SGI 2026: Logic-First Hybrid Approach
+            # 1. Attempt Symbolic Reasoning (Fast, Exact, Low RAM)
+            result = self.logic.reason(message["data"])
+
+            # 2. Fallback to LLM if symbolic reasoning fails or returns an error
+            if isinstance(result, str) and (result.startswith("Error") or "not defined" in result):
+                if self.model_registry:
+                    print(f"[ReasonerActor] Symbolic reasoning failed. Falling back to LLM for creative/semantic analysis.")
+                    result = ray.get(self.model_registry.generate.remote(message["data"]))
+                else:
+                    print(f"[ReasonerActor] Symbolic reasoning failed and no LLM available.")
+
+            self.scheduler.submit.remote(handle, {"type": "symbolic_result", "data": result})
+        elif message["type"] == "verification_request":
+            result = self.verify_logic(message["data"])
+            self.scheduler.submit.remote(handle, {"type": "verification_result", "data": result})
 
     def verify_logic(self, code, mission_critical=False):
         print(f"[ReasonerActor] Verifying logic...")

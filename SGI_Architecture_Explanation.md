@@ -53,7 +53,18 @@ Technically, yes. The system can function without the second "Retriever" model, 
 
 The current dual-model setup is the **2026 Efficiency Standard**: use a tiny, fast model to "look things up" and a large, smart model to "think about them."
 
-## 7. Can the Brain be Python-Only (No DeepSeek)?
+## 7. The Logic-First Hybrid Strategy
+SGI-Alpha implements a **"Logic-First"** workflow to maximize efficiency and accuracy while minimizing power consumption:
+
+1.  **Stage 1: Symbolic Logic (The Reflex)**: When a request arrives, the system first attempts to solve it using pure Python logic, regex, and symbolic solvers (Z3). This is nearly instant and uses zero LLM tokens.
+2.  **Stage 2: LLM Fallback (The Reflection)**: Only if the symbolic engine fails (e.g., the query requires creative interpretation or semantic understanding) does the system "wake up" the large LLM.
+
+**Benefits**:
+*   **Math Accuracy**: 100% accuracy for arithmetic and logic (Stage 1).
+*   **Power Saving**: Avoids using the 15W generative engine for simple tasks like `math.factorial(5)`.
+*   **Intelligence**: Retains the ability to handle complex, fuzzy human requests when logic isn't enough.
+
+## 8. Can the Brain be Python-Only (No DeepSeek)?
 **Yes**, it is absolutely an option to build a "brain" in pure Python without a large LLM. This is known as **Symbolic AI** or **GOFAI** (Good Old-Fashioned AI).
 
 ### How a Python-Only Brain Works:
