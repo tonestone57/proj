@@ -1,5 +1,9 @@
-class DeploymentManager:
-    def __init__(self, env, registry, version_manager, policy_loader):
+from core.base import CognitiveModule
+import ray
+@ray.remote
+class DeploymentManager(CognitiveModule):
+    def __init__(self, env, registry, version_manager, policy_loader, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.env = env
         self.registry = registry
         self.version_manager = version_manager
@@ -9,3 +13,7 @@ class DeploymentManager:
         self.registry.register(agent_id, metadata)
         self.version_manager.record_version(agent_id, version)
         self.env.launch_agent(agent_id, agent)
+
+    def receive(self, message):
+        """Standard SGI message receiver."""
+        pass
