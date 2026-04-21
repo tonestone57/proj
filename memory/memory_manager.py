@@ -58,6 +58,14 @@ class MemoryManager(CognitiveModule):
             except Exception:
                 handle = None
             self.scheduler.submit.remote(handle, {"type": "compression_result", "data": result})
+        elif message["type"] == "structural_distillation_request":
+            context = message["data"]
+            distilled = self.perform_structural_distillation(context)
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                handle = None
+            self.scheduler.submit.remote(handle, {"type": "distillation_result", "data": distilled})
 
     def trigger_sleep_cycle(self, current_tick=0):
         print(f"[MemoryManager] Starting Sleep Cycle (Tick {current_tick})...")

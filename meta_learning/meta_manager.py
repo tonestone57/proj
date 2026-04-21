@@ -47,7 +47,25 @@ class MetaManager(CognitiveModule):
 
         if inefficiency_detected:
             print("[MetaManager] Inefficiency detected: Search Latency. Formulating patch...")
+            # Scenario 1: Logic patch
             self.propose_and_verify_patch("Reduce search depth for 128-dim coarse scan.")
+
+            # Scenario 2: Config patch (Self-Optimization)
+            print("[MetaManager] Proposing autonomous config optimization...")
+            config_patch = {
+                'hardware_limits': {
+                    'max_threads': 2, # Reducing threads to mitigate thermal load
+                    'thermal_threshold_celsius': 75.0,
+                    'low_memory_warning_mb': 2500
+                }
+            }
+            if self.verify_config_patch_z3(config_patch):
+                print("[MetaManager] Config patch verified. Applying autonomous optimization.")
+                self.applied_patches.append({
+                    "objective": "Mitigate thermal throttling via config optimization",
+                    "patch": str(config_patch),
+                    "timestamp": "2026-04-21T15:05:00Z"
+                })
 
     def verify_config_patch_z3(self, config_patch):
         """
