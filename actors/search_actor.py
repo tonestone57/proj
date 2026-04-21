@@ -189,14 +189,16 @@ class SearchActor(CognitiveModule):
 
         distilled = ""
         if self.model_registry:
-            # SGI 2026: Reasoning-Aware RAG. Retrieve wisdom traces if possible.
+            # SGI 2026: Reasoning-Aware RAG. Retrieve wisdom traces from knowledge base.
             print("[SearchActor] Retrieving Reasoning Traces from Wisdom Cache...")
-            # Simulate retrieval from a persistent wisdom store
-            wisdom_traces = [
-                "Past insight: Verified that AVX2 optimization requires 32-byte alignment.",
-                "Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers."
-            ]
-            wisdom_context = "\n".join([f"[Wisdom Cache] {trace}" for trace in wisdom_traces])
+
+            # Logic to fetch traces related to the current results from long-term memory
+            # For simulation, we simulate a lookup based on key result tokens
+            wisdom_context = "[Wisdom Cache] (No relevant traces found)"
+            if any("AVX2" in str(r) for r in results):
+                wisdom_context = "[Wisdom Cache] Past insight: Verified that AVX2 optimization requires 32-byte alignment."
+            elif any("quantiz" in str(r).lower() for r in results):
+                wisdom_context = "[Wisdom Cache] Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers."
 
             distilled = ray.get(self.model_registry.generate.remote(f"Distill with Context: {wisdom_context}\nData: {results}"))
         else:
