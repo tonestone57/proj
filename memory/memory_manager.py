@@ -2,6 +2,7 @@ import psutil
 import math
 import re
 import ray
+import xxhash
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB
 
@@ -33,10 +34,22 @@ class MemoryManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None, graph_memory=None):
         super().__init__(workspace, scheduler, model_registry)
         self.graph_memory = graph_memory
+        self.semantic_hash_registry = {} # Simulated Shared Memory Bus for Hashed Functions
+        self.wisdom_cache_metadata = {} # Stores last_access_cycle for saliency pruning
+
+        # SGI 2026: Active Wisdom Cache (Simulated LanceDB)
+        self.active_wisdom_cache = {
+            "AVX2": "Past insight: Verified that AVX2 optimization requires 32-byte alignment.",
+            "quantiz": "Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers.",
+            "thermal": "Health Note: Heartbeat interval must scale linearly with temp above 75C."
+        }
+        # SGI 2026: Deep Archive (Simulated LLM-Zip / Disk)
+        self.deep_archive = {}
 
     def receive(self, message):
         if message["type"] == "trigger_sleep_cycle":
-            self.trigger_sleep_cycle()
+            tick = message.get("data", {}).get("tick", 0) if isinstance(message.get("data"), dict) else 0
+            self.trigger_sleep_cycle(tick)
         elif message["type"] == "compression_check":
             context = message["data"]
             result = self.should_compress(context)
@@ -45,9 +58,34 @@ class MemoryManager(CognitiveModule):
             except Exception:
                 handle = None
             self.scheduler.submit.remote(handle, {"type": "compression_result", "data": result})
+        elif message["type"] == "structural_distillation_request":
+            context = message["data"]
+            distilled = self.perform_structural_distillation(context)
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                handle = None
+            self.scheduler.submit.remote(handle, {"type": "distillation_result", "data": distilled})
 
-    def trigger_sleep_cycle(self):
-        print("[MemoryManager] Starting Sleep Cycle...")
+    def trigger_sleep_cycle(self, current_tick=0):
+        print(f"[MemoryManager] Starting Sleep Cycle (Tick {current_tick})...")
+
+        # SGI 2026: Weight Saliency Pruning
+        # Move Wisdom Cache entries not accessed in > 250 cycles to Deep Archive (LLM-Zip)
+        stale_keys = []
+        for key in list(self.active_wisdom_cache.keys()):
+            val = self.active_wisdom_cache[key]
+            last_tick = self.wisdom_cache_metadata.get(val, 0)
+            if current_tick - last_tick > 250:
+                stale_keys.append(key)
+
+        for key in stale_keys:
+            val = self.active_wisdom_cache[key]
+            print(f"[MemoryManager] Saliency Pruning: Moving stale entry '{key}' to LLM-Zip deep archive.")
+            self.deep_archive[key] = self.perform_neural_archiving(val)
+            del self.active_wisdom_cache[key]
+            if val in self.wisdom_cache_metadata:
+                del self.wisdom_cache_metadata[val]
 
         # SGI 2026: GraphRAG Construction Phase
         if self.graph_memory:
@@ -71,6 +109,8 @@ class MemoryManager(CognitiveModule):
 
     def identify_recurring_patterns(self):
         print("[MemoryManager] Reviewing Scratchpad and Active Context for patterns...")
+        if self.workspace is None:
+            return []
         state = ray.get(self.workspace.get_current_state.remote())
         history = state.get("history", [])
         patterns = []
@@ -81,6 +121,8 @@ class MemoryManager(CognitiveModule):
 
     def perform_synaptic_pruning(self):
         print("[MemoryManager] Performing Synaptic Pruning...")
+        if self.workspace is None:
+            return
         state = ray.get(self.workspace.get_current_state.remote())
         history = state.get("history", [])
         pruned_count = 0
@@ -123,8 +165,10 @@ class MemoryManager(CognitiveModule):
 
     def perform_neural_archiving(self, context):
         print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip) to LanceDB...")
+        # SGI 2026: Use xxhash (xxh128) for high-velocity non-cryptographic neural fingerprints
+        h = xxhash.xxh128(context.encode()).hexdigest()
         return {
-            "compressed_neural_data": "compressed_neural_representation_0xdeadbeef",
+            "compressed_neural_data": f"compressed_{h}",
             "compression_ratio": "8.5x",
             "codec": "Arithmetic LLM Coding",
             "model_hash": "sha256_7f8e9d...",
@@ -187,6 +231,42 @@ class MemoryManager(CognitiveModule):
         print(f"[MemoryManager] Created {len(chunks)} structural chunks.")
         return chunks
 
+    def perform_semantic_hashing(self, context):
+        """
+        SGI 2026: Semantic Hashing (CodeComp).
+        Replaces repeated functions with a 128-bit xxhash (xxh128) pointing to Shared Memory Bus.
+        """
+        print("[MemoryManager] Performing Semantic Hashing (CodeComp)...")
+        if not isinstance(context, str):
+            return context
+
+        chunks = self.AST_Aware_Chunking(context)
+        new_chunks = []
+        savings = 0
+
+        for chunk in chunks:
+            # Check if chunk is a function or class
+            if chunk.startswith("def ") or chunk.startswith("class "):
+                # Normalize chunk (strip comments and whitespace for consistent hashing)
+                normalized = re.sub(r"#.*", "", chunk).strip()
+                h = xxhash.xxh128(normalized.encode()).hexdigest() # 128-bit hash
+
+                if h in self.semantic_hash_registry:
+                    hash_ptr = f"[HASH:{h}]"
+                    new_chunks.append(hash_ptr)
+                    savings += (len(chunk) - len(hash_ptr))
+                    print(f"[MemoryManager] Duplicate found. Replaced with hash {h[:8]}... (Saved {len(chunk) - len(hash_ptr)} chars)")
+                else:
+                    self.semantic_hash_registry[h] = chunk
+                    new_chunks.append(chunk)
+            else:
+                new_chunks.append(chunk)
+
+        result = "\n".join(new_chunks)
+        if savings > 0:
+            print(f"[MemoryManager] Semantic Hashing complete. Total Memory Savings: {savings} chars.")
+        return result
+
     def calculate_MDL_metric(self, data, compressed_data):
         raw_size, compressed_size = len(str(data)), len(str(compressed_data))
         mdl_score = compressed_size / raw_size if raw_size > 0 else 1.0
@@ -194,8 +274,15 @@ class MemoryManager(CognitiveModule):
         return mdl_score
 
     def perform_structural_distillation(self, context):
+        """
+        SGI 2026: Performs Structural Distillation (CodeComp).
+        Combines comment removal with Semantic Hashing for maximum efficiency.
+        """
         print("[MemoryManager] Performing Structural Distillation (CodeComp)...")
-        return re.sub(r"#.*", "", context)
+        # Step 1: Remove comments
+        distilled = re.sub(r"#.*", "", context)
+        # Step 2: Apply Semantic Hashing
+        return self.perform_semantic_hashing(distilled)
 
     def check_ram_guard(self):
         mem = psutil.virtual_memory()
@@ -214,22 +301,24 @@ class MemoryManager(CognitiveModule):
             return "Archive"
         return "Continue"
 
-    def retrieve_wisdom_traces(self, context_query):
+    def retrieve_wisdom_traces(self, context_query, current_tick=0):
         """
         SGI 2026: Wisdom Cache Retrieval.
-        Returns reasoning traces from long-term memory related to the query.
+        Returns reasoning traces from active memory related to the query.
         """
         print(f"[MemoryManager] Searching Wisdom Cache for: {context_query[:30]}...")
-        # Simulated vector search in LanceDB
-        wisdom_base = {
-            "AVX2": "Past insight: Verified that AVX2 optimization requires 32-byte alignment.",
-            "quantiz": "Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers.",
-            "thermal": "Health Note: Heartbeat interval must scale linearly with temp above 75C."
-        }
-
         relevant_traces = []
-        for key, val in wisdom_base.items():
+        for key, val in self.active_wisdom_cache.items():
             if key.lower() in str(context_query).lower():
                 relevant_traces.append(val)
+                # SGI 2026: Update access cycle for saliency tracking
+                self.wisdom_cache_metadata[val] = current_tick
 
         return relevant_traces if relevant_traces else ["(No relevant traces found)"]
+
+    def get_status(self):
+        return {
+            "active_cache_size": len(self.active_wisdom_cache),
+            "deep_archive_size": len(self.deep_archive),
+            "semantic_hash_count": len(self.semantic_hash_registry)
+        }
