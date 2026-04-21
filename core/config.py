@@ -19,7 +19,7 @@ LOW_MEMORY_THRESHOLD_MB = manifest.get("hardware_limits", {}).get("low_memory_wa
 
 # Entropy/Drive thresholds
 THRESHOLD_REPLAN = manifest.get("drive_engine", {}).get("threshold_replan", 2.0)
-THRESHOLD_CONSOLIDATE = manifest.get("drive_engine", {}).get("threshold_consolidate", 0.5)
+THRESHOLD_CONSOLIDATE = manifest.get("drive_engine", {}).get("threshold_consolidate", 0.5) # SGI 2026: Consolidation floor
 
 # Heartbeat settings
 TICK_INTERVAL = manifest.get("drive_engine", {}).get("heartbeat_interval_seconds", 5.0)

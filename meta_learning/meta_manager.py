@@ -8,6 +8,11 @@ from meta_learning.meta_policy import MetaPolicy
 
 @ray.remote
 class MetaManager(CognitiveModule):
+    """
+    SGI 2026 MetaManager.
+    Coordinates performance tracking, strategy optimization, and autonomous module adaptation.
+    Implements Active Inference cycles to find and patch system inefficiencies.
+    """
     def __init__(self, modules=None, rl_trainer=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.tracker = PerformanceTracker()
