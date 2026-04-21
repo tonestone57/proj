@@ -8,7 +8,10 @@ import psutil
 from core.workspace import GlobalWorkspace
 from core.scheduler import Scheduler
 from core.drives import DriveEngine
-from core.config import CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME, THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB
+from core.config import (
+    CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME,
+    THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB, THRESHOLD_CONSOLIDATE
+)
 from core.model_registry import ModelRegistry
 
 # Actors
@@ -20,6 +23,8 @@ from actors.critic_actor import InternalCritic
 from actors.planner import Planner
 from memory.memory_manager import MemoryManager
 from monitoring.thermal_guard import ThermalGuard
+from meta_learning.meta_manager import MetaManager
+from training.training_manager import TrainingManager
 
 # Enforce thread limits for Intel i7-8265U (15W TDP)
 os.environ["OMP_NUM_THREADS"] = str(MAX_THREADS)
@@ -87,6 +92,8 @@ async def cognitive_cycle():
     critic = InternalCritic.remote(workspace, scheduler, model_registry=model_provider)
     planner = Planner.remote(workspace, scheduler, model_registry=model_provider)
     memory_manager = MemoryManager.remote(workspace, scheduler, graph_memory=graph_memory)
+    meta_manager = MetaManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    training_manager = TrainingManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
@@ -95,10 +102,12 @@ async def cognitive_cycle():
     print("Architecture: Asynchronous Predictive Workspace (APW)")
     print(f"[Hub] RAM Status: {psutil.virtual_memory().available / (1024**3):.2f}GB / 16GB available.")
 
-    # The Heartbeat Loop
+    # The Heartbeat Loop (Continuous Autonomous Operation)
     current_tick_interval = TICK_INTERVAL
-    for tick in range(10):
-        print(f"\n--- Heartbeat Tick {tick+1} ---")
+    tick = 0
+    while True:
+        tick += 1
+        print(f"\n--- Heartbeat Tick {tick} ---")
         health = await thermal_guard.get_thermal_state.remote()
         print(f"[Hub] Thermal State: Load={health['load']}%, Temp={health['temp']}C, Throttled={health['is_throttled']}")
 
@@ -136,6 +145,24 @@ async def cognitive_cycle():
                     await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
                 else:
                     await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
+            elif entropy < THRESHOLD_CONSOLIDATE:
+                # SGI 2026: Autonomous Self-Improvement Cycle
+                print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
+
+                # Cycle through autonomous tasks
+                cycle_step = tick % 6
+                if cycle_step == 0:
+                    await hub.safe_delegate(meta_manager, "active_inference_trigger", None)
+                elif cycle_step == 1:
+                    await hub.safe_delegate(memory_manager, "trigger_sleep_cycle", None)
+                elif cycle_step == 2:
+                    await hub.safe_delegate(reasoner, "query", "Autonomous mathematical discovery and logic synthesis")
+                elif cycle_step == 3:
+                    await hub.safe_delegate(searcher, "search_request", "Latest SGI 2026 compression and RAG optimizations")
+                elif cycle_step == 4:
+                    await hub.safe_delegate(coder, "code_execution", "Refactor core actors for Minimum Description Length (MDL) efficiency")
+                elif cycle_step == 5:
+                    await hub.safe_delegate(training_manager, "autonomous_training", None)
 
         await hub.poll_scheduler()
         await asyncio.sleep(current_tick_interval)
