@@ -45,7 +45,8 @@ class SearchActor(CognitiveModule):
                 print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
                 # Extract potential node name from query, filtering out common terms
                 stop_words = {"code", "function", "what", "how", "find", "search", "where", "docs", "info", "related"}
-                potential_nodes = [n for n in re.findall(r'\b\w+\b', query) if len(n) > 3 and n.lower() not in stop_words]
+                # SGI 2026: Refined node extraction regex to prioritize snake_case or CamelCase identifiers
+                potential_nodes = [n for n in re.findall(r'\b[a-zA-Z_]\w*\b', query) if len(n) > 3 and n.lower() not in stop_words]
 
                 subgraphs = []
                 if potential_nodes:

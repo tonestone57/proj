@@ -62,12 +62,12 @@ class CodingActor(CognitiveModule):
 
         # In a mock environment, generate() returns strings.
         # We ensure they are valid-ish Python for the sandbox test.
-        if "LLM-Generated" in generated_code:
+        if "LLM-Generated" in generated_code or "Mock response" in generated_code:
             generated_code = "def sample_func(): return True"
 
         # 1. Generate Test Suite
         test_suite = ray.get(self.model_registry.generate.remote(f"Generate pytest for: {generated_code}"))
-        if "LLM-Generated" in test_suite:
+        if "LLM-Generated" in test_suite or "Mock response" in test_suite:
             test_suite = "def test_sample(): from solution import sample_func; assert sample_func() == True"
 
         # 2. Verification Loop
@@ -87,7 +87,8 @@ class CodingActor(CognitiveModule):
                 print(f"[CodingActor] Initiating self-correction (Attempt {retry_count + 1})...")
                 generated_code = ray.get(self.model_registry.generate.remote(f"Fix this code: {generated_code}\nError: {last_error}"))
                 # Ensure it remains runnable
-                if "LLM-Generated" in generated_code: generated_code = "def sample_func(): return True"
+                if "LLM-Generated" in generated_code or "Mock response" in generated_code:
+                    generated_code = "def sample_func(): return True"
                 retry_count += 1
 
         return {
