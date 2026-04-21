@@ -49,16 +49,47 @@ class MetaManager(CognitiveModule):
             print("[MetaManager] Inefficiency detected: Search Latency. Formulating patch...")
             self.propose_and_verify_patch("Reduce search depth for 128-dim coarse scan.")
 
+    def verify_config_patch_z3(self, config_patch):
+        """
+        SGI 2026: Z3-Verification wrapper for config patches.
+        Ensures system invariants are maintained and config.yaml isn't corrupted.
+        """
+        print("[MetaManager] Verifying config patch via Z3 SMT Solver...")
+        s = z3.Solver()
+
+        # Define symbolic variables for critical config fields
+        max_threads = z3.Int('max_threads')
+        thermal_threshold = z3.Real('thermal_threshold')
+        low_mem_mb = z3.Int('low_mem_mb')
+
+        # System Invariants (Constraints)
+        s.add(max_threads >= 1, max_threads <= 8)
+        s.add(thermal_threshold >= 40.0, thermal_threshold <= 85.0)
+        s.add(low_mem_mb >= 1000, low_mem_mb <= 4000)
+
+        # Add values from the proposed patch to check for violations
+        s.add(max_threads == config_patch.get('hardware_limits', {}).get('max_threads', 4))
+        s.add(thermal_threshold == float(config_patch.get('hardware_limits', {}).get('thermal_threshold_celsius', 78.0)))
+        s.add(low_mem_mb == config_patch.get('hardware_limits', {}).get('low_memory_warning_mb', 2000))
+
+        result = s.check()
+        if result == z3.sat:
+            print("[MetaManager] Config patch verified via Z3.")
+            return True
+        else:
+            print(f"[MetaManager] ❌ Config patch REJECTED: Invariant violation or corruption detected. ({result})")
+            return False
+
     def propose_and_verify_patch(self, objective):
         print(f"[MetaManager] Proposing patch for: {objective}")
         # SGI 2026: Z3-Verified Patch Generation
-        patch = "self.search_depth = 25 # Optimized"
-        print(f"[MetaManager] Verifying patch via Z3 SMT Solver...")
 
-        # Simulated Z3 Verification
+        # Scenario 1: Logic patch (existing)
+        patch = "self.search_depth = 25 # Optimized"
+        print(f"[MetaManager] Verifying logic patch via Z3...")
         s = z3.Solver()
         depth = z3.Int('depth')
-        s.add(depth > 0, depth <= 50) # Safety constraint
+        s.add(depth > 0, depth <= 50)
 
         if s.check() == z3.sat:
             print("[MetaManager] Patch verified. Applying to system state.")

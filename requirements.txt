@@ -9,3 +9,5 @@ torch
 torchvision
 torchaudio
 ipex-llm
+pydantic
+xxhash
