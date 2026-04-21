@@ -78,11 +78,13 @@ class ModelRegistry:
                 self.ngram_cache.tokenizer = self.tokenizer # Upgrade to real tokenizer
 
                 # SGI 2026: Shared model weights in Q4_K_M
+                # PagedAttention enabled via ipex-llm to prevent OOM
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
                     load_in_low_bit="Q4_K_M",
                     trust_remote_code=True,
-                    use_cache=True
+                    use_cache=True,
+                    use_paged_attention=True
                 )
                 # SGI 2026: Initialize draft model for speculative decoding
                 print(f"[ModelRegistry] Loading draft model {draft_model_id} for speculative speedup...")
