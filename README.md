@@ -35,14 +35,24 @@ To maximize performance and prevent thermal throttling on the 15W i7-8265U, cogn
 ### Specialized Modules
 
 - **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates SMT Solvers (Z3) for formal verification. Operates natively in sym_int8 precision for AVX2 efficiency.
-- **Coding Module**: Executes and verifies code in a Stateful Digital Twin (Firecracker microVMs). Uses UD-Q5_K_M precision for weights and sym_int8 for reasoning to maintain a consistent "Cognitive Heartbeat." Implements CodeComp (AST-Aware KV Cache Compression).
-- **Search Agent**: Performs autonomous online searches using Tavily and SearXNG at sym_int8 precision. Implements GraphRAG and JIT Context Compilation. Includes a License Guardian Classifier Gate (No GPL).
+- **Coding Module**: Executes and verifies code in a Stateful Digital Twin (Firecracker microVMs). Uses Q4_K_M precision for weights and sym_int8 for reasoning to maintain a consistent "Cognitive Heartbeat." Implements CodeComp (AST-Aware KV Cache Compression).
+- **Search Agent**: Performs autonomous online searches using Tavily and SearXNG at Q5_K_M precision. Implements GraphRAG and JIT Context Compilation. Includes a License Guardian Classifier Gate (No GPL).
 - **Critic & Planner**: Evaluates reasoning for accuracy and generates step-by-step plans.
 - **Self, World, & Social Models**: Tracks internal state, external reality, and infers social/user intentions.
 
 ## RAG & Knowledge Extraction (GGUF)
 
 To expand the AGI's knowledge base beyond its core modules, the system supports RAG by extracting data from GGUF models, utilizing a robust compression pipeline tailored to mobile CPUs.
+
+## Technical Specifications
+- **CPU**: Intel Core i7-8265U (Whiskey Lake)
+- **Memory**: 16GB DDR4
+- **Precision Tiers**:
+    - **Weight Storage**: Q4_K_M (Balanced 4-bit GGUF/IPEX)
+    - **Search Index**: Q5_K_M (Optimized for Retrieval, 5-bit)
+    - **Reasoning/Math**: sym_int8 (Symmetric 8-bit)
+    - **KV Cache**: sym_int8 (Per-Channel Scaling)
+- **RAG Engine**: LanceDB (Archive) + FAISS (Reflex)
 
 ### Hardware-Aware Precision Standard (i7-8265U Optimized)
 
@@ -51,7 +61,8 @@ To fit within the memory bandwidth and thermal envelope of the 8265U, the model 
 | Component | Format | Reasoning |
 | :--- | :--- | :--- |
 | Reasoning (Brain) | sym_int8 | Maximizes AVX2 throughput by removing zero-point offsets. |
-| Weights (Storage) | UD-Q5_K_M | Optimized for Intel AVX2 instructions; ensures zero-lag activation. |
+| Weights (Storage) | Q4_K_M | Optimized for Intel AVX2 instructions (4-bit); ensures zero-lag activation. |
+| Search Results | Q5_K_M | Optimized for online data indexing (5-bit). |
 | KV Cache (Memory) | sym_int8 | Handles "spiky" data with Per-Channel Scaling ($S_i = \frac{\max(|x_i|)}{127}$). |
 | Index (RAG) | sym_int8 + BQ | sym_int8 for distance calculations (Dot Product), Binary for scale. |
 | Search/Text Logs | Zstd-19 | Standard high-ratio compression for raw text/logs. |
@@ -69,8 +80,8 @@ To fit within the memory bandwidth and thermal envelope of the 8265U, the model 
 - **LanceDB**: The "Cortical Archive." Supports LLM-Arithmetic Coding (Lossless Neural Archiving/LLM-Zip), achieving 5x to 10x better compression than Zstd/7z by storing token probabilities predicted by the LLM.
 - **NebulaGraph/TuGraph**: Stores the Neural Map for GraphRAG. Uses Tree-sitter Serialization to compactly store code as Abstract Syntax Tree (AST) node operations, bypassing re-parsing for immediate Control Flow Graphs.
 
-## Model: DeepSeek-Coder-V2-Lite
-DeepSeek-Coder-V2-Lite is required for its Mixture-of-Experts (MoE) architecture, providing high intelligence with low active parameters, ideal for the i7-8265U's 15W TDP. It is utilized across all cognitive actors as a shared "Singleton Model" via the ModelRegistry to minimize RAM usage and prevent system crashes on 16GB hardware.
+## Model: Apriel-1.6-15B-Thinker
+Apriel-1.6-15B-Thinker is required for its high reasoning density and optimized parameter footprint, ideal for the i7-8265U's 15W TDP. It is utilized across all cognitive actors as a shared "Singleton Model" via the ModelRegistry to minimize RAM usage and prevent system crashes on 16GB hardware.
 
 ## Getting Started
 
