@@ -16,7 +16,7 @@ class ModelRegistry:
         self.tokenizer = None
         self.precision = "Q4_K_M"
 
-        print(f"[ModelRegistry] Loading {model_id} ({self.precision}) as Shared World Model...")
+        print(f"[ModelRegistry] Loading {model_id} (Q4_K_M) as Shared World Model...")
         if AutoModelForCausalLM and AutoTokenizer:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
