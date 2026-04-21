@@ -102,7 +102,17 @@ class MemoryManager(CognitiveModule):
 
     def KnowledgeDistillation_Loop(self, entry):
         print("[MemoryManager] Running Knowledge Distillation Loop...")
+        # SGI 2026: Reasoning Trace Extraction
+        reasoning_trace = ""
+        if "<thought>" in entry and "</thought>" in entry:
+            reasoning_trace = entry.split("<thought>")[1].split("</thought>")[0].strip()
+            print(f"[MemoryManager] Extracted Reasoning Trace (Wisdom Cache): {len(reasoning_trace)} chars")
+
         distilled = entry.replace("\n\n", " ").replace("This entry was automatically generated", "Generated")
+        # Store reasoning trace in LanceDB (simulated)
+        if reasoning_trace:
+            print("[MemoryManager] Archiving Reasoning Trace to Wisdom Cache in LanceDB...")
+
         self.calculate_MDL_metric(entry, distilled)
 
     def calculate_structural_importance_score(self, context):
@@ -203,3 +213,23 @@ class MemoryManager(CognitiveModule):
         elif len(tokens) > MAX_LIMIT * 0.8:
             return "Archive"
         return "Continue"
+
+    def retrieve_wisdom_traces(self, context_query):
+        """
+        SGI 2026: Wisdom Cache Retrieval.
+        Returns reasoning traces from long-term memory related to the query.
+        """
+        print(f"[MemoryManager] Searching Wisdom Cache for: {context_query[:30]}...")
+        # Simulated vector search in LanceDB
+        wisdom_base = {
+            "AVX2": "Past insight: Verified that AVX2 optimization requires 32-byte alignment.",
+            "quantiz": "Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers.",
+            "thermal": "Health Note: Heartbeat interval must scale linearly with temp above 75C."
+        }
+
+        relevant_traces = []
+        for key, val in wisdom_base.items():
+            if key.lower() in str(context_query).lower():
+                relevant_traces.append(val)
+
+        return relevant_traces if relevant_traces else ["(No relevant traces found)"]

@@ -49,6 +49,7 @@ memory_management:
     path: "./data/sgi_archived_memory"
     embedding_model: "nomic-embed-text-v1.5"
     reranker_model: "jina-reranker-v2"
+    matryoshka_tiers: [128, 768]    # SGI 2026: Coarse-to-Fine tiers
 
 # SECTION 4: Compliance & Drive Engine
 compliance:
@@ -60,3 +61,11 @@ drive_engine:
   entropy_threshold: 0.7
   threshold_replan: 2.0
   threshold_consolidate: 0.5
+  active_inference_cycle_ticks: 5   # Interval for log-based self-patching
+
+# SECTION 5: Reasoning & Inference Hybrid
+inference:
+  primary_model: "Apriel-1.6-15B-Thinker"
+  draft_model: "Qwen-3.5-0.8B"
+  speculative_decoding: true
+  wisdom_cache: true               # Enable Reasoning Trace archiving
