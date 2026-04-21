@@ -18,6 +18,7 @@ The system utilizes a Broadcast Center (Hub) and Specialized Actors (Spokes) com
 - **Intel Acceleration**: Implement IPEX-LLM (Intel Extension for PyTorch) for optimized inference on CPU.
 - **Threading**: Maximum 3 concurrent threads to prevent thermal throttling (15W TDP limit) and avoid excessive context-switching overhead.
 - **Data Transfer**: Use Ray Plasma (shared memory) for zero-latency buffer transfers between the Symbolic Reasoner and the Coding Module.
+- **Hybrid Inference**: Deploy **Qwen 3.5-0.8B** as the "Reflex Actor" for Tier 1 tasks and as a draft model for **Speculative Decoding** with **Apriel-1.6-15B**. This reduces perceived latency by ~2x on mobile CPUs.
 
 ### The Cognitive Heartbeat (Curiosity Drive)
 The system runs a continuous Heartbeat Loop to maintain proactivity:
@@ -32,7 +33,10 @@ Follow the loop: Reason → Search → Ingest → Index → Generate.
 
 ### JIT Context Compilation
 - **Primary Search**: Tavily AI (90% tasks); SearXNG (fallback/verification).
-- **Distiller Agent**: Compile 10k tokens of documentation into a 400-token Actionable Spec (API Cheat Sheet) before generation.
+- **Matryoshka-Tiered Retrieval**:
+    1. **Coarse Scan**: Use 128-dim vectors to find Top 50 candidates (6x faster scan on AVX2).
+    2. **Fine Re-rank**: Use full 768-dim vectors to identify Top 5 final results from the 50 candidates.
+- **Reasoning-Aware RAG (Wisdom Cache)**: Extract `<thought>` blocks from successful solutions and archive them in LanceDB. Retrieve these "Reasoning Traces" alongside documentation to provide context on *how* problems were solved previously.
 - **GraphRAG (Neural Map)**: Use tree-sitter for AST-based indexing. Store code dependencies (class/function nodes) in NebulaGraph or TuGraph.
 
 ### Data Ingestion & 2026 Compression Landscape
@@ -80,6 +84,7 @@ This gives sym_int8 the flexibility to handle "spiky" data without needing the h
 ### The "Internal Critic" Loop
 - Every output must be verified by a Critic agent (using sym_int8 for high accuracy) or the World Model.
 - **Verification**: The Planner confirms output matches the original goal.
+- **Active Inference**: MetaManager must periodically "glance" at logs and performance metrics. If inefficiencies (e.g., search latency) are detected, it formulates a patch and verifies it mathematically using **Z3** before application.
 
 ### Formal Verification
 - **Coding**: Integrated Linter + Unit Test Generator. Every function requires tests.

@@ -10,12 +10,14 @@ According to the Minimum Description Length (MDL) principle, the best "understan
 
 The system utilizes an Asynchronous Predictive Workspace (APW). Unlike traditional models, the Hub acts as a Broadcast Center using Pub/Sub logic to eliminate bottlenecks. It implements a Multi-Stage Agentic RAG Pipeline and is designed for Self-Improvement, autonomously updating its data files and logic. The engine is hard-capped to utilize a maximum of 3 threads to maintain system stability and thermal headroom.
 
-### The Dual-Stream System
+### The Tiered Hybrid System (SGI-2026)
 
-To maximize performance and prevent thermal throttling on the 15W i7-8265U, cognitive workload is split into two tracks:
+To maximize performance and prevent thermal throttling on the 15W i7-8265U, cognitive workload is tiered based on computational "cost":
 
-- **The Reflex Arc (Fast Path)**: Low-latency modules (Safety, Syntax Checking, Thermal Guard) that act instantly.
-- **The Global Workspace (Slow Path)**: Higher-order reasoning (Planning, Complex Coding) requiring full attention, actively managed by a Thermal Circuit Breaker.
+- **Tier 1: Reflex (Fast Path)**: Low-latency modules (Safety, Syntax Checking) and a dedicated **Reflex Actor** (Qwen-3.5-0.8B) for instant, low-cost responses.
+- **Tier 2: Memory (Search)**: **Matryoshka-Tiered Retrieval** using nomic-embed-text-v1.5. A 2-stage "Coarse-to-Fine" funnel (128-dim scan → 768-dim re-rank) minimizes search latency.
+- **Tier 3: Reasoning (Slow Path)**: Higher-order reasoning (Planning, Complex Coding) via **Apriel-1.6-15B-Thinker**. Uses **Speculative Decoding** and preserves **Reasoning Traces** in a Wisdom Cache.
+- **Tier 4: Autonomy (Meta)**: **Active Inference** loop in the MetaManager. It monitors logs for inefficiencies and generates Z3-verified patches.
 
 ### Core Components
 
@@ -36,7 +38,7 @@ To maximize performance and prevent thermal throttling on the 15W i7-8265U, cogn
 
 - **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates SMT Solvers (Z3) for formal verification. Operates natively in sym_int8 precision for AVX2 efficiency.
 - **Coding Module**: Executes and verifies code in a Stateful Digital Twin (Firecracker microVMs). Uses Q4_K_M precision for weights and sym_int8 for reasoning to maintain a consistent "Cognitive Heartbeat." Implements CodeComp (AST-Aware KV Cache Compression).
-- **Search Agent**: Performs autonomous online searches using Tavily and SearXNG at Q5_K_M precision. Implements GraphRAG and JIT Context Compilation. Includes a License Guardian Classifier Gate (No GPL).
+- **Search Agent**: Performs autonomous online searches using Tavily and SearXNG at Q5_K_M precision. Implements **Matryoshka-Tiered Retrieval**, GraphRAG, and **Reasoning-Aware RAG** (utilizing the Wisdom Cache). Includes a License Guardian Classifier Gate (No GPL).
 - **Critic & Planner**: Evaluates reasoning for accuracy and generates step-by-step plans.
 - **Self, World, & Social Models**: Tracks internal state, external reality, and infers social/user intentions.
 
@@ -80,8 +82,8 @@ To fit within the memory bandwidth and thermal envelope of the 8265U, the model 
 - **LanceDB**: The "Cortical Archive." Supports LLM-Arithmetic Coding (Lossless Neural Archiving/LLM-Zip), achieving 5x to 10x better compression than Zstd/7z by storing token probabilities predicted by the LLM.
 - **NebulaGraph/TuGraph**: Stores the Neural Map for GraphRAG. Uses Tree-sitter Serialization to compactly store code as Abstract Syntax Tree (AST) node operations, bypassing re-parsing for immediate Control Flow Graphs.
 
-## Model: Apriel-1.6-15B-Thinker
-Apriel-1.6-15B-Thinker is required for its high reasoning density and optimized parameter footprint, ideal for the i7-8265U's 15W TDP. It is utilized across all cognitive actors as a shared "Singleton Model" via the ModelRegistry to minimize RAM usage and prevent system crashes on 16GB hardware.
+- **Model: Apriel-1.6-15B-Thinker & Qwen-3.5-0.8B**
+The system uses a dual-model architecture. **Apriel-1.6-15B-Thinker** serves as the primary reasoning brain, while **Qwen-3.5-0.8B** acts as a lightweight draft model for **Speculative Decoding** and **Reflex-path** tasks. They are managed as shared singletons in the ModelRegistry to minimize RAM pressure.
 
 ## Getting Started
 
