@@ -2,7 +2,6 @@ import psutil
 import math
 import re
 import ray
-import hashlib
 import xxhash
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB

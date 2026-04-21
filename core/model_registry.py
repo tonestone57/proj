@@ -11,20 +11,31 @@ class NGramCache:
     """
     SGI 2026: N-Gram Cache for fast speculative lookahead in syntax-heavy blocks.
     Optimized for code and logic where patterns are highly repetitive.
+    Supports using the model's tokenizer for better token-alignment.
     """
-    def __init__(self, n=3):
+    def __init__(self, n=3, tokenizer=None):
         self.n = n
+        self.tokenizer = tokenizer
         self.cache = collections.defaultdict(collections.Counter)
 
+    def _tokenize(self, text):
+        if self.tokenizer:
+            # Use real tokenizer IDs converted back to strings for cache keys
+            tokens = self.tokenizer.encode(text)
+            return [str(t) for t in tokens]
+        else:
+            # Fallback to regex tokenizer
+            return re.findall(r'\w+|[^\w\s]', text)
+
     def update(self, text):
-        tokens = re.findall(r'\w+|[^\w\s]', text)
+        tokens = self._tokenize(text)
         for i in range(len(tokens) - self.n):
             prefix = tuple(tokens[i:i + self.n])
             next_token = tokens[i + self.n]
             self.cache[prefix][next_token] += 1
 
     def propose(self, prefix_text, length=5):
-        tokens = re.findall(r'\w+|[^\w\s]', prefix_text)
+        tokens = self._tokenize(prefix_text)
         if len(tokens) < self.n:
             return []
 
@@ -38,6 +49,9 @@ class NGramCache:
                 current_prefix = current_prefix[1:] + (next_token,)
             else:
                 break
+
+        # If using real tokenizer, we would ideally convert back to text,
+        # but for the speculative "propose" interface, keeping them as tokens/strings is fine.
         return proposals
 
 @ray.remote
@@ -61,6 +75,8 @@ class ModelRegistry:
         if AutoModelForCausalLM and AutoTokenizer:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+                self.ngram_cache.tokenizer = self.tokenizer # Upgrade to real tokenizer
+
                 # SGI 2026: Shared model weights in Q4_K_M
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
