@@ -44,23 +44,12 @@ class ModelRegistry:
         print(f"[ModelRegistry] Generating response using {self.precision} tier (len={len(prompt)})...")
         if self.model and self.tokenizer:
             # SGI 2026: Inference logic using UD-Q5_K_M weights and sym_int8 engine
-            # inputs = self.tokenizer(prompt, return_tensors, "pt")
+            # inputs = self.tokenizer(prompt, return_tensors="pt")
             # output = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
             # return self.tokenizer.decode(output[0], skip_special_tokens=True)
             return f"LLM-Generated result (Speculative, {self.precision}) for: {prompt[:30]}..."
 
         return f"Mock response (Speculative, {self.precision}) for: {prompt[:30]}..."
-
-    def set_precision_tier(self, tier):
-        """
-        Dynamically hot-swaps model precision to manage thermal load.
-        """
-        if tier != self.precision:
-            print(f"[ModelRegistry] Hot-swapping precision: {self.precision} -> {tier}...")
-            self.precision = tier
-            # In a real IPEX environment, this would trigger model.to(low_bit=tier)
-            return True
-        return False
 
     def get_model_info(self):
         return {

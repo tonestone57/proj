@@ -97,6 +97,7 @@ async def cognitive_cycle():
     print(f"[Hub] RAM Status: {psutil.virtual_memory().available / (1024**3):.2f}GB / 16GB available.")
 
     # The Heartbeat Loop
+    current_tick_interval = TICK_INTERVAL
     for tick in range(10):
         print(f"\n--- Heartbeat Tick {tick+1} ---")
         health = await thermal_guard.get_thermal_state.remote()
@@ -106,19 +107,39 @@ async def cognitive_cycle():
         entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
-        if health['temp'] > 75.0:
-            print("🌡️ [Hub] Thermal Alert! Switching to low-precision and prioritizing Symbolic Reasoner.")
-            await model_provider.set_precision_tier.remote("Q4_0")
-            # Prefer symbolic reasoning when hot to save power
-            await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
-        elif entropy > 0.7:
-            if tick % 2 == 0:
-                await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
+        # SGI 2026: Thermal-Aware Task Prioritization & Throttling (Graduated)
+        # We start throttling as we approach 75C (threshold set to 70C for proactive cooling)
+        if health['temp'] > 70.0:
+            print(f"🌡️ [Hub] Thermal Caution ({health['temp']}C)! Reducing CPU duty cycle.")
+
+            # 1. Reduce 'CPU Speed' by increasing the heartbeat interval (Throttling)
+            # Scaling delay based on how much we exceed 70C
+            throttle_factor = 1.0 + (health['temp'] - 70.0) / 5.0
+            current_tick_interval = TICK_INTERVAL * throttle_factor
+            print(f"[Hub] Proactive Throttling: New Tick Interval = {current_tick_interval:.2f}s")
+
+            # 2. Task Prioritization:
+            # If > 75C, strictly force symbolic reflex to save TDP.
+            # If 70-75C, mix in more symbolic tasks than usual.
+            if health['temp'] > 75.0:
+                print("[Hub] Critical Temp: Prioritizing Symbolic Reasoner exclusively.")
+                await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
             else:
-                await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
+                # Moderate heat: prioritize reasoner but allow some coding
+                if tick % 3 == 0:
+                    await hub.safe_delegate(coder, "code_execution", "print('Throttled Test')")
+                else:
+                    await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
+        else:
+            current_tick_interval = TICK_INTERVAL
+            if entropy > 0.7:
+                if tick % 2 == 0:
+                    await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
+                else:
+                    await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
 
         await hub.poll_scheduler()
-        await asyncio.sleep(TICK_INTERVAL)
+        await asyncio.sleep(current_tick_interval)
 
     print(f"\n{SYSTEM_NAME} Demo complete.")
 

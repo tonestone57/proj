@@ -43,11 +43,12 @@ class SearchActor(CognitiveModule):
             graph_context = ""
             if self.knowledge_graph and ("code" in query or "function" in query):
                 print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
-                # Extract potential node name from query
+                # Extract potential node name from query, filtering out common terms
+                stop_words = {"code", "function", "what", "how", "find", "search", "where", "docs", "info", "related"}
                 potential_nodes = re.findall(r'\b\w+\b', query)
                 subgraphs = []
                 for node in potential_nodes:
-                    if len(node) > 3:
+                    if len(node) > 3 and node.lower() not in stop_words:
                         sg = ray.get(self.knowledge_graph.get_context_subgraph.remote(node))
                         if sg["edges"]:
                             subgraphs.append(f"Related to {node}: {sg['edges']}")
