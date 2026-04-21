@@ -23,12 +23,12 @@ actors:
     priority: 1
 
   coding_actor:
-    precision: "UD-Q5_K_M"          # Base weights (2026 standard)
+    precision: "Q4_K_M"             # Base weights (2026 standard)
     cpu_cores: 2
     priority: 1
 
   search_actor:
-    precision: "sym_int8"           # Web Data
+    precision: "Q5_K_M"             # Web Data storage format
     cpu_cores: 1
     load_mode: "ipex_low_bit"
     priority: 3
@@ -48,6 +48,7 @@ memory_management:
     engine: "LanceDB"
     path: "./data/sgi_archived_memory"
     embedding_model: "nomic-embed-text-v1.5"
+    reranker_model: "jina-reranker-v2"
 
 # SECTION 4: Compliance & Drive Engine
 compliance:
