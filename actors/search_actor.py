@@ -9,10 +9,23 @@ class LicenseActor:
             re.compile(r"GPL", re.IGNORECASE),
             re.compile(r"LGPL", re.IGNORECASE)
         ]
+        # SGI 2026: Forum detection patterns for accuracy safeguarding
+        self.forum_patterns = [
+            re.compile(r"reddit\.com", re.IGNORECASE),
+            re.compile(r"stackoverflow\.com", re.IGNORECASE),
+            re.compile(r"discourse", re.IGNORECASE),
+            re.compile(r"forum", re.IGNORECASE)
+        ]
+
     def is_compliant(self, content):
         for pattern in self.prohibited_patterns:
             if pattern.search(content): return False
         return True
+
+    def is_forum(self, content):
+        for pattern in self.forum_patterns:
+            if pattern.search(content): return True
+        return False
 
 @ray.remote(num_cpus=CORES_SEARCH)
 class SearchActor(CognitiveModule):
@@ -97,26 +110,66 @@ class SearchActor(CognitiveModule):
             if q_lower in r_lower:
                 score += 2.5
 
+            # SGI 2026: Forum Accuracy Penalty
+            # Forum posts are prioritized lower due to potential inaccuracies.
+            if self.license_actor.is_forum(res_str):
+                score *= 0.5
+
             scored_results.append((score, res))
 
+        # SGI 2026: Forum Cross-Verification Logic
+        # If a result is a forum post, verify its content against non-forum results.
+        final_scored_results = []
+        non_forum_text = " ".join([str(res).lower() for score, res in scored_results if not self.license_actor.is_forum(str(res))])
+
+        for score, res in scored_results:
+            res_str = str(res)
+            if self.license_actor.is_forum(res_str):
+                # Check if forum keywords exist in more authoritative content
+                res_tokens = set(re.findall(r'\w+', res_str.lower()))
+                # Ignore common words
+                significant_tokens = [t for t in res_tokens if len(t) > 4]
+                verified_tokens = [t for t in significant_tokens if t in non_forum_text]
+
+                verification_ratio = len(verified_tokens) / len(significant_tokens) if significant_tokens else 1.0
+
+                if verification_ratio < 0.3:
+                    # Unverified forum post: Exclude by setting score to 0
+                    score = 0.0
+                else:
+                    # Verified forum post: Keep but maintain penalty
+                    pass
+
+            final_scored_results.append((score, res))
+
         # Sort by score descending
-        scored_results.sort(key=lambda x: x[0], reverse=True)
+        final_scored_results.sort(key=lambda x: x[0], reverse=True)
 
         # SGI 2026: Filter out unrelated results (Threshold = 0.1)
         # This prevents "noise" from polluting the distillation context.
         threshold = 0.1
-        reranked = [res for score, res in scored_results if score >= threshold]
+        reranked = [res for score, res in final_scored_results if score >= threshold]
 
-        if scored_results:
+        if final_scored_results:
             print(f"[SearchActor] Reranking complete. Results: {len(reranked)}/{len(results)} above threshold.")
-            print(f"[SearchActor] Top result relevance score: {scored_results[0][0]:.4f}")
+            print(f"[SearchActor] Top result relevance score: {final_scored_results[0][0]:.4f}")
 
         return reranked
 
     def distill_results(self, results):
+        has_forum = any(self.license_actor.is_forum(str(r)) for r in results)
+
+        distilled = ""
         if self.model_registry:
-            return ray.get(self.model_registry.generate.remote(f"Distill: {results}"))
-        return f"Synthesized Spec from {len(results)} sources."
+            distilled = ray.get(self.model_registry.generate.remote(f"Distill: {results}"))
+        else:
+            distilled = f"Synthesized Spec from {len(results)} sources."
+
+        # SGI 2026: Add verification warning for forum content
+        if has_forum:
+            distilled += "\n\n⚠️ [Verification Required] This response includes data from forum posts, which may be less accurate."
+
+        return distilled
 
     def perform_search(self, query):
         return [f"MIT info for {query}", f"Apache info for {query}"]
