@@ -30,10 +30,11 @@ class LicenseActor:
 
 @ray.remote(num_cpus=CORES_SEARCH)
 class SearchActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None):
+    def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None, memory_manager=None):
         super().__init__(workspace, scheduler, model_registry)
         self.license_actor = LicenseActor()
         self.knowledge_graph = graph_memory
+        self.memory_manager = memory_manager
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
@@ -190,15 +191,14 @@ class SearchActor(CognitiveModule):
         distilled = ""
         if self.model_registry:
             # SGI 2026: Reasoning-Aware RAG. Retrieve wisdom traces from knowledge base.
-            print("[SearchActor] Retrieving Reasoning Traces from Wisdom Cache...")
+            print("[SearchActor] Retrieving Reasoning Traces from Wisdom Cache via MemoryManager...")
 
-            # Logic to fetch traces related to the current results from long-term memory
-            # For simulation, we simulate a lookup based on key result tokens
-            wisdom_context = "[Wisdom Cache] (No relevant traces found)"
-            if any("AVX2" in str(r) for r in results):
-                wisdom_context = "[Wisdom Cache] Past insight: Verified that AVX2 optimization requires 32-byte alignment."
-            elif any("quantiz" in str(r).lower() for r in results):
-                wisdom_context = "[Wisdom Cache] Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers."
+            wisdom_traces = []
+            if self.memory_manager:
+                # Query MemoryManager for relevant traces
+                wisdom_traces = ray.get(self.memory_manager.retrieve_wisdom_traces.remote(str(results)))
+
+            wisdom_context = "\n".join([f"[Wisdom Cache] {t}" for t in wisdom_traces]) if wisdom_traces else "[Wisdom Cache] (No relevant traces found)"
 
             distilled = ray.get(self.model_registry.generate.remote(f"Distill with Context: {wisdom_context}\nData: {results}"))
         else:

@@ -1,0 +1,11 @@
+ray
+psutil
+pyyaml
+z3-solver
+lancedb
+tree-sitter
+pytest
+torch
+torchvision
+torchaudio
+ipex-llm
