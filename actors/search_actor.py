@@ -48,7 +48,7 @@ class SearchActor(CognitiveModule):
                 # SGI 2026: Refined node extraction regex to prioritize snake_case or CamelCase identifiers
                 potential_nodes = [n for n in re.findall(r'\b[a-zA-Z_]\w*\b', query) if len(n) > 3 and n.lower() not in stop_words]
 
-                subgraphs = []
+                current_subgraphs = []
                 if potential_nodes:
                     # SGI 2026: Batched Ray remote calls for zero-latency context retrieval
                     futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
@@ -56,10 +56,10 @@ class SearchActor(CognitiveModule):
 
                     for node, sg in zip(potential_nodes, results_sg):
                         if sg["edges"]:
-                            subgraphs.append(f"Related to {node}: {sg['edges']}")
+                            current_subgraphs.append(f"Related to {node}: {sg['edges']}")
 
-                if subgraphs:
-                    graph_context = "\n[Graph Context] " + " | ".join(subgraphs)
+                if current_subgraphs:
+                    graph_context = "\n[Graph Context] " + " | ".join(current_subgraphs)
 
             results = self.perform_search(query)
             compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
