@@ -32,11 +32,10 @@ os.environ["NUMEXPR_NUM_THREADS"] = str(MAX_THREADS)
 ray.init(ignore_reinit_error=True, num_cpus=CPU_CORES_MAX)
 
 class SGIHub:
-    def __init__(self, workspace, scheduler, thermal_guard, model_registry=None):
+    def __init__(self, workspace, scheduler, thermal_guard):
         self.workspace = workspace
         self.scheduler = scheduler
         self.thermal_guard = thermal_guard
-        self.model_registry = model_registry
         self.state = {"focus": "idle", "history": []}
 
     def check_ram_guard(self):
@@ -89,7 +88,7 @@ async def cognitive_cycle():
     planner = Planner.remote(workspace, scheduler, model_registry=model_provider)
     memory_manager = MemoryManager.remote(workspace, scheduler, graph_memory=graph_memory)
 
-    hub = SGIHub(workspace, scheduler, thermal_guard, model_registry=model_provider)
+    hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
 
     print(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")

@@ -45,11 +45,15 @@ class SearchActor(CognitiveModule):
                 print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
                 # Extract potential node name from query, filtering out common terms
                 stop_words = {"code", "function", "what", "how", "find", "search", "where", "docs", "info", "related"}
-                potential_nodes = re.findall(r'\b\w+\b', query)
+                potential_nodes = [n for n in re.findall(r'\b\w+\b', query) if len(n) > 3 and n.lower() not in stop_words]
+
                 subgraphs = []
-                for node in potential_nodes:
-                    if len(node) > 3 and node.lower() not in stop_words:
-                        sg = ray.get(self.knowledge_graph.get_context_subgraph.remote(node))
+                if potential_nodes:
+                    # SGI 2026: Batched Ray remote calls for zero-latency context retrieval
+                    futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
+                    results_sg = ray.get(futures)
+
+                    for node, sg in zip(potential_nodes, results_sg):
                         if sg["edges"]:
                             subgraphs.append(f"Related to {node}: {sg['edges']}")
 
