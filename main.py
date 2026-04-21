@@ -107,20 +107,20 @@ async def cognitive_cycle():
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
         # SGI 2026: Thermal-Aware Task Prioritization & Throttling (Graduated)
-        # We start throttling as we approach 75C (threshold set to 70C for proactive cooling)
-        if health['temp'] > 70.0:
+        # We start throttling as we approach 80C (threshold set to 75C for proactive cooling)
+        if health['temp'] > 75.0:
             print(f"🌡️ [Hub] Thermal Caution ({health['temp']}C)! Reducing CPU duty cycle.")
 
             # 1. Reduce 'CPU Speed' by increasing the heartbeat interval (Throttling)
-            # Scaling delay based on how much we exceed 70C
-            throttle_factor = 1.0 + (health['temp'] - 70.0) / 5.0
+            # Scaling delay based on how much we exceed 75C
+            throttle_factor = 1.0 + (health['temp'] - 75.0) / 5.0
             current_tick_interval = TICK_INTERVAL * throttle_factor
             print(f"[Hub] Proactive Throttling: New Tick Interval = {current_tick_interval:.2f}s")
 
             # 2. Task Prioritization:
-            # If > 75C, strictly force symbolic reflex to save TDP.
-            # If 70-75C, mix in more symbolic tasks than usual.
-            if health['temp'] > 75.0:
+            # If > 80C, strictly force symbolic reflex to save TDP.
+            # If 75-80C, mix in more symbolic tasks than usual.
+            if health['temp'] > 80.0:
                 print("[Hub] Critical Temp: Prioritizing Symbolic Reasoner exclusively.")
                 await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
             else:
