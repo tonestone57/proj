@@ -1,6 +1,7 @@
 import re
 import ray
 import hashlib
+import numpy as np
 from core.base import CognitiveModule
 from core.config import CORES_SEARCH
 
@@ -228,39 +229,86 @@ class SearchActor(CognitiveModule):
 
     def binary_quantize(self, vector):
         """
-        Converts a float vector to a binary representation (list of bits).
+        SGI 2026: Converts a float vector to a packed bit representation (numpy uint64).
+        Packs 128 bits into two 64-bit integers.
         """
-        return [1 if x > 0 else 0 for x in vector]
+        bits = [1 if x > 0 else 0 for x in vector]
+        # Pack bits into uint64
+        packed = []
+        for i in range(0, len(bits), 64):
+            chunk = bits[i:i+64]
+            val = 0
+            for j, bit in enumerate(chunk):
+                if bit:
+                    val |= (1 << j)
+            packed.append(np.uint64(val))
+        return np.array(packed, dtype=np.uint64)
 
-    def hamming_similarity(self, v1, v2):
+    def simd_batch_hamming(self, query_packed, candidates_packed_batch):
         """
-        Simulates fast bitwise XOR / Hamming similarity.
-        Higher is better.
+        SGI 2026: Performs SIMD-based vector shuffling for Matryoshka-tier re-ranking.
+        Performs the 128-dim coarse scan across 4 vectors simultaneously using AVX2-style numpy operations.
+        candidates_packed_batch shape: (4, 2) - 4 vectors, each with two uint64 elements.
         """
-        # XOR bitwise equivalence: sum of (v1[i] == v2[i])
-        return sum(1 for a, b in zip(v1, v2) if a == b)
+        # Simulated AVX2 256-bit registers (4 x 64-bit uint64)
+        # Register 1: bits 0-63 for all 4 candidates
+        # Register 2: bits 64-127 for all 4 candidates
+        reg1 = candidates_packed_batch[:, 0]
+        reg2 = candidates_packed_batch[:, 1]
+
+        # XOR with query bits (broadcast)
+        xor1 = np.bitwise_xor(reg1, query_packed[0])
+        xor2 = np.bitwise_xor(reg2, query_packed[1])
+
+        # Bitwise count (popcount) of matches
+        # Hamming distance is popcount(v1 ^ v2). Similarity is 128 - popcount(v1 ^ v2).
+        # However, it's faster to just use bitwise NOT XOR for direct match counting.
+        match1 = np.bitwise_count(np.bitwise_not(xor1))
+        match2 = np.bitwise_count(np.bitwise_not(xor2))
+
+        return (match1 + match2).astype(int)
 
     def tiered_search(self, query, top_k_coarse=50, top_k_fine=5):
         """
         SGI 2026: Matryoshka-Tiered Retrieval (Coarse-to-Fine).
-        Stage 1: 128-dim scan for speed.
+        Stage 1: 128-dim scan for speed (SIMD-optimized).
         Stage 2: 768-dim re-rank for accuracy.
         """
         print(f"[SearchActor] Matryoshka-Tiered Retrieval + BQ initiated for: '{query}'")
         query_vec = self.embed(query)
         query_coarse_bq = self.binary_quantize(query_vec[:128])
 
-        # Stage 1: Coarse Scan (Simulated search using bitwise operations)
-        print(f"[SearchActor] Stage 1: Scanning 128-dim BQ indices (XOR/AVX2 optimized)...")
+        # Stage 1: Coarse Scan (SIMD Optimized)
+        print(f"[SearchActor] Stage 1: Scanning 128-dim BQ indices (SIMD/AVX2 optimized)...")
         candidates = []
-        for i in range(200): # Simulating a knowledge pool
+        batch_size = 4
+        pool_size = 200
+
+        # Pre-generate or simulate candidate pool
+        candidate_data = []
+        for i in range(pool_size):
             item_text = f"Knowledge Item {i} for {query}"
             item_vec = self.embed(item_text)
             item_coarse_bq = self.binary_quantize(item_vec[:128])
+            candidate_data.append({"text": item_text, "vec": item_vec, "packed": item_coarse_bq})
 
-            # Bitwise XOR / Hamming Similarity
-            score = self.hamming_similarity(query_coarse_bq, item_coarse_bq)
-            candidates.append({"text": item_text, "vec": item_vec, "score": score})
+        # Process in batches of 4 for SIMD simulation
+        for i in range(0, pool_size, batch_size):
+            batch = candidate_data[i : i + batch_size]
+            if len(batch) < batch_size:
+                # Handle remainder
+                for item in batch:
+                    xor1 = np.bitwise_xor(item["packed"][0], query_coarse_bq[0])
+                    xor2 = np.bitwise_xor(item["packed"][1], query_coarse_bq[1])
+                    matches = 128 - (int(np.bitwise_count(xor1)) + int(np.bitwise_count(xor2)))
+                    candidates.append({"text": item["text"], "vec": item["vec"], "score": matches})
+                continue
+
+            packed_batch = np.array([item["packed"] for item in batch])
+            scores = self.simd_batch_hamming(query_coarse_bq, packed_batch)
+
+            for j, score in enumerate(scores):
+                candidates.append({"text": batch[j]["text"], "vec": batch[j]["vec"], "score": score})
 
         # Sort and take top_k_coarse
         candidates.sort(key=lambda x: x["score"], reverse=True)
