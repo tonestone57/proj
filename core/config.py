@@ -12,14 +12,14 @@ else:
 
 # Hardware & System
 SYSTEM_NAME = manifest.get("system_identity", {}).get("name", "SGI-Alpha")
-CPU_CORES_MAX = manifest.get("hardware_limits", {}).get("ray_reserved_threads", 3)
-MAX_THREADS = manifest.get("hardware_limits", {}).get("max_threads", 3)
+CPU_CORES_MAX = manifest.get("hardware_limits", {}).get("ray_reserved_threads", 4)
+MAX_THREADS = manifest.get("hardware_limits", {}).get("max_threads", 4)
 THERMAL_THRESHOLD_C = manifest.get("hardware_limits", {}).get("thermal_threshold_celsius", 78.0)
 LOW_MEMORY_THRESHOLD_MB = manifest.get("hardware_limits", {}).get("low_memory_warning_mb", 2000)
 
 # Entropy/Drive thresholds
 THRESHOLD_REPLAN = manifest.get("drive_engine", {}).get("threshold_replan", 2.0)
-THRESHOLD_CONSOLIDATE = manifest.get("drive_engine", {}).get("threshold_consolidate", 0.5)
+THRESHOLD_CONSOLIDATE = manifest.get("drive_engine", {}).get("threshold_consolidate", 0.5) # SGI 2026: Consolidation floor
 
 # Heartbeat settings
 TICK_INTERVAL = manifest.get("drive_engine", {}).get("heartbeat_interval_seconds", 5.0)

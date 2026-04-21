@@ -9,8 +9,8 @@ system_identity:
 # SECTION 1: Hardware Resource Allocation (TDP: 15W)
 hardware_limits:
   total_cpu_threads: 8
-  ray_reserved_threads: 4           # Conserving for i7-8265U stability
-  max_threads: 3                    # Reduced to 3 for thermal headroom (15W TDP)
+  ray_reserved_threads: 4           # Conserving for i7-8265U stability (Up to 4 cores)
+  max_threads: 4                    # Scaled to 4 for requested performance
   thermal_threshold_celsius: 78.0   # Trigger "Cool-down" mode at 78C
   low_memory_warning_mb: 2000       # Ensuring Heartbeat stays in physical RAM (16GB system)
   shared_gpu_memory: true           # Enable optimizations for HD 620 iGPU
