@@ -30,8 +30,9 @@ def calculate_information_density(words):
 @ray.remote
 class MemoryManager(CognitiveModule):
 
-    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None, graph_memory=None):
         super().__init__(workspace, scheduler, model_registry)
+        self.graph_memory = graph_memory
 
     def receive(self, message):
         if message["type"] == "trigger_sleep_cycle":
@@ -47,6 +48,20 @@ class MemoryManager(CognitiveModule):
 
     def trigger_sleep_cycle(self):
         print("[MemoryManager] Starting Sleep Cycle...")
+
+        # SGI 2026: GraphRAG Construction Phase
+        if self.graph_memory:
+            print("[MemoryManager] Updating Knowledge Graph from workspace...")
+            # In a real environment, we would iterate over all workspace files
+            # Here we simulate by analyzing a few core files
+            core_files = ["main.py", "actors/reasoner_actor.py", "core/model_registry.py"]
+            for f in core_files:
+                try:
+                    with open(f, "r") as file:
+                        content = file.read()
+                        self.graph_memory.analyze_python_file.remote(f, content)
+                except Exception: pass
+
         patterns = self.identify_recurring_patterns()
         if patterns:
             self.synthesize_knowledge(patterns)

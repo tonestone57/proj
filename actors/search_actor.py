@@ -29,14 +29,38 @@ class LicenseActor:
 
 @ray.remote(num_cpus=CORES_SEARCH)
 class SearchActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None):
         super().__init__(workspace, scheduler, model_registry)
         self.license_actor = LicenseActor()
+        self.knowledge_graph = graph_memory
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if message["type"] == "search_request":
             query = message["data"]
+
+            # SGI 2026: GraphRAG context enhancement
+            graph_context = ""
+            if self.knowledge_graph and ("code" in query or "function" in query):
+                print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
+                # Extract potential node name from query, filtering out common terms
+                stop_words = {"code", "function", "what", "how", "find", "search", "where", "docs", "info", "related"}
+                # SGI 2026: Refined node extraction regex to prioritize snake_case or CamelCase identifiers
+                potential_nodes = [n for n in re.findall(r'\b[a-zA-Z_]\w*\b', query) if len(n) > 3 and n.lower() not in stop_words]
+
+                current_subgraphs = []
+                if potential_nodes:
+                    # SGI 2026: Batched Ray remote calls for zero-latency context retrieval
+                    futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
+                    results_sg = ray.get(futures)
+
+                    for node, sg in zip(potential_nodes, results_sg):
+                        if sg["edges"]:
+                            current_subgraphs.append(f"Related to {node}: {sg['edges']}")
+
+                if current_subgraphs:
+                    graph_context = "\n[Graph Context] " + " | ".join(current_subgraphs)
+
             results = self.perform_search(query)
             compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
 
@@ -44,6 +68,9 @@ class SearchActor(CognitiveModule):
             reranked_results = self.rerank(query, compliant_results)
 
             actionable_spec = self.distill_results(reranked_results)
+            if graph_context:
+                actionable_spec = graph_context + "\n" + actionable_spec
+
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
             self.scheduler.submit.remote(handle, {

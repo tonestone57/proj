@@ -12,6 +12,7 @@ from core.config import CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME, 
 from core.model_registry import ModelRegistry
 
 # Actors
+from memory.long_term.graph_memory import KnowledgeGraph
 from actors.reasoner_actor import ReasonerActor
 from actors.coding_actor import CodingActor
 from actors.search_actor import SearchActor
@@ -73,6 +74,7 @@ async def cognitive_cycle():
     workspace = GlobalWorkspace.remote()
     scheduler = Scheduler.remote()
     thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
+    graph_memory = KnowledgeGraph.remote()
 
     # Initialize Shared Model (Singleton) to prevent RAM crash
     model_id = "Apriel-1.6-15B-Thinker"
@@ -81,10 +83,10 @@ async def cognitive_cycle():
     # Initialize Specialized Actors using the shared model provider
     reasoner = ReasonerActor.remote(workspace, scheduler, model_registry=model_provider)
     coder = CodingActor.remote(workspace, scheduler, model_registry=model_provider)
-    searcher = SearchActor.remote(workspace, scheduler, model_registry=model_provider)
+    searcher = SearchActor.remote(workspace, scheduler, model_registry=model_provider, graph_memory=graph_memory)
     critic = InternalCritic.remote(workspace, scheduler, model_registry=model_provider)
     planner = Planner.remote(workspace, scheduler, model_registry=model_provider)
-    memory_manager = MemoryManager.remote(workspace, scheduler)
+    memory_manager = MemoryManager.remote(workspace, scheduler, graph_memory=graph_memory)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
@@ -94,6 +96,7 @@ async def cognitive_cycle():
     print(f"[Hub] RAM Status: {psutil.virtual_memory().available / (1024**3):.2f}GB / 16GB available.")
 
     # The Heartbeat Loop
+    current_tick_interval = TICK_INTERVAL
     for tick in range(10):
         print(f"\n--- Heartbeat Tick {tick+1} ---")
         health = await thermal_guard.get_thermal_state.remote()
@@ -103,14 +106,39 @@ async def cognitive_cycle():
         entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
-        if entropy > 0.7:
-            if tick % 2 == 0:
-                await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
+        # SGI 2026: Thermal-Aware Task Prioritization & Throttling (Graduated)
+        # We start throttling as we approach 80C (threshold set to 75C for proactive cooling)
+        if health['temp'] > 75.0:
+            print(f"🌡️ [Hub] Thermal Caution ({health['temp']}C)! Reducing CPU duty cycle.")
+
+            # 1. Reduce 'CPU Speed' by increasing the heartbeat interval (Throttling)
+            # Scaling delay based on how much we exceed 75C
+            throttle_factor = 1.0 + (health['temp'] - 75.0) / 5.0
+            current_tick_interval = TICK_INTERVAL * throttle_factor
+            print(f"[Hub] Proactive Throttling: New Tick Interval = {current_tick_interval:.2f}s")
+
+            # 2. Task Prioritization:
+            # If > 80C, strictly force symbolic reflex to save TDP.
+            # If 75-80C, mix in more symbolic tasks than usual.
+            if health['temp'] > 80.0:
+                print("[Hub] Critical Temp: Prioritizing Symbolic Reasoner exclusively.")
+                await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
             else:
-                await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
+                # Moderate heat: prioritize reasoner but allow some coding
+                if tick % 3 == 0:
+                    await hub.safe_delegate(coder, "code_execution", "print('Throttled Test')")
+                else:
+                    await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
+        else:
+            current_tick_interval = TICK_INTERVAL
+            if entropy > 0.7:
+                if tick % 2 == 0:
+                    await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
+                else:
+                    await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
 
         await hub.poll_scheduler()
-        await asyncio.sleep(TICK_INTERVAL)
+        await asyncio.sleep(current_tick_interval)
 
     print(f"\n{SYSTEM_NAME} Demo complete.")
 
