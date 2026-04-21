@@ -76,7 +76,7 @@ class SGIConfig(BaseModel):
         with open(path, "r") as f:
             data = yaml.safe_load(f)
         if data is None:
-            raise ValidationError("Config file is empty.")
+            raise ValueError("Config file is empty.")
         return cls(**data)
 
 # Load configuration from manifest
@@ -84,7 +84,7 @@ CONFIG_PATH = "config.yaml"
 
 try:
     SGI_SETTINGS = SGIConfig.load(CONFIG_PATH)
-except (FileNotFoundError, ValidationError) as e:
+except (FileNotFoundError, ValidationError, ValueError) as e:
     print(f"[Config] Error loading config: {e}")
     # Fallback or exit? For autonomous system, we might want to exit or use defaults if possible.
     # For now, let's assume config.yaml must exist and be valid.
