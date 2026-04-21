@@ -102,7 +102,17 @@ class MemoryManager(CognitiveModule):
 
     def KnowledgeDistillation_Loop(self, entry):
         print("[MemoryManager] Running Knowledge Distillation Loop...")
+        # SGI 2026: Reasoning Trace Extraction
+        reasoning_trace = ""
+        if "<thought>" in entry and "</thought>" in entry:
+            reasoning_trace = entry.split("<thought>")[1].split("</thought>")[0].strip()
+            print(f"[MemoryManager] Extracted Reasoning Trace (Wisdom Cache): {len(reasoning_trace)} chars")
+
         distilled = entry.replace("\n\n", " ").replace("This entry was automatically generated", "Generated")
+        # Store reasoning trace in LanceDB (simulated)
+        if reasoning_trace:
+            print("[MemoryManager] Archiving Reasoning Trace to Wisdom Cache in LanceDB...")
+
         self.calculate_MDL_metric(entry, distilled)
 
     def calculate_structural_importance_score(self, context):
