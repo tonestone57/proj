@@ -29,14 +29,32 @@ class LicenseActor:
 
 @ray.remote(num_cpus=CORES_SEARCH)
 class SearchActor(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None):
         super().__init__(workspace, scheduler, model_registry)
         self.license_actor = LicenseActor()
+        self.knowledge_graph = graph_memory
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if message["type"] == "search_request":
             query = message["data"]
+
+            # SGI 2026: GraphRAG context enhancement
+            graph_context = ""
+            if self.knowledge_graph and ("code" in query or "function" in query):
+                print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
+                # Extract potential node name from query
+                potential_nodes = re.findall(r'\b\w+\b', query)
+                subgraphs = []
+                for node in potential_nodes:
+                    if len(node) > 3:
+                        sg = ray.get(self.knowledge_graph.get_context_subgraph.remote(node))
+                        if sg["edges"]:
+                            subgraphs.append(f"Related to {node}: {sg['edges']}")
+
+                if subgraphs:
+                    graph_context = "\n[Graph Context] " + " | ".join(subgraphs)
+
             results = self.perform_search(query)
             compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
 
@@ -44,6 +62,9 @@ class SearchActor(CognitiveModule):
             reranked_results = self.rerank(query, compliant_results)
 
             actionable_spec = self.distill_results(reranked_results)
+            if graph_context:
+                actionable_spec = graph_context + "\n" + actionable_spec
+
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
             self.scheduler.submit.remote(handle, {

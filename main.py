@@ -12,6 +12,7 @@ from core.config import CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME, 
 from core.model_registry import ModelRegistry
 
 # Actors
+from memory.long_term.graph_memory import KnowledgeGraph
 from actors.reasoner_actor import ReasonerActor
 from actors.coding_actor import CodingActor
 from actors.search_actor import SearchActor
@@ -31,10 +32,11 @@ os.environ["NUMEXPR_NUM_THREADS"] = str(MAX_THREADS)
 ray.init(ignore_reinit_error=True, num_cpus=CPU_CORES_MAX)
 
 class SGIHub:
-    def __init__(self, workspace, scheduler, thermal_guard):
+    def __init__(self, workspace, scheduler, thermal_guard, model_registry=None):
         self.workspace = workspace
         self.scheduler = scheduler
         self.thermal_guard = thermal_guard
+        self.model_registry = model_registry
         self.state = {"focus": "idle", "history": []}
 
     def check_ram_guard(self):
@@ -73,6 +75,7 @@ async def cognitive_cycle():
     workspace = GlobalWorkspace.remote()
     scheduler = Scheduler.remote()
     thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
+    graph_memory = KnowledgeGraph.remote()
 
     # Initialize Shared Model (Singleton) to prevent RAM crash
     model_id = "Apriel-1.6-15B-Thinker"
@@ -81,12 +84,12 @@ async def cognitive_cycle():
     # Initialize Specialized Actors using the shared model provider
     reasoner = ReasonerActor.remote(workspace, scheduler, model_registry=model_provider)
     coder = CodingActor.remote(workspace, scheduler, model_registry=model_provider)
-    searcher = SearchActor.remote(workspace, scheduler, model_registry=model_provider)
+    searcher = SearchActor.remote(workspace, scheduler, model_registry=model_provider, graph_memory=graph_memory)
     critic = InternalCritic.remote(workspace, scheduler, model_registry=model_provider)
     planner = Planner.remote(workspace, scheduler, model_registry=model_provider)
-    memory_manager = MemoryManager.remote(workspace, scheduler)
+    memory_manager = MemoryManager.remote(workspace, scheduler, graph_memory=graph_memory)
 
-    hub = SGIHub(workspace, scheduler, thermal_guard)
+    hub = SGIHub(workspace, scheduler, thermal_guard, model_registry=model_provider)
     drives = DriveEngine()
 
     print(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")
@@ -103,7 +106,12 @@ async def cognitive_cycle():
         entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
-        if entropy > 0.7:
+        if health['temp'] > 75.0:
+            print("🌡️ [Hub] Thermal Alert! Switching to low-precision and prioritizing Symbolic Reasoner.")
+            await model_provider.set_precision_tier.remote("Q4_0")
+            # Prefer symbolic reasoning when hot to save power
+            await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
+        elif entropy > 0.7:
             if tick % 2 == 0:
                 await hub.safe_delegate(reasoner, "query", "math.factorial(6)")
             else:
