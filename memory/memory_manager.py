@@ -3,6 +3,7 @@ import math
 import re
 import ray
 import hashlib
+import xxhash
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB
 
@@ -157,8 +158,10 @@ class MemoryManager(CognitiveModule):
 
     def perform_neural_archiving(self, context):
         print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip) to LanceDB...")
+        # SGI 2026: Use xxhash (xxh128) for high-velocity non-cryptographic neural fingerprints
+        h = xxhash.xxh128(context.encode()).hexdigest()
         return {
-            "compressed_neural_data": f"compressed_{hashlib.md5(context.encode()).hexdigest()}",
+            "compressed_neural_data": f"compressed_{h}",
             "compression_ratio": "8.5x",
             "codec": "Arithmetic LLM Coding",
             "model_hash": "sha256_7f8e9d...",
@@ -224,7 +227,7 @@ class MemoryManager(CognitiveModule):
     def perform_semantic_hashing(self, context):
         """
         SGI 2026: Semantic Hashing (CodeComp).
-        Replaces repeated functions with a 128-bit hash pointing to Shared Memory Bus.
+        Replaces repeated functions with a 128-bit xxhash (xxh128) pointing to Shared Memory Bus.
         """
         print("[MemoryManager] Performing Semantic Hashing (CodeComp)...")
         if not isinstance(context, str):
@@ -239,7 +242,7 @@ class MemoryManager(CognitiveModule):
             if chunk.startswith("def ") or chunk.startswith("class "):
                 # Normalize chunk (strip comments and whitespace for consistent hashing)
                 normalized = re.sub(r"#.*", "", chunk).strip()
-                h = hashlib.sha256(normalized.encode()).hexdigest()[:32] # 128-bit hash
+                h = xxhash.xxh128(normalized.encode()).hexdigest() # 128-bit hash
 
                 if h in self.semantic_hash_registry:
                     hash_ptr = f"[HASH:{h}]"
