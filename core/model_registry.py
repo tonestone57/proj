@@ -30,6 +30,13 @@ class ModelRegistry:
                     trust_remote_code=True,
                     use_cache=True
                 )
+                # SGI 2026: Initialize draft model for speculative decoding
+                print(f"[ModelRegistry] Loading draft model {draft_model_id} for speculative speedup...")
+                self.draft_model = AutoModelForCausalLM.from_pretrained(
+                    draft_model_id,
+                    load_in_low_bit="sym_int8",
+                    trust_remote_code=True
+                )
                 print(f"[ModelRegistry] Model mapped to sym_int8 logic engine (AVX2-optimized).")
             except Exception as e:
                 print(f"[ModelRegistry] Error loading model: {e}. Falling back to mock.")

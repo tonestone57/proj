@@ -224,25 +224,40 @@ class SearchActor(CognitiveModule):
                     vector.append(((hash_val >> j) & 1) * 2.0 - 1.0) # Scale to [-1, 1]
         return vector
 
+    def binary_quantize(self, vector):
+        """
+        Converts a float vector to a binary representation (list of bits).
+        """
+        return [1 if x > 0 else 0 for x in vector]
+
+    def hamming_similarity(self, v1, v2):
+        """
+        Simulates fast bitwise XOR / Hamming similarity.
+        Higher is better.
+        """
+        # XOR bitwise equivalence: sum of (v1[i] == v2[i])
+        return sum(1 for a, b in zip(v1, v2) if a == b)
+
     def tiered_search(self, query, top_k_coarse=50, top_k_fine=5):
         """
         SGI 2026: Matryoshka-Tiered Retrieval (Coarse-to-Fine).
         Stage 1: 128-dim scan for speed.
         Stage 2: 768-dim re-rank for accuracy.
         """
-        print(f"[SearchActor] Matryoshka-Tiered Retrieval initiated for: '{query}'")
+        print(f"[SearchActor] Matryoshka-Tiered Retrieval + BQ initiated for: '{query}'")
         query_vec = self.embed(query)
-        query_coarse = query_vec[:128]
+        query_coarse_bq = self.binary_quantize(query_vec[:128])
 
-        # Stage 1: Coarse Scan (Simulated search over many items)
-        print(f"[SearchActor] Stage 1: Scanning 128-dim indices (AVX2 optimized)...")
+        # Stage 1: Coarse Scan (Simulated search using bitwise operations)
+        print(f"[SearchActor] Stage 1: Scanning 128-dim BQ indices (XOR/AVX2 optimized)...")
         candidates = []
-        for i in range(200): # Simulating a small pool of knowledge
+        for i in range(200): # Simulating a knowledge pool
             item_text = f"Knowledge Item {i} for {query}"
             item_vec = self.embed(item_text)
-            item_coarse = item_vec[:128]
-            # Simple dot product simulation
-            score = sum(a * b for a, b in zip(query_coarse, item_coarse))
+            item_coarse_bq = self.binary_quantize(item_vec[:128])
+
+            # Bitwise XOR / Hamming Similarity
+            score = self.hamming_similarity(query_coarse_bq, item_coarse_bq)
             candidates.append({"text": item_text, "vec": item_vec, "score": score})
 
         # Sort and take top_k_coarse
