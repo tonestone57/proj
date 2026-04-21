@@ -7,7 +7,7 @@ import psutil
 # Core components
 from core.workspace import GlobalWorkspace
 from core.scheduler import Scheduler
-from core.drives import DriveEngine
+from core.drives import DriveEngine, PIDController
 from core.config import (
     CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME,
     THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB, THRESHOLD_CONSOLIDATE
@@ -97,6 +97,7 @@ async def cognitive_cycle():
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
+    thermal_pid = PIDController(setpoint=72.0)
 
     print(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")
     print("Architecture: Asynchronous Predictive Workspace (APW)")
@@ -109,37 +110,44 @@ async def cognitive_cycle():
         tick += 1
         print(f"\n--- Heartbeat Tick {tick} ---")
         health = await thermal_guard.get_thermal_state.remote()
-        print(f"[Hub] Thermal State: Load={health['load']}%, Temp={health['temp']}C, Throttled={health['is_throttled']}")
+        temp = health['temp']
+        print(f"[Hub] Thermal State: Load={health['load']}%, Temp={temp}C, Throttled={health['is_throttled']}")
+
+        # SGI 2026: PID-based Thermal Governor
+        stutter_interval = thermal_pid.update(temp)
+        if stutter_interval > 0:
+            print(f"🌡️ [Hub] PID Governor: Injecting {stutter_interval:.3f}s micro-stuttering.")
 
         state = await workspace.get_current_state.remote()
         entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
 
-        # SGI 2026: Thermal-Aware Task Prioritization & Throttling (Graduated)
-        # We start throttling as we approach 80C (threshold set to 75C for proactive cooling)
-        if health['temp'] > 75.0:
-            print(f"🌡️ [Hub] Thermal Caution ({health['temp']}C)! Reducing CPU duty cycle.")
-
-            # 1. Reduce 'CPU Speed' by increasing the heartbeat interval (Throttling)
-            # Scaling delay based on how much we exceed 75C
-            throttle_factor = 1.0 + (health['temp'] - 75.0) / 5.0
-            current_tick_interval = TICK_INTERVAL * throttle_factor
-            print(f"[Hub] Proactive Throttling: New Tick Interval = {current_tick_interval:.2f}s")
-
-            # 2. Task Prioritization:
-            # If > 80C, strictly force symbolic reflex to save TDP.
-            # If 75-80C, mix in more symbolic tasks than usual.
-            if health['temp'] > 80.0:
-                print("[Hub] Critical Temp: Prioritizing Symbolic Reasoner exclusively.")
-                await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
-            else:
-                # Moderate heat: prioritize reasoner but allow some coding
-                if tick % 3 == 0:
-                    await hub.safe_delegate(coder, "code_execution", "print('Throttled Test')")
-                else:
-                    await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
-        else:
+        # SGI 2026: Thermal-Aware Task Prioritization & Throttling (3-Tier Strategy)
+        if temp < 65.0:
+            # Tier 1: Sprint (< 65C)
+            print("[Hub] State: SPRINT. All threads at Max Frequency.")
             current_tick_interval = TICK_INTERVAL
+            await model_provider.set_power_mode.remote(reflex_only=False)
+        elif temp <= 75.0:
+            # Tier 2: Regulated (65C - 75C)
+            # Duty cycle threads: 80% active, 20% wait simulated via PID stutter
+            print(f"[Hub] State: REGULATED. PID Governor active.")
+            current_tick_interval = TICK_INTERVAL + stutter_interval
+            await model_provider.set_power_mode.remote(reflex_only=False)
+        else:
+            # Tier 3: Reflex-Only (> 75C)
+            # Suspend Apriel-15B; only Qwen-0.8B (via ModelRegistry reflex mode) handles I/O.
+            print(f"🌡️ [Hub] State: REFLEX-ONLY. Critical Cooling Mode (>75C).")
+            await model_provider.set_power_mode.remote(reflex_only=True)
+            current_tick_interval = TICK_INTERVAL * (1.0 + (temp - 75.0) / 2.0)
+
+        # Execute tasks based on strategy
+        if temp > 75.0:
+            # Reflex-Only task prioritization
+            print("[Hub] Critical Temp: Prioritizing Symbolic Reflex tasks.")
+            await hub.safe_delegate(reasoner, "query", "math.factorial(5)")
+        else:
+            # Normal or Regulated prioritization
             if entropy > 0.7:
                 if tick % 2 == 0:
                     await hub.safe_delegate(reasoner, "query", "math.factorial(6)")

@@ -17,6 +17,7 @@ class ModelRegistry:
         self.tokenizer = None
         self.draft_model = None
         self.precision = "Q4_K_M"
+        self.reflex_only = False
 
         print(f"[ModelRegistry] Loading {model_id} (Q4_K_M) as Shared World Model...")
         print(f"[ModelRegistry] Loading {draft_model_id} as Speculative Draft Model (Reflex Path)...")
@@ -43,14 +44,27 @@ class ModelRegistry:
         else:
             print("[ModelRegistry] IPEX-LLM/Transformers not available. Using mock model provider.")
 
+    def set_power_mode(self, reflex_only=False):
+        """
+        SGI 2026: Sets the power mode for the model registry.
+        reflex_only=True disables the 15B parameter model to save TDP.
+        """
+        if reflex_only != self.reflex_only:
+            self.reflex_only = reflex_only
+            status = "REFLEX-ONLY (Power Saving)" if reflex_only else "FULL PERFORMANCE"
+            print(f"[ModelRegistry] Power Mode Switch: {status}")
+
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=True, mode="reasoning"):
         """
         Performs inference with simulated Speculative Decoding for 2x TPS speedup on i7-8265U.
         SGI 2026: Includes <thought> blocks for reasoning trace distillation.
         """
-        # SGI 2026: Reflex Path (Fast-Track for simple tasks)
-        if mode == "reflex":
-            print(f"[ModelRegistry] Reflex Path Active: Using {self.draft_model_id} for instant response.")
+        # SGI 2026: Reflex Path (Fast-Track for simple tasks or thermal mitigation)
+        if mode == "reflex" or self.reflex_only:
+            if self.reflex_only:
+                print(f"[ModelRegistry] Thermal Mitigation Active: Forcing Reflex Path via {self.draft_model_id}.")
+            else:
+                print(f"[ModelRegistry] Reflex Path Active: Using {self.draft_model_id} for instant response.")
             return f"Reflex Result: Actionable spec for {prompt[:20]}"
 
         if use_speculative_decoding:

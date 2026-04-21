@@ -39,6 +39,37 @@ def calculate_entropy(state):
 
     return entropy
 
+class PIDController:
+    """
+    SGI 2026: Proportional-Integral-Derivative (PID) controller for thermal management.
+    Maintains CPU temperature by calculating a stutter interval (duty cycle adjustment).
+    """
+    def __init__(self, setpoint=72.0, kp=0.01, ki=0.005, kd=0.001):
+        self.setpoint = setpoint
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.integral = 0.0
+        self.prev_error = 0.0
+        self.last_time = None
+
+    def update(self, current_value, dt=1.0):
+        """
+        Returns the control output (stutter interval in seconds).
+        """
+        error = current_value - self.setpoint
+        self.integral += error * dt
+        # Clamp integral to prevent windup
+        self.integral = max(min(self.integral, 10.0), -10.0)
+
+        derivative = (error - self.prev_error) / dt
+        self.prev_error = error
+
+        output = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
+
+        # Output is stutter interval, must be non-negative
+        return max(0.0, output)
+
 class DriveEngine:
     def __init__(self):
         self.entropy = 0.0
