@@ -5,8 +5,7 @@ import ray
 from core.base import CognitiveModule
 from core.config import CORES_CODING
 
-@ray.remote(num_cpus=CORES_CODING)
-class CodingActor(CognitiveModule):
+class CodingActorBase(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
@@ -37,6 +36,78 @@ class CodingActor(CognitiveModule):
         state = ray.get(self.workspace.get_current_state.remote())
         entropy = calculate_entropy(state)
         return max(0.0, 1.0 - (entropy / 5.0))
+
+    def detect_recursion(self, code):
+        """
+        Uses AST analysis to identify recursive function calls.
+        """
+        import ast
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return []
+
+        recursive_funcs = []
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                func_name = node.name
+                is_recursive = False
+                for subnode in ast.walk(node):
+                    if isinstance(subnode, ast.Call):
+                        # Matches direct recursion: func()
+                        if isinstance(subnode.func, ast.Name) and subnode.func.id == func_name:
+                            is_recursive = True
+                            break
+                        # Matches method recursion: self.func()
+                        elif isinstance(subnode.func, ast.Attribute) and subnode.func.attr == func_name:
+                            # Refined check: Only flag as recursion if the attribute is called on 'self'
+                            if isinstance(subnode.func.value, ast.Name) and subnode.func.value.id == "self":
+                                is_recursive = True
+                                break
+                if is_recursive:
+                    recursive_funcs.append(func_name)
+        return recursive_funcs
+
+    def iterative_transform(self, code, recursive_funcs=None):
+        """
+        SGI 2026: Neuro-Symbolic Refactoring.
+        Converts detected recursion into stack-based loops using the Shared Model Registry.
+        """
+        if recursive_funcs is None:
+            recursive_funcs = self.detect_recursion(code)
+
+        if not recursive_funcs:
+            return code
+
+        print(f"[CodingActor] Iterative Transformation: Refactoring {recursive_funcs}...")
+
+        # SGI 2026 Strategy: We use the Reasoning Brain (Tier 3) to perform the rewrite
+        # while keeping the Symbolic logic intact.
+        if self.model_registry:
+            prompt = (
+                f"Refactor the following Python code to convert recursive functions {recursive_funcs} "
+                f"into iterative versions using explicit stacks (while loops). "
+                f"This is to prevent RecursionError on large inputs. "
+                f"Maintain exact functional parity. Return only the refactored code, without any explanations.\n\n"
+                f"Original Code:\n{code}"
+            )
+            try:
+                # Handle both Ray remote objects and local objects for testing
+                if hasattr(self.model_registry.generate, "remote"):
+                    transformed = ray.get(self.model_registry.generate.remote(prompt))
+                else:
+                    transformed = self.model_registry.generate(prompt)
+
+                # Cleanup potential Markdown
+                if "```python" in transformed:
+                    transformed = transformed.split("```python")[1].split("```")[0].strip()
+                elif "```" in transformed:
+                    transformed = transformed.split("```")[1].strip()
+                return transformed
+            except Exception as e:
+                print(f"[CodingActor] Refactoring failed: {e}")
+                return code
+        return code
 
     def DigitalTwin_Branching(self, branch_name):
         print(f"[CodingActor] Creating speculative branch: {branch_name}")
@@ -128,6 +199,12 @@ class CodingActor(CognitiveModule):
                 return {"status": "exception", "error": str(e)}
 
     def execute_logic_internal(self, code):
+        # SGI 2026: Proactive Recursive Refactoring
+        # Only refactor if recursion is detected to save compute on simple scripts
+        recursive_funcs = self.detect_recursion(code)
+        if recursive_funcs:
+            code = self.iterative_transform(code, recursive_funcs=recursive_funcs)
+
         stdout, stderr = io.StringIO(), io.StringIO()
 
         # SGI 2026: Inject high-performance libraries for Dynamic Programming, Graph Theory & Symbolic Reasoning
@@ -200,8 +277,8 @@ class CodingActor(CognitiveModule):
             # SGI 2026: Resource limits and stability (Unix only)
             try:
                 import resource
-                # Limit memory to 2GB and CPU time to 15s per execution
-                resource.setrlimit(resource.RLIMIT_AS, (2048 * 1024 * 1024, 2048 * 1024 * 1024))
+                # Adjusted for sandbox: 1GB memory and 15s CPU
+                resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
                 resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
             except (ImportError, Exception):
                 pass
@@ -219,3 +296,7 @@ class CodingActor(CognitiveModule):
             return {"status": "success", "output": stdout.getvalue()}
         except Exception:
             return {"status": "exception", "error": traceback.format_exc()}
+
+@ray.remote(num_cpus=CORES_CODING)
+class CodingActor(CodingActorBase):
+    pass
