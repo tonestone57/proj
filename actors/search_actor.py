@@ -1,4 +1,5 @@
 import re
+import math
 import ray
 import hashlib
 import numpy as np
@@ -80,6 +81,19 @@ class SearchActor(CognitiveModule):
                 "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
             })
 
+    def stem(self, word):
+        """SGI 2026: Conservative suffix-stripping stemming to avoid false positives."""
+        if not word or len(word) <= 4: return word
+        w = word.lower()
+        # Protect common technical terms or short words
+        if w in {"this", "user", "used", "uses", "data", "code"}: return w
+        if w.endswith('ies'): return w[:-3] + 'y'
+        if w.endswith('sses'): return w[:-2]
+        if w.endswith('s') and not w.endswith('ss'): return w[:-1]
+        if w.endswith('ing') and len(w) > 6: return w[:-3]
+        if w.endswith('ed') and len(w) > 5: return w[:-2]
+        return w
+
     def rerank(self, query, results):
         """
         Simulates Jina Reranker v2 logic.
@@ -92,7 +106,8 @@ class SearchActor(CognitiveModule):
 
         # SGI 2026: Enhanced Semantic relevance scoring
         q_lower = query.lower()
-        query_tokens = re.findall(r'\w+', q_lower)
+        query_tokens_raw = re.findall(r'\w+', q_lower)
+        query_tokens = [self.stem(t) for t in query_tokens_raw]
         query_token_set = set(query_tokens)
 
         # Bigram generation for query
@@ -103,63 +118,111 @@ class SearchActor(CognitiveModule):
             score = 0.0
             res_str = str(res)
             r_lower = res_str.lower()
-            res_tokens = re.findall(r'\w+', r_lower)
+            res_tokens_raw = re.findall(r'\w+', r_lower)
+            res_tokens = [self.stem(t) for t in res_tokens_raw]
 
             if not res_tokens:
                 scored_results.append((0.0, res))
                 continue
 
-            # 1. Weighted Unigram match count
+            # 1. Weighted Unigram match count & Coverage
             unigram_matches = 0.0
-            for t in res_tokens:
+            matched_query_tokens = set()
+            for i, t in enumerate(res_tokens):
                 if t in query_token_set:
-                    # Specific terms (numbers, identifiers) get higher weight
-                    if any(c.isdigit() for c in t) or len(t) > 5:
+                    matched_query_tokens.add(t)
+                    # SGI 2026: technical term bonus (identifiers with underscores/numbers or uppercase-ish)
+                    raw_t = res_tokens_raw[i]
+                    if '_' in raw_t or any(c.isdigit() for c in raw_t) or (raw_t.isupper() and len(raw_t) > 1):
+                        unigram_matches += 4.0 # High weight for technical identifiers
+                    elif len(t) > 5:
                         unigram_matches += 2.0
                     else:
                         unigram_matches += 1.0
 
+            coverage = len(matched_query_tokens) / len(query_token_set) if query_token_set else 0.0
+
             # 2. Bigram match count (semantic cohesion bonus)
             res_bigrams = list(zip(res_tokens, res_tokens[1:]))
-            bigram_matches = sum(1.5 for b in res_bigrams if b in query_bigrams)
+            bigram_matches = sum(2.5 for b in res_bigrams if b in query_bigrams)
 
-            # 3. Term Proximity Bonus
-            # High reward if query terms appear close together
+            # 3. Term Proximity & Order Bonus
+            # High reward if query terms appear close together, even if not perfectly ordered
             proximity_bonus = 0.0
             if len(query_tokens) > 1:
                 indices = [i for i, t in enumerate(res_tokens) if t in query_token_set]
-                if len(indices) > 1:
-                    avg_dist = sum(abs(b - a) for a, b in zip(indices, indices[1:])) / (len(indices) - 1)
-                    proximity_bonus = 1.0 / (avg_dist + 1.0)
+                if len(indices) >= 2:
+                    # Find shortest span containing at least 2 unique query tokens
+                    min_span = float('inf')
+                    for i in range(len(indices)):
+                        for j in range(i + 1, len(indices)):
+                            span = indices[j] - indices[i] + 1
+                            unique_in_span = len({res_tokens[idx] for idx in indices[i:j+1]})
+                            if unique_in_span >= 2:
+                                density = unique_in_span / span
+                                bonus = (unique_in_span ** 1.5) * density
+                                proximity_bonus = max(proximity_bonus, bonus)
 
-            # Combine scores with length normalization
-            score = (unigram_matches + bigram_matches) / (len(res_tokens) ** 0.4)
+            # Combine scores with soft length normalization (sqrt) to prevent extreme penalization of longer docs
+            len_norm = math.sqrt(len(res_tokens) + 5)
+            score = (unigram_matches + (bigram_matches * 2)) / len_norm
             score += proximity_bonus
 
-            # 4. Exact phrase match bonus
-            if q_lower in r_lower:
-                score += 2.5
+            # 4. Coverage Multiplier (SGI 2026: exponential reward for term coverage)
+            if coverage > 0.4:
+                score *= (1.0 + (coverage ** 2) * 5.0)
+
+            # 5. Exact phrase match bonus (Checking original string for phrase matching)
+            # SGI 2026: Using normalized strings (tokens) for better phrase matching
+            q_norm = " ".join(query_tokens_raw).lower()
+            r_norm = " ".join(res_tokens_raw).lower()
+
+            if q_norm in r_norm:
+                score += 200.0 # Robust priority for exact phrase hits
+            else:
+                # Fuzzy ordered match bonus (SGI 2026: Longest Common Subsequence of tokens)
+                ordered_matches = 0
+                curr_idx = 0
+                for qt in query_tokens:
+                    try:
+                        found_at = res_tokens.index(qt, curr_idx)
+                        ordered_matches += 1
+                        curr_idx = found_at + 1
+                    except ValueError: continue
+
+                if ordered_matches >= 2:
+                    score += (ordered_matches / len(query_tokens)) * 50.0
 
             # SGI 2026: Forum Accuracy Penalty
             # Forum posts are prioritized lower due to potential inaccuracies.
             if self.license_actor.is_forum(res_str):
-                score *= 0.5
+                score *= 0.3 # Balanced penalty for forum content
 
             scored_results.append((score, res))
 
-        # SGI 2026: Forum Cross-Verification Logic
+        # SGI 2026: Forum Cross-Verification & Quality Logic
         # If a result is a forum post, verify its content against non-forum results.
         final_scored_results = []
-        non_forum_text = " ".join([str(res).lower() for score, res in scored_results if not self.license_actor.is_forum(str(res))])
+        non_forum_texts = [str(res).lower() for score, res in scored_results if not self.license_actor.is_forum(str(res))]
+        non_forum_text_blob = " ".join(non_forum_texts)
 
         for score, res in scored_results:
             res_str = str(res)
+
+            # SGI 2026: Quality Penalty for scrambled or poor content
+            # If the result doesn't contain a reasonably high unigram score relative to length, penalize.
+            res_tokens_count = len(re.findall(r'\w+', res_str))
+            if res_tokens_count > 0:
+                unigram_density = score / res_tokens_count
+                if unigram_density < 0.1 and score < 10.0: # Only for non-exact hits with low relevance
+                    score *= 0.1 # General low-quality content penalty
+
             if self.license_actor.is_forum(res_str):
                 # Check if forum keywords exist in more authoritative content
-                res_tokens = set(re.findall(r'\w+', res_str.lower()))
+                res_tokens_set = set(re.findall(r'\w+', res_str.lower()))
                 # Ignore common words
-                significant_tokens = [t for t in res_tokens if len(t) > 4]
-                verified_tokens = [t for t in significant_tokens if t in non_forum_text]
+                significant_tokens = [t for t in res_tokens_set if len(t) > 4]
+                verified_tokens = [t for t in significant_tokens if t in non_forum_text_blob]
 
                 verification_ratio = len(verified_tokens) / len(significant_tokens) if significant_tokens else 1.0
 

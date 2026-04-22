@@ -1,7 +1,7 @@
 """
 SGI-Alpha Search Accuracy Benchmark
 -----------------------------------
-This tool implements the 'SWE Benchmark' equivalent for the SGI architecture,
+This tool implements the internal accuracy benchmark for the SGI architecture,
 focusing on the Search Reranker accuracy using Mean Reciprocal Rank (MRR).
 
 It evaluates the SearchActor's ability to prioritize authoritative technical
@@ -25,7 +25,7 @@ from core.workspace import GlobalWorkspace
 from core.scheduler import Scheduler
 from actors.search_actor import SearchActor
 
-# Benchmark Data: Ground truth test cases based on SGI 2026 specifications
+# Benchmark Data: Diverse ground truth test cases
 TEST_CASES = [
     {
         "query": "AVX2 optimization for sym_int8",
@@ -55,9 +55,31 @@ TEST_CASES = [
         "candidates": [
             "Reranking is a process of re-evaluating initial search results.",
             "Jina AI released a new version of their reranker model.",
-            "Terms proximity reranker bonus when query together appear close.", # Scrambled
-            "The reranker provides a proximity bonus when query terms appear close together in the result.", # Correct
+            "Terms proximity reranker bonus when query together appear close.",
+            "The reranker provides a proximity bonus when query terms appear close together in the result.",
             "Forum post about term proximity in search engines."
+        ]
+    },
+    {
+        "query": "Minimum Description Length principle",
+        "ground_truth": "According to the Minimum Description Length (MDL) principle, the best understanding of a dataset is the shortest program that can recreate it.",
+        "candidates": [
+            "MDL is a concept used in statistical modeling and machine learning.",
+            "According to the Minimum Description Length (MDL) principle, the best understanding of a dataset is the shortest program that can recreate it.",
+            "Shortest programs are usually better for compression.",
+            "Forum: What is MDL in the context of SGI?",
+            "Information theory and its relationship to cognitive density."
+        ]
+    },
+    {
+        "query": "Ray distributed orchestrator configuration",
+        "ground_truth": "Ray is used as the primary distributed orchestrator to manage resources (configured for 1-2 CPU cores per actor).",
+        "candidates": [
+            "Ray is a popular framework for scaling Python applications.",
+            "Docker and Kubernetes are also used for orchestration.",
+            "Ray is used as the primary distributed orchestrator to manage resources (configured for 1-2 CPU cores per actor).",
+            "Forum: Help with Ray resource allocation.",
+            "Setting up a local Ray instance for testing."
         ]
     }
 ]
