@@ -65,6 +65,10 @@ os.environ["NUMEXPR_NUM_THREADS"] = str(MAX_THREADS)
 # Ray Initialization
 ray.init(ignore_reinit_error=True, num_cpus=CPU_CORES_MAX)
 
+class MockPolicyEngine:
+    def check(self, action):
+        return True
+
 class SGIHub:
     def __init__(self, workspace, scheduler, thermal_guard):
         self.workspace = workspace
@@ -166,7 +170,7 @@ async def cognitive_cycle():
     # Initialize ASOC for security auditing
     risk_classifier = RiskClassifier()
     oversight_agent = OversightAgent(risk_classifier)
-    governance = GovernanceLayer(policy_engine=type('Mock', (object,), {'check': lambda s, x: True})(), oversight_agent=oversight_agent)
+    governance = GovernanceLayer(policy_engine=MockPolicyEngine(), oversight_agent=oversight_agent)
     asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
