@@ -1,10 +1,8 @@
 class TreatyGraph:
     def __init__(self):
-        self.nodes = []
-        self.edges = []
+        self.treaties = []
 
-    def add_treaty(self, treaty):
-        self.nodes.append(treaty)
-
-    def add_dependency(self, t1, t2):
-        self.edges.append((t1, t2))
+    def formulate(self, proposal):
+        treaty = f"Treaty based on: {proposal.content}"
+        self.treaties.append(treaty)
+        return treaty

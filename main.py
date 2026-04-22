@@ -27,6 +27,7 @@ from meta_learning.meta_manager import MetaManager
 from training.training_manager import TrainingManager
 
 # New standardized managers
+from economics.resource_model import Task
 from safety_ethics.safety_manager import SafetyManager
 from safety_ethics.ethics_manager import EthicsManager
 from metacognition.metacognition_manager import MetacognitionManager
@@ -206,7 +207,7 @@ async def cognitive_cycle():
                 print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
                 # Cycle through autonomous tasks
-                cycle_step = tick % 9
+                cycle_step = tick % 12
                 if cycle_step == 0:
                     await hub.safe_delegate(meta_manager, "active_inference_trigger", None)
                 elif cycle_step == 1:
@@ -225,6 +226,12 @@ async def cognitive_cycle():
                     await hub.safe_delegate(consolidation_manager, "consolidation_trigger", None)
                 elif cycle_step == 8:
                     await hub.safe_delegate(simulation_manager, "simulation_step", None)
+                elif cycle_step == 9:
+                    await hub.safe_delegate(blueteam_manager, "defense_request", {"traffic": "Intrusion detected at Node 5"})
+                elif cycle_step == 10:
+                    await hub.safe_delegate(economic_manager, "allocation_request", {"agents": ["Agent1", "Agent2"], "task": Task(id="Task-1", demand=100), "context": "Priority execution"})
+                elif cycle_step == 11:
+                    await hub.safe_delegate(negotiation_manager, "negotiation_request", {"issue": "Resource sharing", "agents": ["Agent1", "Agent2"]})
 
         await hub.poll_scheduler()
         await asyncio.sleep(current_tick_interval)

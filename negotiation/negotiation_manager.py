@@ -22,8 +22,14 @@ class NegotiationManager(CognitiveModule):
         self.compliance = ComplianceEngine()
 
     def negotiate(self, issue, agents):
+        # SGI 2026: Iterative negotiation logic
+        # 1. Initial proposals
         proposals = [self.proposals.generate(a, issue) for a in agents]
-        best = self.protocol.negotiate(agents, proposals)
+
+        # 2. Protocol handles the consensus loop and concessions
+        best = self.protocol.negotiate(agents, proposals, rounds=5)
+
+        # 3. Finalize treaty and verify compliance
         treaty = self.treaties.formulate(best)
         return self.compliance.verify(treaty)
 
