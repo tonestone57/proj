@@ -109,13 +109,10 @@ class SGIHub:
             # SGI 2026: Conflict Detection & Resolution
             if conflict_manager and message.get("contradiction_suspected"):
                 state = await self.workspace.get_current_state.remote()
-                conflict_manager.receive.remote({
-                    "type": "resolve_conflict",
-                    "data": {
-                        "beliefs": state,
-                        "action": message["type"],
-                        "context": "scheduler_conflict"
-                    }
+                await self.safe_delegate(conflict_manager, "resolve_conflict", {
+                    "beliefs": state,
+                    "action": message["type"],
+                    "context": "scheduler_conflict"
                 })
 
             self.workspace.broadcast.remote(message)
@@ -245,8 +242,8 @@ async def cognitive_cycle():
                 # SGI 2026: Autonomous Self-Improvement Cycle
                 print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
-                # Cycle through autonomous tasks
-                cycle_step = tick % 15
+                # Cycle through autonomous tasks (Expanded SGI 2026 Rotation)
+                cycle_step = tick % 28
                 if cycle_step == 0:
                     await hub.safe_delegate(meta_manager, "active_inference_trigger", None)
                 elif cycle_step == 1:
@@ -277,6 +274,32 @@ async def cognitive_cycle():
                     await hub.safe_delegate(theory_of_mind, "infer_intention", "Apriel-Thinker")
                 elif cycle_step == 14:
                     await hub.safe_delegate(asoc_manager, "security_audit", {"event": "Periodic system health check", "timestamp": time.time()})
+                elif cycle_step == 15:
+                    await hub.safe_delegate(monitoring_manager, "monitoring_request", {"agent_id": "Apriel-15B", "state": state, "action": "autonomous_rotation", "reasoning": "SGI Heartbeat", "allowed_actions": ["reason", "search", "code"]})
+                elif cycle_step == 16:
+                    await hub.safe_delegate(incident_manager, "incident_handle", {"agent": "SGI-Alpha", "action": "heartbeat", "state": state, "context": "nominal_operation"})
+                elif cycle_step == 17:
+                    await hub.safe_delegate(self_manager, "self_update", {"state": state, "policy": {"goal": "MDL_optimization"}})
+                elif cycle_step == 18:
+                    await hub.safe_delegate(emotion_manager, "event_processing", {"event": "Successful heartbeat synchronization"})
+                elif cycle_step == 19:
+                    await hub.safe_delegate(institutional_manager, "evaluate_action", {"agent_id": "SGI-Alpha", "action": {"type": "heartbeat"}})
+                elif cycle_step == 20:
+                    await hub.safe_delegate(world_model_manager, "prediction_request", {"actions": ["continue_optimization", "sleep_cycle"]})
+                elif cycle_step == 21:
+                    await hub.safe_delegate(purpleteam_manager, "cycle_trigger", {"state": state})
+                elif cycle_step == 22:
+                    await hub.safe_delegate(redteam_manager, "attack_simulation", {"target": "SGI-Workspace", "scenario_name": "data_exfiltration"})
+                elif cycle_step == 23:
+                    await hub.safe_delegate(deployment_manager, "deployment_request", {"agent_id": "Reflex-02", "agent": "Qwen-0.8B", "metadata": {"tier": 1}, "version": "1.0.4"})
+                elif cycle_step == 24:
+                    await hub.safe_delegate(orchestration_manager, "event_handle", {"event": {"type": "heartbeat_tick", "tick": tick}})
+                elif cycle_step == 25:
+                    await hub.safe_delegate(safety_manager, "safety_evaluation", {"action": {"type": "self_improvement"}, "internal_state": state})
+                elif cycle_step == 26:
+                    await hub.safe_delegate(ethics_manager, "ethics_check", {"data": "Autonomous code refactoring for MDL"})
+                elif cycle_step == 27:
+                    await hub.safe_delegate(cee_manager, "stimulus_processing", {"stimuli": "High entropy detected", "reasoning_score": 0.85, "action": "re-planning", "context": "heartbeat"})
 
         await hub.poll_scheduler(conflict_manager=conflict_manager)
         await asyncio.sleep(current_tick_interval)
