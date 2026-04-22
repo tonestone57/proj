@@ -21,6 +21,8 @@ from actors.coding_actor import CodingActor
 from actors.search_actor import SearchActor
 from actors.critic_actor import InternalCritic
 from actors.planner import Planner
+from actors.social.social_reasoner import SocialReasoner
+from actors.social.theory_of_mind import TheoryOfMind
 from memory.memory_manager import MemoryManager
 from monitoring.thermal_guard import ThermalGuard
 from meta_learning.meta_manager import MetaManager
@@ -30,10 +32,12 @@ from training.training_manager import TrainingManager
 from economics.resource_model import Task
 from safety_ethics.safety_manager import SafetyManager
 from safety_ethics.ethics_manager import EthicsManager
+from safety_ethics.oversight_agent import OversightAgent
+from safety_ethics.risk_classifier import RiskClassifier
 from metacognition.metacognition_manager import MetacognitionManager
 from cee_layer.cee_manager import CEEManager
 from emotion.emotion_manager import EmotionManager
-from conflict_resolution.conflict_manager import ConflictManager
+from conflict_resolution.conflict_manager import ConflictManager, ASOCManager, GovernanceLayer
 from institutional_ai.institutional_manager import InstitutionalManager
 from world_model.manager import WorldModelManager
 from memory_consolidation.consolidation_manager import ConsolidationManager
@@ -92,11 +96,24 @@ class SGIHub:
             print("🚨 Thermal Guard Active: CPU cooling down...")
             return False
 
-    async def poll_scheduler(self):
+    async def poll_scheduler(self, conflict_manager=None):
         res_obj = await self.scheduler.next.remote()
         if res_obj:
             priority, actor_handle, message = res_obj
             print(f"[Hub] Processing result from scheduler: {message['type']}")
+
+            # SGI 2026: Conflict Detection & Resolution
+            if conflict_manager and message.get("contradiction_suspected"):
+                state = await self.workspace.get_current_state.remote()
+                conflict_manager.receive.remote({
+                    "type": "resolve_conflict",
+                    "data": {
+                        "beliefs": state,
+                        "action": message["type"],
+                        "context": "scheduler_conflict"
+                    }
+                })
+
             self.workspace.broadcast.remote(message)
 
 async def cognitive_cycle():
@@ -119,6 +136,8 @@ async def cognitive_cycle():
     memory_manager = MemoryManager.remote(workspace=workspace, scheduler=scheduler, graph_memory=graph_memory)
     meta_manager = MetaManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     training_manager = TrainingManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    social_reasoner = SocialReasoner.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    theory_of_mind = TheoryOfMind.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     # Initialize New Managers
     safety_manager = SafetyManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
@@ -143,6 +162,12 @@ async def cognitive_cycle():
     simulation_manager = SimulationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     console_manager = ConsoleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
+    # Initialize ASOC for security auditing
+    risk_classifier = RiskClassifier()
+    oversight_agent = OversightAgent(risk_classifier)
+    governance = GovernanceLayer(policy_engine=type('Mock', (object,), {'check': lambda s, x: True})(), oversight_agent=oversight_agent)
+    asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
@@ -170,6 +195,16 @@ async def cognitive_cycle():
         state = await workspace.get_current_state.remote()
         entropy = drives.evaluate_state(state)
         print(f"[Hub] System Entropy: {entropy:.4f}")
+
+        # SGI 2026: Intrinsic Motivation Evaluation
+        motivation_manager.receive.remote({
+            "type": "motivation_evaluation",
+            "data": {
+                "action": "heartbeat",
+                "predicted_state": state,
+                "actual_state": state
+            }
+        })
 
         # SGI 2026: Thermal-Aware Task Prioritization & Throttling (3-Tier Strategy)
         if temp < 65.0:
@@ -207,7 +242,7 @@ async def cognitive_cycle():
                 print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
                 # Cycle through autonomous tasks
-                cycle_step = tick % 12
+                cycle_step = tick % 15
                 if cycle_step == 0:
                     await hub.safe_delegate(meta_manager, "active_inference_trigger", None)
                 elif cycle_step == 1:
@@ -232,8 +267,14 @@ async def cognitive_cycle():
                     await hub.safe_delegate(economic_manager, "allocation_request", {"agents": ["Agent1", "Agent2"], "task": Task(id="Task-1", demand=100), "context": "Priority execution"})
                 elif cycle_step == 11:
                     await hub.safe_delegate(negotiation_manager, "negotiation_request", {"issue": "Resource sharing", "agents": ["Agent1", "Agent2"]})
+                elif cycle_step == 12:
+                    await hub.safe_delegate(social_reasoner, "user_interaction", "Analyzing social dynamics in the APW workspace")
+                elif cycle_step == 13:
+                    await hub.safe_delegate(theory_of_mind, "infer_intention", "Apriel-Thinker")
+                elif cycle_step == 14:
+                    await hub.safe_delegate(asoc_manager, "security_audit", {"event": "Periodic system health check", "timestamp": time.time()})
 
-        await hub.poll_scheduler()
+        await hub.poll_scheduler(conflict_manager=conflict_manager)
         await asyncio.sleep(current_tick_interval)
 
     print(f"\n{SYSTEM_NAME} Demo complete.")
