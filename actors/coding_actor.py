@@ -159,8 +159,7 @@ class CodingActor(CognitiveModule):
                 "dict": dict, "list": list, "set": set, "tuple": tuple, "bool": bool,
                 "float": float, "abs": abs, "min": min, "max": max, "sum": sum,
                 "sorted": sorted, "reversed": reversed, "enumerate": enumerate, "zip": zip,
-                "any": any, "all": all, "map": map, "filter": filter, "round": round, "pow": pow,
-                "__import__": __import__
+                "any": any, "all": all, "map": map, "filter": filter, "round": round, "pow": pow
             },
             "math": math,
             "collections": collections,
