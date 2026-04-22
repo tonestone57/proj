@@ -130,7 +130,7 @@ class CodingActor(CognitiveModule):
     def execute_logic_internal(self, code):
         stdout, stderr = io.StringIO(), io.StringIO()
 
-        # SGI 2026: Inject high-performance libraries for Dynamic Programming & Graph Theory
+        # SGI 2026: Inject high-performance libraries for Dynamic Programming, Graph Theory & Symbolic Reasoning
         import math
         import collections
         import heapq
@@ -142,6 +142,12 @@ class CodingActor(CognitiveModule):
         import typing
         import numpy as np
         import pandas as pd
+        import dataclasses
+        import string
+        import traceback
+        import gc
+        import tracemalloc
+        import threading
         try:
             import sortedcontainers
         except ImportError:
@@ -167,6 +173,12 @@ class CodingActor(CognitiveModule):
             "typing": typing,
             "np": np,
             "pd": pd,
+            "dataclasses": dataclasses,
+            "string": string,
+            "traceback": traceback,
+            "gc": gc,
+            "tracemalloc": tracemalloc,
+            "threading": threading,
             # Direct Access for common DP/Graph tools
             "deque": collections.deque,
             "Counter": collections.Counter,
@@ -179,18 +191,32 @@ class CodingActor(CognitiveModule):
             "nan": float("nan"),
             "SortedList": sortedcontainers.SortedList if sortedcontainers else None,
             "SortedDict": sortedcontainers.SortedDict if sortedcontainers else None,
-            "SortedSet": sortedcontainers.SortedSet if sortedcontainers else None
+            "SortedSet": sortedcontainers.SortedSet if sortedcontainers else None,
+            "dataclass": dataclasses.dataclass,
+            "List": typing.List, "Dict": typing.Dict, "Tuple": typing.Tuple, "Set": typing.Set,
+            "Optional": typing.Optional, "Union": typing.Union, "Any": typing.Any
         }
 
         try:
+            # SGI 2026: Resource limits and stability (Unix only)
+            try:
+                import resource
+                # Limit memory to 2GB and CPU time to 15s per execution
+                resource.setrlimit(resource.RLIMIT_AS, (2048 * 1024 * 1024, 2048 * 1024 * 1024))
+                resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
+            except (ImportError, Exception):
+                pass
+
             # SGI 2026: Elevate recursion limit for deep symbolic reasoning/DP
             original_limit = sys.getrecursionlimit()
-            sys.setrecursionlimit(5000)
+            sys.setrecursionlimit(10**6)
 
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 exec(code, safe_globals)
 
             sys.setrecursionlimit(original_limit)
+            # SGI 2026: Forced GC after execution to maintain stability
+            gc.collect()
             return {"status": "success", "output": stdout.getvalue()}
-        except Exception as e:
-            return {"status": "exception", "error": str(e)}
+        except Exception:
+            return {"status": "exception", "error": traceback.format_exc()}
