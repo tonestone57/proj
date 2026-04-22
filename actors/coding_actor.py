@@ -140,6 +140,8 @@ class CodingActor(CognitiveModule):
         import operator
         import re
         import typing
+        import numpy as np
+        import pandas as pd
         try:
             import sortedcontainers
         except ImportError:
@@ -163,6 +165,8 @@ class CodingActor(CognitiveModule):
             "operator": operator,
             "re": re,
             "typing": typing,
+            "np": np,
+            "pd": pd,
             # Direct Access for common DP/Graph tools
             "deque": collections.deque,
             "Counter": collections.Counter,
@@ -179,8 +183,14 @@ class CodingActor(CognitiveModule):
         }
 
         try:
+            # SGI 2026: Elevate recursion limit for deep symbolic reasoning/DP
+            original_limit = sys.getrecursionlimit()
+            sys.setrecursionlimit(5000)
+
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 exec(code, safe_globals)
+
+            sys.setrecursionlimit(original_limit)
             return {"status": "success", "output": stdout.getvalue()}
         except Exception as e:
             return {"status": "exception", "error": str(e)}
