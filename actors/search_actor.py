@@ -104,7 +104,8 @@ class SearchActorBase(CognitiveModule):
                             neighbors = []
                             for edge in sg["edges"]:
                                 if ":" in edge:
-                                    neighbors.append(edge.split(":")[1])
+                                    # Use split(":", 1) to safely extract the target node
+                                    neighbors.append(edge.split(":", 1)[1])
 
                             if neighbors:
                                 if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):

@@ -49,7 +49,7 @@ class CodingActorBase(CognitiveModule):
 
         recursive_funcs = []
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 func_name = node.name
                 is_recursive = False
                 for subnode in ast.walk(node):
@@ -88,7 +88,7 @@ class CodingActorBase(CognitiveModule):
                 f"Refactor the following Python code to convert recursive functions {recursive_funcs} "
                 f"into iterative versions using explicit stacks (while loops). "
                 f"This is to prevent RecursionError on large inputs. "
-                f"Maintain exact functional parity. Return only the refactored code.\n\n"
+                f"Maintain exact functional parity. Return only the refactored code, without any explanations.\n\n"
                 f"Original Code:\n{code}"
             )
             try:
