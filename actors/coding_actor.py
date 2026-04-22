@@ -60,18 +60,22 @@ class CodingActorBase(CognitiveModule):
                             break
                         # Matches method recursion: self.func()
                         elif isinstance(subnode.func, ast.Attribute) and subnode.func.attr == func_name:
-                            is_recursive = True
-                            break
+                            # Refined check: Only flag as recursion if the attribute is called on 'self'
+                            if isinstance(subnode.func.value, ast.Name) and subnode.func.value.id == "self":
+                                is_recursive = True
+                                break
                 if is_recursive:
                     recursive_funcs.append(func_name)
         return recursive_funcs
 
-    def iterative_transform(self, code):
+    def iterative_transform(self, code, recursive_funcs=None):
         """
         SGI 2026: Neuro-Symbolic Refactoring.
         Converts detected recursion into stack-based loops using the Shared Model Registry.
         """
-        recursive_funcs = self.detect_recursion(code)
+        if recursive_funcs is None:
+            recursive_funcs = self.detect_recursion(code)
+
         if not recursive_funcs:
             return code
 
@@ -197,8 +201,9 @@ class CodingActorBase(CognitiveModule):
     def execute_logic_internal(self, code):
         # SGI 2026: Proactive Recursive Refactoring
         # Only refactor if recursion is detected to save compute on simple scripts
-        if self.detect_recursion(code):
-            code = self.iterative_transform(code)
+        recursive_funcs = self.detect_recursion(code)
+        if recursive_funcs:
+            code = self.iterative_transform(code, recursive_funcs=recursive_funcs)
 
         stdout, stderr = io.StringIO(), io.StringIO()
 
