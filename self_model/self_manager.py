@@ -37,11 +37,7 @@ class SelfManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "self_update":
             result = self.update_self(message['data']['state'], message['data']['policy'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "self_update_result", "data": result})
+            self.send_result("self_update_result", result)
         elif message["type"] == "approval_request":
             result = self.approve_update(message['data']['proposed_update'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "approval_result", "data": result})
+            self.send_result("approval_result", result)

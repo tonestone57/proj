@@ -30,9 +30,7 @@ class CodingActor(CognitiveModule):
                 result = self.execute_code(code, persistent=persistent)
             result["confidence"] = confidence
 
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "code_result", "data": result})
+            self.send_result("code_result", result)
 
     def calculate_confidence_score(self):
         from core.drives import calculate_entropy

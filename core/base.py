@@ -23,5 +23,14 @@ class CognitiveModule:
             except Exception as e:
                 print(f"[CognitiveModule] Warning: Could not register with workspace: {e}")
 
+    def send_result(self, result_type, data):
+        """Standard SGI helper to submit results back to the scheduler."""
+        try:
+            handle = ray.get_runtime_context().current_actor
+        except Exception:
+            handle = None
+        if self.scheduler:
+            self.scheduler.submit.remote(handle, {"type": result_type, "data": data})
+
     def receive(self, message):
         raise NotImplementedError

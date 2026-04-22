@@ -40,6 +40,4 @@ class WorldModelManager(CognitiveModule):
             self.update_world(message)
         elif message["type"] == "prediction_request":
             result = self.predict_future(message['data']['actions'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "prediction_result", "data": result})
+            self.send_result("prediction_result", result)

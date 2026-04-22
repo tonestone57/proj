@@ -30,6 +30,4 @@ class MetacognitionManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "introspection_request":
             result = self.introspect(message['data']['internal_state'], message['data']['reasoning_trace'], message['data']['decision'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "introspection_result", "data": result})
+            self.send_result("introspection_result", result)

@@ -46,11 +46,7 @@ class OrchestrationManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "event_handle":
             result = self.handle_event(message['data']['event'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "event_result", "data": result})
+            self.send_result("event_result", result)
         elif message["type"] == "task_request":
             result = self.run_sequential(message['data']['tasks'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "task_result", "data": result})
+            self.send_result("task_result", result)

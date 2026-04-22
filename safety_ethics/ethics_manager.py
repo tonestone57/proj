@@ -33,6 +33,4 @@ class EthicsManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "ethics_check":
             score = self.assess_safety(message.get("data"))
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "ethics_result", "data": {"safety_score": score}})
+            self.send_result("ethics_result", {"safety_score": score})

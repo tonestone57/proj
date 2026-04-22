@@ -38,6 +38,4 @@ class EconomicManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "allocation_request":
             result = self.allocate(message['data']['agents'], message['data']['task'], message['data']['context'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "allocation_result", "data": result})
+            self.send_result("allocation_result", result)

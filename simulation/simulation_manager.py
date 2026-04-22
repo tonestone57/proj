@@ -37,6 +37,4 @@ class SimulationManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "simulation_step":
             result = self.step()
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "simulation_result", "data": result})
+            self.send_result("simulation_result", result)

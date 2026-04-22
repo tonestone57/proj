@@ -28,6 +28,4 @@ class EmotionManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "event_processing":
             result = self.process_event(message['data']['event'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "event_result", "data": result})
+            self.send_result("event_result", result)

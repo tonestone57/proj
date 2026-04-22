@@ -35,9 +35,7 @@ class PurpleManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "cycle_trigger":
             result = self.run_cycle(message['data']['state'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "cycle_result", "data": result})
+            self.send_result("cycle_result", result)
 
 class GovernanceLayer:
     def __init__(self, governance_graph=None, oversight_agent=None):

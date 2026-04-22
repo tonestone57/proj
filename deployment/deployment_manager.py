@@ -19,6 +19,4 @@ class DeploymentManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "deployment_request":
             result = self.deploy(message['data']['agent_id'], message['data']['agent'], message['data']['metadata'], message['data']['version'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "deployment_result", "data": result})
+            self.send_result("deployment_result", result)

@@ -30,6 +30,4 @@ class RedTeamManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "attack_simulation":
             result = self.run(message['data']['target'], message['data']['scenario_name'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "attack_result", "data": result})
+            self.send_result("attack_result", result)

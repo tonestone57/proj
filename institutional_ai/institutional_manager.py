@@ -50,6 +50,4 @@ class InstitutionalManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "evaluate_action":
             result = self.evaluate(message['data']['agent_id'], message['data']['action'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "institutional_result", "data": result})
+            self.send_result("institutional_result", result)

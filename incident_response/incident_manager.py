@@ -45,6 +45,4 @@ class IncidentManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "incident_handle":
             result = self.handle(message['data']['agent'], message['data']['action'], message['data']['state'], message['data']['context'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "incident_result", "data": result})
+            self.send_result("incident_result", result)

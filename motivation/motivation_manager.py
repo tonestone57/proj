@@ -28,6 +28,4 @@ class MotivationManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "motivation_evaluation":
             result = self.evaluate(message['data']['action'], message['data']['predicted_state'], message['data']['actual_state'])
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
-            self.scheduler.submit.remote(handle, {"type": "motivation_result", "data": result})
+            self.send_result("motivation_result", result)
