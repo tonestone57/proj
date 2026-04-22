@@ -3,20 +3,25 @@ import re
 import collections
 
 try:
-    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
+    from ipex_llm.transformers import AutoModelForCausalLM as IpexModel, AutoTokenizer as IpexTokenizer
 except ImportError:
-    AutoModelForCausalLM, AutoTokenizer = None, None
+    IpexModel, IpexTokenizer = None, None
+
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class NGramCache:
     """
     SGI 2026: N-Gram Cache for fast speculative lookahead in syntax-heavy blocks.
     Optimized for code and logic where patterns are highly repetitive.
     Supports using the model's tokenizer for better token-alignment.
+    Implemented with LRU eviction for memory safety on 16GB systems.
     """
-    def __init__(self, n=3, tokenizer=None):
+    def __init__(self, n=3, tokenizer=None, max_size=50000):
         self.n = n
         self.tokenizer = tokenizer
-        self.cache = collections.defaultdict(collections.Counter)
+        self.max_size = max_size
+        # Use OrderedDict as an LRU tracker for prefix keys
+        self.cache = collections.OrderedDict()
 
     def _tokenize(self, text):
         if self.tokenizer:
@@ -32,6 +37,16 @@ class NGramCache:
         for i in range(len(tokens) - self.n):
             prefix = tuple(tokens[i:i + self.n])
             next_token = tokens[i + self.n]
+
+            if prefix not in self.cache:
+                if len(self.cache) >= self.max_size:
+                    # LRU Eviction: Remove the oldest entry
+                    self.cache.popitem(last=False)
+                self.cache[prefix] = collections.Counter()
+            else:
+                # Refresh position for LRU
+                self.cache.move_to_end(prefix)
+
             self.cache[prefix][next_token] += 1
 
     def propose(self, prefix_text, length=5):
@@ -40,12 +55,18 @@ class NGramCache:
             return []
 
         proposals = []
+        # Extract last N tokens as the starting prefix
         current_prefix = tuple(tokens[-self.n:])
 
         for _ in range(length):
+            # Check for exact prefix in cache
             if current_prefix in self.cache:
+                # Refresh position for LRU (move to end)
+                self.cache.move_to_end(current_prefix, last=True)
+                # Important: Use most_common(1) on the counter
                 next_token = self.cache[current_prefix].most_common(1)[0][0]
                 proposals.append(next_token)
+                # Update prefix for next iteration
                 current_prefix = current_prefix[1:] + (next_token,)
             else:
                 break
@@ -72,14 +93,14 @@ class ModelRegistry:
 
         print(f"[ModelRegistry] Loading {model_id} (Q4_K_M) as Shared World Model...")
         print(f"[ModelRegistry] Loading {draft_model_id} as Speculative Draft Model (Reflex Path)...")
-        if AutoModelForCausalLM and AutoTokenizer:
+        if IpexModel and IpexTokenizer:
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+                self.tokenizer = IpexTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.ngram_cache.tokenizer = self.tokenizer # Upgrade to real tokenizer
 
                 # SGI 2026: Shared model weights in Q4_K_M
                 # PagedAttention enabled via ipex-llm to prevent OOM
-                self.model = AutoModelForCausalLM.from_pretrained(
+                self.model = IpexModel.from_pretrained(
                     model_id,
                     load_in_low_bit="Q4_K_M",
                     trust_remote_code=True,
@@ -88,16 +109,39 @@ class ModelRegistry:
                 )
                 # SGI 2026: Initialize draft model for speculative decoding
                 print(f"[ModelRegistry] Loading draft model {draft_model_id} for speculative speedup...")
-                self.draft_model = AutoModelForCausalLM.from_pretrained(
+                self.draft_model = IpexModel.from_pretrained(
                     draft_model_id,
                     load_in_low_bit="sym_int8",
                     trust_remote_code=True
                 )
                 print(f"[ModelRegistry] Model mapped to sym_int8 logic engine (AVX2-optimized).")
             except Exception as e:
-                print(f"[ModelRegistry] Error loading model: {e}. Falling back to mock.")
+                print(f"[ModelRegistry] IPEX Error: {e}. Falling back to standard transformers.")
+                self._load_standard(model_id, draft_model_id)
         else:
-            print("[ModelRegistry] IPEX-LLM/Transformers not available. Using mock model provider.")
+            print("[ModelRegistry] IPEX-LLM not detected. Using standard Transformers fallback.")
+            self._load_standard(model_id, draft_model_id)
+
+    def _load_standard(self, model_id, draft_model_id):
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+            self.ngram_cache.tokenizer = self.tokenizer
+
+            # Standard transformers loading (CPU optimized)
+            print(f"[ModelRegistry] Loading {model_id} in 4-bit (standard) mode...")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                device_map="cpu",
+                trust_remote_code=True,
+                low_cpu_mem_usage=True
+            )
+            self.draft_model = AutoModelForCausalLM.from_pretrained(
+                draft_model_id,
+                device_map="cpu",
+                trust_remote_code=True
+            )
+        except Exception as e:
+            print(f"[ModelRegistry] Error loading standard model: {e}. Using mock.")
 
     def set_power_mode(self, reflex_only=False):
         """

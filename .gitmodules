@@ -1,0 +1,12 @@
+[submodule "LiveCodeBench"]
+	path = LiveCodeBench
+	url = https://github.com/LiveCodeBench/LiveCodeBench.git
+[submodule "livebench"]
+	path = livebench
+	url = https://github.com/livebench/livebench.git
+[submodule "human-eval"]
+	path = human-eval
+	url = https://github.com/openai/human-eval.git
+[submodule "inspect_evals"]
+	path = inspect_evals
+	url = https://github.com/UKGovernmentBEIS/inspect_evals.git
