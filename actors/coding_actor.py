@@ -129,7 +129,48 @@ class CodingActor(CognitiveModule):
 
     def execute_logic_internal(self, code):
         stdout, stderr = io.StringIO(), io.StringIO()
-        safe_globals = {"__builtins__": {"print": print, "range": range, "len": len, "int": int, "str": str}}
+
+        # SGI 2026: Inject high-performance libraries for Dynamic Programming & Graph Theory
+        import math
+        import collections
+        import heapq
+        import bisect
+        import itertools
+        import functools
+        import operator
+        import re
+        import typing
+
+        safe_globals = {
+            "__builtins__": {
+                "print": print, "range": range, "len": len, "int": int, "str": str,
+                "dict": dict, "list": list, "set": set, "tuple": tuple, "bool": bool,
+                "float": float, "abs": abs, "min": min, "max": max, "sum": sum,
+                "sorted": sorted, "reversed": reversed, "enumerate": enumerate, "zip": zip,
+                "any": any, "all": all, "map": map, "filter": filter, "round": round, "pow": pow,
+                "__import__": __import__
+            },
+            "math": math,
+            "collections": collections,
+            "heapq": heapq,
+            "bisect": bisect,
+            "itertools": itertools,
+            "functools": functools,
+            "operator": operator,
+            "re": re,
+            "typing": typing,
+            # Direct Access for common DP/Graph tools
+            "deque": collections.deque,
+            "Counter": collections.Counter,
+            "defaultdict": collections.defaultdict,
+            "cache": functools.cache,
+            "lru_cache": functools.lru_cache,
+            "accumulate": itertools.accumulate,
+            "comb": math.comb,
+            "inf": float("inf"),
+            "nan": float("nan")
+        }
+
         try:
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 exec(code, safe_globals)
