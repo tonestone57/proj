@@ -53,3 +53,8 @@ class ConsolidationManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ConsolidationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "consolidation_trigger":
+            result = self.consolidate()
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "consolidation_result", "data": result})

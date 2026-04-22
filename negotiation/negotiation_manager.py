@@ -12,24 +12,25 @@ from negotiation.compliance_engine import ComplianceEngine
 class NegotiationManager(CognitiveModule):
     def __init__(self, role_weights=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        self.protocol = NegotiationProtocol()
-        self.proposals = ProposalEngine()
+        weights = role_weights or {}
+        self.utility = UtilityFunction(weights)
         self.concessions = ConcessionStrategy()
-        self.utility = UtilityFunction(role_weights or {})
-        self.consensus = ConsensusEngine()
+        self.consensus = ConsensusEngine(weights)
+        self.protocol = NegotiationProtocol(self.utility, self.concessions, self.consensus)
+        self.proposals = ProposalEngine()
         self.treaties = TreatyGraph()
         self.compliance = ComplianceEngine()
 
     def negotiate(self, issue, agents):
-        context = self.protocol.init_session(issue, agents)
-        while not self.consensus.reached(context):
-            for agent in agents:
-                proposal = self.proposals.generate(agent, context)
-                concession = self.concessions.calculate(agent, proposal)
-                context = self.protocol.update(context, agent, concession)
-        treaty = self.treaties.formulate(context)
+        proposals = [self.proposals.generate(a, issue) for a in agents]
+        best = self.protocol.negotiate(agents, proposals)
+        treaty = self.treaties.formulate(best)
         return self.compliance.verify(treaty)
 
     def receive(self, message):
-        # Standard SGI 2026 message handling for NegotiationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "negotiation_request":
+            result = self.negotiate(message['data']['issue'], message['data']['agents'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "negotiation_result", "data": result})

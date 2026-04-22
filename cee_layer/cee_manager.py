@@ -37,3 +37,8 @@ class CEEManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for CEEManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "stimulus_processing":
+            result = self.process(message['data']['stimuli'], message['data']['reasoning_score'], message['data']['action'], message['data']['context'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "stimulus_result", "data": result})

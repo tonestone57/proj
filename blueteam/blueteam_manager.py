@@ -35,3 +35,8 @@ class BlueTeamManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for BlueTeamManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "defense_request":
+            result = self.defend(message['data']['traffic'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "defense_result", "data": result})

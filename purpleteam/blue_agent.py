@@ -1,4 +1,4 @@
-LinkedIn
+
 class BlueAgent:
     def defend(self, attack):
         if attack["attack"] == "policy_evasion":

@@ -48,3 +48,13 @@ class ConsoleManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ConsoleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "review_request":
+            result = self.review_action(message['data']['action_id'], message['data']['action_result'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "review_result", "data": result})
+        elif message["type"] == "queue_process":
+            result = self.process_queue()
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "queue_result", "data": result})

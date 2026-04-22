@@ -1,4 +1,4 @@
-Github
+
 class HumanInterface:
     def present(self, action):
         return f"Action requires approval: {action}"

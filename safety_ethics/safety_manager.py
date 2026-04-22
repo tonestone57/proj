@@ -42,3 +42,8 @@ class SafetyManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for SafetyManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "safety_evaluation":
+            result = self.evaluate(message['data']['action'], message['data']['internal_state'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "safety_result", "data": result})

@@ -1,4 +1,4 @@
-lasso.security
+
 class FusionOrchestrator:
     def cycle(self, red, blue, state):
         attack = red.attack(state)

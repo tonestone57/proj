@@ -26,6 +26,30 @@ from monitoring.thermal_guard import ThermalGuard
 from meta_learning.meta_manager import MetaManager
 from training.training_manager import TrainingManager
 
+# New standardized managers
+from safety_ethics.safety_manager import SafetyManager
+from safety_ethics.ethics_manager import EthicsManager
+from metacognition.metacognition_manager import MetacognitionManager
+from cee_layer.cee_manager import CEEManager
+from emotion.emotion_manager import EmotionManager
+from conflict_resolution.conflict_manager import ConflictManager
+from institutional_ai.institutional_manager import InstitutionalManager
+from world_model.manager import WorldModelManager
+from memory_consolidation.consolidation_manager import ConsolidationManager
+from self_model.self_manager import SelfManager
+from blueteam.blueteam_manager import BlueTeamManager
+from redteam.redteam_manager import RedTeamManager
+from purpleteam.purple_manager import PurpleManager
+from incident_response.incident_manager import IncidentManager
+from monitoring.monitoring_manager import MonitoringManager
+from economics.economic_manager import EconomicManager
+from negotiation.negotiation_manager import NegotiationManager
+from deployment.deployment_manager import DeploymentManager
+from orchestration.orchestration_manager import OrchestrationManager
+from simulation.simulation_manager import SimulationManager
+from console.console_manager import ConsoleManager
+from motivation.motivation_manager import MotivationManager
+
 # Enforce thread limits for Intel i7-8265U (15W TDP)
 os.environ["OMP_NUM_THREADS"] = str(MAX_THREADS)
 os.environ["MKL_NUM_THREADS"] = str(MAX_THREADS)
@@ -95,6 +119,30 @@ async def cognitive_cycle():
     meta_manager = MetaManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     training_manager = TrainingManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
+    # Initialize New Managers
+    safety_manager = SafetyManager.remote(workspace, scheduler, model_registry=model_provider)
+    ethics_manager = EthicsManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    metacognition_manager = MetacognitionManager.remote(workspace, scheduler, model_registry=model_provider)
+    cee_manager = CEEManager.remote(workspace, scheduler, model_registry=model_provider)
+    emotion_manager = EmotionManager.remote(workspace, scheduler, model_registry=model_provider)
+    conflict_manager = ConflictManager.remote(workspace, scheduler, model_registry=model_provider)
+    institutional_manager = InstitutionalManager.remote(workspace, scheduler, model_registry=model_provider)
+    world_model_manager = WorldModelManager.remote(workspace, scheduler, model_registry=model_provider)
+    consolidation_manager = ConsolidationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    self_manager = SelfManager.remote(workspace, scheduler, model_registry=model_provider)
+    blueteam_manager = BlueTeamManager.remote(workspace, scheduler, model_registry=model_provider)
+    redteam_manager = RedTeamManager.remote(workspace, scheduler, model_registry=model_provider)
+    purpleteam_manager = PurpleManager.remote(workspace, scheduler, model_registry=model_provider)
+    incident_manager = IncidentManager.remote(workspace, scheduler, model_registry=model_provider)
+    monitoring_manager = MonitoringManager.remote(workspace, scheduler, model_registry=model_provider)
+    economic_manager = EconomicManager.remote(workspace, scheduler, model_registry=model_provider)
+    negotiation_manager = NegotiationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    deployment_manager = DeploymentManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    orchestration_manager = OrchestrationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    simulation_manager = SimulationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    console_manager = ConsoleManager.remote(workspace, scheduler, model_registry=model_provider)
+    motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
     hub = SGIHub(workspace, scheduler, thermal_guard)
     drives = DriveEngine()
     thermal_pid = PIDController(setpoint=72.0)
@@ -158,7 +206,7 @@ async def cognitive_cycle():
                 print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
                 # Cycle through autonomous tasks
-                cycle_step = tick % 6
+                cycle_step = tick % 9
                 if cycle_step == 0:
                     await hub.safe_delegate(meta_manager, "active_inference_trigger", None)
                 elif cycle_step == 1:
@@ -171,6 +219,12 @@ async def cognitive_cycle():
                     await hub.safe_delegate(coder, "code_execution", "Refactor core actors for Minimum Description Length (MDL) efficiency")
                 elif cycle_step == 5:
                     await hub.safe_delegate(training_manager, "autonomous_training", None)
+                elif cycle_step == 6:
+                    await hub.safe_delegate(metacognition_manager, "introspection_request", {"internal_state": state, "reasoning_trace": "Autonomous optimization", "decision": "Continue"})
+                elif cycle_step == 7:
+                    await hub.safe_delegate(consolidation_manager, "consolidation_trigger", None)
+                elif cycle_step == 8:
+                    await hub.safe_delegate(simulation_manager, "simulation_step", None)
 
         await hub.poll_scheduler()
         await asyncio.sleep(current_tick_interval)

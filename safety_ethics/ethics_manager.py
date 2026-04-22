@@ -2,7 +2,7 @@ from core.base import CognitiveModule
 import ray
 @ray.remote
 class EthicsManager(CognitiveModule):
-    def __init__(self, norm_library, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, norm_library=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.norm_library = norm_library
 
@@ -30,4 +30,9 @@ class EthicsManager(CognitiveModule):
 
     def receive(self, message):
         """Standard SGI message receiver."""
-        pass
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "ethics_check":
+            score = self.assess_safety(message)
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "ethics_result", "data": {"safety_score": score}})

@@ -34,3 +34,8 @@ class MonitoringManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for MonitoringManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "monitoring_request":
+            result = self.monitor(message['data']['agent_id'], message['data']['state'], message['data']['action'], message['data']['reasoning'], message['data']['allowed_actions'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "monitoring_result", "data": result})

@@ -1,4 +1,4 @@
-Deloitte
+
 class OversightDashboard:
     def __init__(self):
         self.metrics = {}

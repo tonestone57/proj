@@ -39,6 +39,11 @@ class ConflictManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ConflictManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "resolve_conflict":
+            result = self.resolve(message['data']['beliefs'], message['data']['action'], message['data']['context'])
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "conflict_result", "data": result})
 
 class GovernanceLayer:
     def __init__(self, policy_engine, oversight_agent):
