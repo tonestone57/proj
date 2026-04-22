@@ -10,15 +10,19 @@ class TheoryOfMind(CognitiveModule):
 
     def receive(self, message):
         if message["type"] == "social_event":
-            self.update_agent_model(message["agent"], message["data"])
+            self.update_agent_model(message.get("agent"), message.get("data"))
 
         if message["type"] == "infer_intention":
-            intention = self.infer_intention(message["agent"])
+            # Data might contain the agent name, or it might be in a top-level 'agent' field
+            agent = message.get("agent") or message.get("data")
+            if isinstance(agent, dict): agent = agent.get("agent")
+
+            intention = self.infer_intention(agent)
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
             self.scheduler.submit.remote(handle, {
                 "type": "intention_inferred",
-                "agent": message["agent"],
+                "agent": agent,
                 "data": intention
             })
 

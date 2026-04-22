@@ -75,6 +75,10 @@ class SGIHub:
         self.scheduler = scheduler
         self.thermal_guard = thermal_guard
         self.state = {"focus": "idle", "history": []}
+        self.autonomous_task_registry = []
+
+    def register_autonomous_task(self, actor_handle, task_type, payload):
+        self.autonomous_task_registry.append((actor_handle, task_type, payload))
 
     def check_ram_guard(self):
         """
@@ -171,6 +175,37 @@ async def cognitive_cycle():
     asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
+
+    # SGI 2026: Register autonomous rotation tasks
+    hub.register_autonomous_task(meta_manager, "active_inference_trigger", None)
+    hub.register_autonomous_task(memory_manager, "trigger_sleep_cycle", None)
+    hub.register_autonomous_task(reasoner, "query", "Autonomous mathematical discovery and logic synthesis")
+    hub.register_autonomous_task(searcher, "search_request", "Latest SGI 2026 compression and RAG optimizations")
+    hub.register_autonomous_task(coder, "code_execution", "Refactor core actors for Minimum Description Length (MDL) efficiency")
+    hub.register_autonomous_task(training_manager, "autonomous_training", None)
+    hub.register_autonomous_task(metacognition_manager, "introspection_request", {"internal_state": {}, "reasoning_trace": "Autonomous optimization", "decision": "Continue"})
+    hub.register_autonomous_task(consolidation_manager, "consolidation_trigger", None)
+    hub.register_autonomous_task(simulation_manager, "simulation_step", None)
+    hub.register_autonomous_task(blueteam_manager, "defense_request", {"traffic": "Intrusion detected at Node 5"})
+    hub.register_autonomous_task(economic_manager, "allocation_request", {"agents": ["Agent1", "Agent2"], "task": Task(id="Task-1", demand=100), "context": "Priority execution"})
+    hub.register_autonomous_task(negotiation_manager, "negotiation_request", {"issue": "Resource sharing", "agents": ["Agent1", "Agent2"]})
+    hub.register_autonomous_task(social_reasoner, "user_interaction", "Analyzing social dynamics in the APW workspace")
+    hub.register_autonomous_task(theory_of_mind, "infer_intention", "Apriel-Thinker")
+    hub.register_autonomous_task(asoc_manager, "security_audit", {"event": "Periodic system health check", "timestamp": time.time()})
+    hub.register_autonomous_task(monitoring_manager, "monitoring_request", {"agent_id": "Apriel-15B", "state": {}, "action": "autonomous_rotation", "reasoning": "SGI Heartbeat", "allowed_actions": ["reason", "search", "code"]})
+    hub.register_autonomous_task(incident_manager, "incident_handle", {"agent": "SGI-Alpha", "action": "heartbeat", "state": {}, "context": "nominal_operation"})
+    hub.register_autonomous_task(self_manager, "self_update", {"state": {}, "policy": {"goal": "MDL_optimization"}})
+    hub.register_autonomous_task(emotion_manager, "event_processing", {"event": "Successful heartbeat synchronization"})
+    hub.register_autonomous_task(institutional_manager, "evaluate_action", {"agent_id": "SGI-Alpha", "action": {"type": "heartbeat"}})
+    hub.register_autonomous_task(world_model_manager, "prediction_request", {"actions": ["continue_optimization", "sleep_cycle"]})
+    hub.register_autonomous_task(purpleteam_manager, "cycle_trigger", {"state": {}})
+    hub.register_autonomous_task(redteam_manager, "attack_simulation", {"target": "SGI-Workspace", "scenario_name": "data_exfiltration"})
+    hub.register_autonomous_task(deployment_manager, "deployment_request", {"agent_id": "Reflex-02", "agent": "Qwen-0.8B", "metadata": {"tier": 1}, "version": "1.0.4"})
+    hub.register_autonomous_task(orchestration_manager, "event_handle", {"event": {"type": "heartbeat_tick", "tick": 0}})
+    hub.register_autonomous_task(safety_manager, "safety_evaluation", {"action": {"type": "self_improvement"}, "internal_state": {}})
+    hub.register_autonomous_task(ethics_manager, "ethics_check", {"data": "Autonomous code refactoring for MDL"})
+    hub.register_autonomous_task(cee_manager, "stimulus_processing", {"stimuli": "High entropy detected", "reasoning_score": 0.85, "action": "re-planning", "context": "heartbeat"})
+
     drives = DriveEngine()
     thermal_pid = PIDController(setpoint=72.0)
 
@@ -242,64 +277,21 @@ async def cognitive_cycle():
                 # SGI 2026: Autonomous Self-Improvement Cycle
                 print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
-                # Cycle through autonomous tasks (Expanded SGI 2026 Rotation)
-                cycle_step = tick % 28
-                if cycle_step == 0:
-                    await hub.safe_delegate(meta_manager, "active_inference_trigger", None)
-                elif cycle_step == 1:
-                    await hub.safe_delegate(memory_manager, "trigger_sleep_cycle", None)
-                elif cycle_step == 2:
-                    await hub.safe_delegate(reasoner, "query", "Autonomous mathematical discovery and logic synthesis")
-                elif cycle_step == 3:
-                    await hub.safe_delegate(searcher, "search_request", "Latest SGI 2026 compression and RAG optimizations")
-                elif cycle_step == 4:
-                    await hub.safe_delegate(coder, "code_execution", "Refactor core actors for Minimum Description Length (MDL) efficiency")
-                elif cycle_step == 5:
-                    await hub.safe_delegate(training_manager, "autonomous_training", None)
-                elif cycle_step == 6:
-                    await hub.safe_delegate(metacognition_manager, "introspection_request", {"internal_state": state, "reasoning_trace": "Autonomous optimization", "decision": "Continue"})
-                elif cycle_step == 7:
-                    await hub.safe_delegate(consolidation_manager, "consolidation_trigger", None)
-                elif cycle_step == 8:
-                    await hub.safe_delegate(simulation_manager, "simulation_step", None)
-                elif cycle_step == 9:
-                    await hub.safe_delegate(blueteam_manager, "defense_request", {"traffic": "Intrusion detected at Node 5"})
-                elif cycle_step == 10:
-                    await hub.safe_delegate(economic_manager, "allocation_request", {"agents": ["Agent1", "Agent2"], "task": Task(id="Task-1", demand=100), "context": "Priority execution"})
-                elif cycle_step == 11:
-                    await hub.safe_delegate(negotiation_manager, "negotiation_request", {"issue": "Resource sharing", "agents": ["Agent1", "Agent2"]})
-                elif cycle_step == 12:
-                    await hub.safe_delegate(social_reasoner, "user_interaction", "Analyzing social dynamics in the APW workspace")
-                elif cycle_step == 13:
-                    await hub.safe_delegate(theory_of_mind, "infer_intention", "Apriel-Thinker")
-                elif cycle_step == 14:
-                    await hub.safe_delegate(asoc_manager, "security_audit", {"event": "Periodic system health check", "timestamp": time.time()})
-                elif cycle_step == 15:
-                    await hub.safe_delegate(monitoring_manager, "monitoring_request", {"agent_id": "Apriel-15B", "state": state, "action": "autonomous_rotation", "reasoning": "SGI Heartbeat", "allowed_actions": ["reason", "search", "code"]})
-                elif cycle_step == 16:
-                    await hub.safe_delegate(incident_manager, "incident_handle", {"agent": "SGI-Alpha", "action": "heartbeat", "state": state, "context": "nominal_operation"})
-                elif cycle_step == 17:
-                    await hub.safe_delegate(self_manager, "self_update", {"state": state, "policy": {"goal": "MDL_optimization"}})
-                elif cycle_step == 18:
-                    await hub.safe_delegate(emotion_manager, "event_processing", {"event": "Successful heartbeat synchronization"})
-                elif cycle_step == 19:
-                    await hub.safe_delegate(institutional_manager, "evaluate_action", {"agent_id": "SGI-Alpha", "action": {"type": "heartbeat"}})
-                elif cycle_step == 20:
-                    await hub.safe_delegate(world_model_manager, "prediction_request", {"actions": ["continue_optimization", "sleep_cycle"]})
-                elif cycle_step == 21:
-                    await hub.safe_delegate(purpleteam_manager, "cycle_trigger", {"state": state})
-                elif cycle_step == 22:
-                    await hub.safe_delegate(redteam_manager, "attack_simulation", {"target": "SGI-Workspace", "scenario_name": "data_exfiltration"})
-                elif cycle_step == 23:
-                    await hub.safe_delegate(deployment_manager, "deployment_request", {"agent_id": "Reflex-02", "agent": "Qwen-0.8B", "metadata": {"tier": 1}, "version": "1.0.4"})
-                elif cycle_step == 24:
-                    await hub.safe_delegate(orchestration_manager, "event_handle", {"event": {"type": "heartbeat_tick", "tick": tick}})
-                elif cycle_step == 25:
-                    await hub.safe_delegate(safety_manager, "safety_evaluation", {"action": {"type": "self_improvement"}, "internal_state": state})
-                elif cycle_step == 26:
-                    await hub.safe_delegate(ethics_manager, "ethics_check", {"data": "Autonomous code refactoring for MDL"})
-                elif cycle_step == 27:
-                    await hub.safe_delegate(cee_manager, "stimulus_processing", {"stimuli": "High entropy detected", "reasoning_score": 0.85, "action": "re-planning", "context": "heartbeat"})
+                # Use the Registry-based rotation
+                task_idx = tick % len(hub.autonomous_task_registry)
+                actor_h, t_type, payload = hub.autonomous_task_registry[task_idx]
+
+                # Update dynamic fields in payloads
+                if isinstance(payload, dict):
+                    # Consistently provide state and internal_state
+                    if "internal_state" in payload: payload["internal_state"] = state
+                    if "state" in payload: payload["state"] = state
+
+                    # Update other dynamic fields
+                    if "tick" in payload: payload["tick"] = tick
+                    if "timestamp" in payload: payload["timestamp"] = time.time()
+
+                await hub.safe_delegate(actor_h, t_type, payload)
 
         await hub.poll_scheduler(conflict_manager=conflict_manager)
         await asyncio.sleep(current_tick_interval)

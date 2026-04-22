@@ -123,3 +123,6 @@ class ASOCManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ASOCManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "security_audit":
+            result = self.process_event(message['data'])
+            self.send_result("security_audit_result", result)
