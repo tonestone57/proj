@@ -85,11 +85,13 @@ class SearchActor(CognitiveModule):
         """SGI 2026: Conservative suffix-stripping stemming to avoid false positives."""
         if not word or len(word) <= 4: return word
         w = word.lower()
-        # Protect common technical terms or short words
-        if w in {"this", "user", "used", "uses", "data", "code"}: return w
-        if w.endswith('ies'): return w[:-3] + 'y'
+        # Protect common technical terms and project-specific keywords
+        protected = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both"}
+        if w in protected: return w
+        # Handle common plural and tense suffixes
+        if w.endswith('ies') and len(w) > 5: return w[:-3] + 'y'
         if w.endswith('sses'): return w[:-2]
-        if w.endswith('s') and not w.endswith('ss'): return w[:-1]
+        if w.endswith('s') and not w.endswith('ss') and not w.endswith('us'): return w[:-1]
         if w.endswith('ing') and len(w) > 6: return w[:-3]
         if w.endswith('ed') and len(w) > 5: return w[:-2]
         return w
@@ -163,24 +165,27 @@ class SearchActor(CognitiveModule):
                                 bonus = (unique_in_span ** 1.5) * density
                                 proximity_bonus = max(proximity_bonus, bonus)
 
-            # Combine scores with soft length normalization (sqrt) to prevent extreme penalization of longer docs
+            # Combine scores with soft length normalization (sqrt)
+            # We use sqrt to balance between rewarding comprehensive content and penalizing verbosity.
             len_norm = math.sqrt(len(res_tokens) + 5)
-            score = (unigram_matches + (bigram_matches * 2)) / len_norm
+            score = (unigram_matches + (bigram_matches * 2.5)) / len_norm
             score += proximity_bonus
 
-            # 4. Coverage Multiplier (SGI 2026: exponential reward for term coverage)
+            # 4. Coverage Multiplier (SGI 2026: robust reward for query term coverage)
+            # Documents containing a majority of query terms are prioritized as potential answers.
             if coverage > 0.4:
-                score *= (1.0 + (coverage ** 2) * 5.0)
+                score *= (1.0 + (coverage ** 2) * 4.0)
 
-            # 5. Exact phrase match bonus (Checking original string for phrase matching)
-            # SGI 2026: Using normalized strings (tokens) for better phrase matching
+            # 5. Exact phrase match bonus
+            # SGI 2026: Exact phrase hits represent high-confidence retrievals.
             q_norm = " ".join(query_tokens_raw).lower()
             r_norm = " ".join(res_tokens_raw).lower()
 
             if q_norm in r_norm:
-                score += 200.0 # Robust priority for exact phrase hits
+                score += 300.0 # Significant boost for exact semantic alignment
             else:
-                # Fuzzy ordered match bonus (SGI 2026: Longest Common Subsequence of tokens)
+                # Fuzzy ordered match bonus (Longest Common Subsequence of tokens)
+                # Rewards documents that preserve the narrative flow of the query.
                 ordered_matches = 0
                 curr_idx = 0
                 for qt in query_tokens:
@@ -191,7 +196,7 @@ class SearchActor(CognitiveModule):
                     except ValueError: continue
 
                 if ordered_matches >= 2:
-                    score += (ordered_matches / len(query_tokens)) * 50.0
+                    score += (ordered_matches / len(query_tokens)) * 100.0
 
             # SGI 2026: Forum Accuracy Penalty
             # Forum posts are prioritized lower due to potential inaccuracies.
@@ -214,7 +219,7 @@ class SearchActor(CognitiveModule):
             res_tokens_count = len(re.findall(r'\w+', res_str))
             if res_tokens_count > 0:
                 unigram_density = score / res_tokens_count
-                if unigram_density < 0.1 and score < 10.0: # Only for non-exact hits with low relevance
+                if unigram_density < 0.08 and score < 50.0: # Only for non-exact hits with low relative relevance
                     score *= 0.1 # General low-quality content penalty
 
             if self.license_actor.is_forum(res_str):
@@ -233,6 +238,7 @@ class SearchActor(CognitiveModule):
                     # Verified forum post: Keep but maintain penalty
                     pass
 
+            # SGI 2026: Append the finalized score to results list
             final_scored_results.append((score, res))
 
         # Sort by score descending
