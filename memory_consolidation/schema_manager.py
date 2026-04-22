@@ -1,5 +1,4 @@
 from core.base import CognitiveModule
-import ray
 
 class SchemaManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
@@ -29,6 +28,3 @@ class SchemaManager(CognitiveModule):
             return enriched
         return partial_memory
 
-    def receive(self, message):
-        """Standard SGI message receiver."""
-        pass

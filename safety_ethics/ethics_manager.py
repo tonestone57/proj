@@ -6,22 +6,22 @@ class EthicsManager(CognitiveModule):
         super().__init__(workspace, scheduler, model_registry)
         self.norm_library = norm_library
 
-    def is_safe(self, message):
+    def is_safe(self, data):
         # Placeholder logic: Check if message data contains 'harm'
-        data = str(message.get("data", ""))
-        if "harm" in data.lower() or "kill" in data.lower():
+        data_str = str(data)
+        if "harm" in data_str.lower() or "kill" in data_str.lower():
             return False
         return True
 
-    def assess_safety(self, message):
+    def assess_safety(self, data):
         """
         Provides a safety score between 0 and 1.
         Used by AttentionGate for proactive vetoing.
         """
-        if not self.is_safe(message):
+        if not self.is_safe(data):
             return 0.0
 
-        data = str(message.get("data", "")).lower()
+        data_str = str(data).lower()
         # Heuristic risks
         if "exploit" in data or "vulnerability" in data:
             return 0.4
@@ -32,7 +32,7 @@ class EthicsManager(CognitiveModule):
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "ethics_check":
-            score = self.assess_safety(message)
+            score = self.assess_safety(message.get("data"))
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
             self.scheduler.submit.remote(handle, {"type": "ethics_result", "data": {"safety_score": score}})

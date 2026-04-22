@@ -1,4 +1,3 @@
-import ray
 from core.base import CognitiveModule
 
 
