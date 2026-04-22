@@ -3,9 +3,11 @@ import re
 import collections
 
 try:
-    from ipex_llm.transformers import AutoModelForCausalLM, AutoTokenizer
+    from ipex_llm.transformers import AutoModelForCausalLM as IpexModel, AutoTokenizer as IpexTokenizer
 except ImportError:
-    AutoModelForCausalLM, AutoTokenizer = None, None
+    IpexModel, IpexTokenizer = None, None
+
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class NGramCache:
     """
@@ -91,14 +93,14 @@ class ModelRegistry:
 
         print(f"[ModelRegistry] Loading {model_id} (Q4_K_M) as Shared World Model...")
         print(f"[ModelRegistry] Loading {draft_model_id} as Speculative Draft Model (Reflex Path)...")
-        if AutoModelForCausalLM and AutoTokenizer:
+        if IpexModel and IpexTokenizer:
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+                self.tokenizer = IpexTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.ngram_cache.tokenizer = self.tokenizer # Upgrade to real tokenizer
 
                 # SGI 2026: Shared model weights in Q4_K_M
                 # PagedAttention enabled via ipex-llm to prevent OOM
-                self.model = AutoModelForCausalLM.from_pretrained(
+                self.model = IpexModel.from_pretrained(
                     model_id,
                     load_in_low_bit="Q4_K_M",
                     trust_remote_code=True,
@@ -107,16 +109,39 @@ class ModelRegistry:
                 )
                 # SGI 2026: Initialize draft model for speculative decoding
                 print(f"[ModelRegistry] Loading draft model {draft_model_id} for speculative speedup...")
-                self.draft_model = AutoModelForCausalLM.from_pretrained(
+                self.draft_model = IpexModel.from_pretrained(
                     draft_model_id,
                     load_in_low_bit="sym_int8",
                     trust_remote_code=True
                 )
                 print(f"[ModelRegistry] Model mapped to sym_int8 logic engine (AVX2-optimized).")
             except Exception as e:
-                print(f"[ModelRegistry] Error loading model: {e}. Falling back to mock.")
+                print(f"[ModelRegistry] IPEX Error: {e}. Falling back to standard transformers.")
+                self._load_standard(model_id, draft_model_id)
         else:
-            print("[ModelRegistry] IPEX-LLM/Transformers not available. Using mock model provider.")
+            print("[ModelRegistry] IPEX-LLM not detected. Using standard Transformers fallback.")
+            self._load_standard(model_id, draft_model_id)
+
+    def _load_standard(self, model_id, draft_model_id):
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+            self.ngram_cache.tokenizer = self.tokenizer
+
+            # Standard transformers loading (CPU optimized)
+            print(f"[ModelRegistry] Loading {model_id} in 4-bit (standard) mode...")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                device_map="cpu",
+                trust_remote_code=True,
+                low_cpu_mem_usage=True
+            )
+            self.draft_model = AutoModelForCausalLM.from_pretrained(
+                draft_model_id,
+                device_map="cpu",
+                trust_remote_code=True
+            )
+        except Exception as e:
+            print(f"[ModelRegistry] Error loading standard model: {e}. Using mock.")
 
     def set_power_mode(self, reflex_only=False):
         """
