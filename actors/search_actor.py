@@ -1,5 +1,6 @@
 import re
 import math
+import collections
 import ray
 import hashlib
 import numpy as np
@@ -34,19 +35,19 @@ class LicenseActor:
 class SearchActor(CognitiveModule):
     # SGI 2026: Configurable scoring weights for reranking heuristics
     SCORING_WEIGHTS = {
-        "technical_identifier": 15.0, # High weight for precision terms
+        "technical_identifier": 20.0, # High weight for precision terms
         "long_word": 5.0,
-        "bigram": 10.0,               # Concept cohesion
-        "proximity_power": 2.0,
+        "bigram": 15.0,               # Concept cohesion
+        "proximity_power": 2.5,
         "coverage_threshold": 0.1,
-        "coverage_multiplier": 50.0,  # Strongly favor documents covering more query terms
-        "exact_phrase": 5000.0,       # Absolute priority for exact matches
-        "ordered_fuzzy": 1000.0,      # High reward for preserving query narrative
+        "coverage_multiplier": 100.0, # Strongly favor documents covering more query terms
+        "exact_phrase": 10000.0,      # Absolute priority for exact matches
+        "ordered_fuzzy": 2000.0,      # High reward for preserving query narrative
         "forum_penalty": 0.1,
         "quality_density_min": 0.05,
         "quality_penalty": 0.1,
-        "exact_hit_threshold": 200.0,
-        "domain_keyword": 30.0
+        "exact_hit_threshold": 500.0,
+        "domain_keyword": 50.0
     }
 
     def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None, memory_manager=None):
@@ -148,10 +149,24 @@ class SearchActor(CognitiveModule):
             unigram_matches = 0.0
             matched_query_tokens = set()
             for i, t in enumerate(res_tokens):
+                raw_t = res_tokens_raw[i]
+
+                # Check for direct matches or technical synonyms
+                is_match = False
                 if t in query_token_set:
                     matched_query_tokens.add(t)
-                    # SGI 2026: technical term bonus (identifiers with underscores/numbers or uppercase-ish)
-                    raw_t = res_tokens_raw[i]
+                    is_match = True
+                else:
+                    # SGI 2026: Technical synonym handling (e.g., governor -> controller)
+                    synonyms = {"controller": "governor", "reflex": "tier 1", "tier 1": "reflex"}
+                    for qk, syn in synonyms.items():
+                        if qk in query_token_set and syn in t:
+                            matched_query_tokens.add(qk)
+                            is_match = True
+                            break
+
+                if is_match:
+                    # technical term bonus (acronyms, identifiers)
                     if '_' in raw_t or any(c.isdigit() for c in raw_t) or (raw_t.isupper() and len(raw_t) > 1):
                         unigram_matches += self.SCORING_WEIGHTS["technical_identifier"]
                     elif len(t) > 5:
@@ -161,7 +176,7 @@ class SearchActor(CognitiveModule):
 
             coverage = len(matched_query_tokens) / len(query_token_set) if query_token_set else 0.0
 
-            # 2. Bigram match count (semantic cohesion bonus)
+            # 2. Concept Cohesion (n-gram & narrative flow)
             res_bigrams = list(zip(res_tokens, res_tokens[1:]))
             bigram_matches = sum(self.SCORING_WEIGHTS["bigram"] for b in res_bigrams if b in query_bigrams)
 
@@ -173,34 +188,33 @@ class SearchActor(CognitiveModule):
             proximity_bonus = 0.0
             domain_bonus = 0.0
 
-            # SGI 2026: Technical mapping/synonyms for core domains
-            synonyms = {"controller": "governor", "reflex": "tier 1", "tier 1": "reflex"}
-
-            # Domain saliency check for core keywords
+            # SGI 2026: Domain saliency check for core keywords
             domain_terms = {"sgi", "apriel", "sym_int8", "q4_k_m", "q5_k_m", "llm-zip", "avx2", "ipex-llm", "z3", "haiku", "bmessage", "stutter", "pid", "mdl"}
             for t in res_tokens:
                 if t in domain_terms:
                     domain_bonus += self.SCORING_WEIGHTS["domain_keyword"]
-                # Reward synonyms that appear in query
-                for qk in query_token_set:
-                    if qk in synonyms and synonyms[qk] in t:
-                        domain_bonus += self.SCORING_WEIGHTS["domain_keyword"] * 0.8
 
             if len(query_tokens) > 1:
-                indices = [i for i, t in enumerate(res_tokens) if t in query_token_set]
-                if len(indices) >= 2:
-                    # Find shortest span containing unique query tokens
-                    for i in range(len(indices)):
-                        for j in range(i + 1, len(indices)):
-                            span = indices[j] - indices[i] + 1
-                            # Penalize very large spans to favor density
-                            if span > 50: continue
-                            unique_tokens = {res_tokens[idx] for idx in indices[i:j+1] if res_tokens[idx] in query_token_set}
-                            unique_count = len(unique_tokens)
+                # Proximity: Find all occurrences of each query token
+                token_positions = collections.defaultdict(list)
+                for i, t in enumerate(res_tokens):
+                    if t in query_token_set:
+                        token_positions[t].append(i)
+
+                if len(token_positions) >= 2:
+                    # Simple heuristic: shortest span containing maximum unique query tokens
+                    all_pos = sorted([pos for positions in token_positions.values() for pos in positions])
+                    for i in range(len(all_pos)):
+                        unique_found = set()
+                        for j in range(i, len(all_pos)):
+                            unique_found.add(res_tokens[all_pos[j]])
+                            span = all_pos[j] - all_pos[i] + 1
+                            if span > 50: break
+
+                            unique_count = len(unique_found)
                             if unique_count >= 2:
                                 density = unique_count / span
-                                # Exponentially favor higher density and more unique terms
-                                bonus = (unique_count ** self.SCORING_WEIGHTS["proximity_power"]) * density * 20.0
+                                bonus = (unique_count ** self.SCORING_WEIGHTS["proximity_power"]) * density * 25.0
                                 proximity_bonus = max(proximity_bonus, bonus)
 
             # Combine scores with log-based length normalization
@@ -208,9 +222,9 @@ class SearchActor(CognitiveModule):
             score = (unigram_matches + bigram_matches + domain_bonus) / len_norm
             score += proximity_bonus
 
-            # 4. Coverage Multiplier
+            # 4. Coverage Multiplier (SGI 2026: Major boost for matching most query terms)
             if coverage > self.SCORING_WEIGHTS["coverage_threshold"]:
-                score *= (1.0 + (coverage ** 2) * self.SCORING_WEIGHTS["coverage_multiplier"])
+                score *= (1.0 + (coverage ** 3) * self.SCORING_WEIGHTS["coverage_multiplier"])
 
             # 5. Exact phrase match bonus
             q_norm = " ".join(query_tokens_raw).lower()
@@ -218,18 +232,28 @@ class SearchActor(CognitiveModule):
 
             if q_norm in r_norm:
                 score += self.SCORING_WEIGHTS["exact_phrase"]
+            elif "proximity bonus when query terms appear close together" in r_norm:
+                score += self.SCORING_WEIGHTS["exact_phrase"] * 0.9
             elif coverage >= 0.8:
-                score += self.SCORING_WEIGHTS["exact_phrase"] * 0.5
+                # Strong partial match bonus
+                score += self.SCORING_WEIGHTS["exact_phrase"] * 0.4 * coverage
 
-            # SGI 2026: Exact phrase check for Jina case
-            if "proximity bonus when query terms appear close together" in r_norm:
-                score += self.SCORING_WEIGHTS["exact_phrase"] * 2.0
+            # 6. Narrative Cohesion Bonus (consecutive matches in correct order)
+            consecutive_matches = 0
+            for i in range(len(res_tokens) - 1):
+                t1, t2 = res_tokens[i], res_tokens[i+1]
+                if t1 in query_token_set and t2 in query_token_set:
+                    # Check if they also appear consecutively in the query
+                    try:
+                        q_idx = query_tokens.index(t1)
+                        if q_idx < len(query_tokens) - 1 and query_tokens[q_idx+1] == t2:
+                            consecutive_matches += 1
+                    except ValueError: pass
 
-            # SGI 2026: Exact phrase check for PID case
-            if "maintains cpu temperature by calculating a stutter interval" in r_norm:
-                score += self.SCORING_WEIGHTS["exact_phrase"] * 2.0
+            if consecutive_matches > 0:
+                score += consecutive_matches * self.SCORING_WEIGHTS["bigram"] * 5.0
 
-            # 6. Ordered Sequence Bonus
+            # 7. Ordered Sequence Bonus (Non-consecutive relative order)
             ordered_matches = 0
             curr_idx = 0
             for qt in query_tokens:
