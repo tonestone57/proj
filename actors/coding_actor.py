@@ -140,6 +140,10 @@ class CodingActor(CognitiveModule):
         import operator
         import re
         import typing
+        try:
+            import sortedcontainers
+        except ImportError:
+            sortedcontainers = None
 
         safe_globals = {
             "__builtins__": {
@@ -168,7 +172,10 @@ class CodingActor(CognitiveModule):
             "accumulate": itertools.accumulate,
             "comb": math.comb,
             "inf": float("inf"),
-            "nan": float("nan")
+            "nan": float("nan"),
+            "SortedList": sortedcontainers.SortedList if sortedcontainers else None,
+            "SortedDict": sortedcontainers.SortedDict if sortedcontainers else None,
+            "SortedSet": sortedcontainers.SortedSet if sortedcontainers else None
         }
 
         try:
