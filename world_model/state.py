@@ -18,14 +18,22 @@ class WorldState:
         self.internal_state[key] = value
 
     def update_external(self, category, key, value):
-        if category in self.external_state:
-            self.external_state[category][key] = value
+        if category not in self.external_state:
+            self.external_state[category] = {}
+        self.external_state[category][key] = value
+
+    def get_entity_state(self, entity_id):
+        return self.external_state.get("entities", {}).get(entity_id, {})
 
     def snapshot(self):
         return {
             "internal": self.internal_state.copy(),
             "external": self.external_state.copy()
         }
+
+    def restore(self, snapshot):
+        self.internal_state = snapshot["internal"].copy()
+        self.external_state = snapshot["external"].copy()
 
     def track_reality_gap(self, prediction, observation):
         """
