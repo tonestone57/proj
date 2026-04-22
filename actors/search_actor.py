@@ -51,8 +51,8 @@ class SearchActor(CognitiveModule):
     }
 
     # SGI 2026: Domain-specific mapping for technical alignment
-    DOMAIN_TERMS = {"sgi", "apriel", "sym_int8", "q4_k_m", "q5_k_m", "llm-zip", "avx2", "ipex-llm", "z3", "haiku", "bmessage", "stutter", "pid", "mdl", "neuro", "symbolic", "reflex", "tier"}
-    TECHNICAL_SYNONYMS = {"controller": "governor", "tier 1": "reflex", "mdl": "minimum description length"}
+    DOMAIN_TERMS = {"sgi", "apriel", "sym_int8", "q4_k_m", "q5_k_m", "llm-zip", "avx2", "ipex-llm", "z3", "haiku", "bmessage", "stutter", "pid", "mdl", "neuro", "symbolic", "reflex", "tier", "distillation", "pruning", "saliency"}
+    TECHNICAL_SYNONYMS = {"controller": "governor", "tier 1": "reflex", "mdl": "minimum description length", "distillation": "pruning", "tier 3": "apriel", "reasoning": "thought"}
 
     def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None, memory_manager=None):
         super().__init__(workspace, scheduler, model_registry)
@@ -108,7 +108,7 @@ class SearchActor(CognitiveModule):
         if not word or len(word) <= 4: return word
         w = word.lower()
         # Protect common technical terms and project-specific keywords
-        protected = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both"}
+        protected = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both", "quantization", "optimization", "distillation"}
         if w in protected: return w
         # Handle common plural and tense suffixes
         if w.endswith('ies') and len(w) > 5: return w[:-3] + 'y'
@@ -136,6 +136,12 @@ class SearchActor(CognitiveModule):
         query_bigrams = set(zip(query_tokens, query_tokens[1:]))
         q_norm = " ".join(query_tokens_raw).lower()
 
+        # SGI 2026: Pre-calculate synonym reverse map for O(1) unigram lookup
+        synonym_reverse_map = {}
+        for qk, syn in self.TECHNICAL_SYNONYMS.items():
+            if self.stem(qk) in query_token_set:
+                synonym_reverse_map[self.stem(syn)] = self.stem(qk)
+
         # Phase 1: Initial Scoring
         initial_scored = []
         for res in results:
@@ -157,12 +163,9 @@ class SearchActor(CognitiveModule):
                 if t in query_token_set:
                     matched_query_tokens.add(t)
                     is_match = True
-                else:
-                    for qk, syn in self.TECHNICAL_SYNONYMS.items():
-                        if qk in query_token_set and (syn in t or t in syn):
-                            matched_query_tokens.add(qk)
-                            is_match = True
-                            break
+                elif t in synonym_reverse_map:
+                    matched_query_tokens.add(synonym_reverse_map[t])
+                    is_match = True
 
                 if is_match:
                     if '_' in raw_t or any(c.isdigit() for c in raw_t) or (raw_t.isupper() and len(raw_t) > 1):
@@ -189,6 +192,8 @@ class SearchActor(CognitiveModule):
                 for i, t in enumerate(res_tokens):
                     if t in query_token_set:
                         token_positions[t].append(i)
+                    elif t in synonym_reverse_map:
+                        token_positions[synonym_reverse_map[t]].append(i)
                 if len(token_positions) >= 2:
                     all_pos = sorted([pos for pos_list in token_positions.values() for pos in pos_list])
                     for i in range(len(all_pos)):
@@ -253,6 +258,9 @@ class SearchActor(CognitiveModule):
                 tier_num = tier_match.group(1)
                 if f"tier {tier_num}" in r_lower:
                     total_score += self.SCORING_WEIGHTS["exact_phrase"] * 5.0
+                    # SGI 2026: Tier 3 specific mapping to Apriel reasoning brain
+                    if tier_num == "3" and ("apriel" in r_lower or "thinker" in r_lower):
+                        total_score += self.SCORING_WEIGHTS["exact_phrase"] * 5.0
                     # Additional boost if it's the Tier 1 Reflex path
                     if tier_num == "1" and ("symbolic" in r_lower or "reflex" in r_lower):
                         total_score += self.SCORING_WEIGHTS["exact_phrase"] * 5.0
