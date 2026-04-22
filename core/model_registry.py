@@ -12,11 +12,14 @@ class NGramCache:
     SGI 2026: N-Gram Cache for fast speculative lookahead in syntax-heavy blocks.
     Optimized for code and logic where patterns are highly repetitive.
     Supports using the model's tokenizer for better token-alignment.
+    Implemented with LRU eviction for memory safety on 16GB systems.
     """
-    def __init__(self, n=3, tokenizer=None):
+    def __init__(self, n=3, tokenizer=None, max_size=50000):
         self.n = n
         self.tokenizer = tokenizer
-        self.cache = collections.defaultdict(collections.Counter)
+        self.max_size = max_size
+        # Use OrderedDict as an LRU tracker for prefix keys
+        self.cache = collections.OrderedDict()
 
     def _tokenize(self, text):
         if self.tokenizer:
@@ -32,6 +35,16 @@ class NGramCache:
         for i in range(len(tokens) - self.n):
             prefix = tuple(tokens[i:i + self.n])
             next_token = tokens[i + self.n]
+
+            if prefix not in self.cache:
+                if len(self.cache) >= self.max_size:
+                    # LRU Eviction: Remove the oldest entry
+                    self.cache.popitem(last=False)
+                self.cache[prefix] = collections.Counter()
+            else:
+                # Refresh position for LRU
+                self.cache.move_to_end(prefix)
+
             self.cache[prefix][next_token] += 1
 
     def propose(self, prefix_text, length=5):
@@ -40,12 +53,18 @@ class NGramCache:
             return []
 
         proposals = []
+        # Extract last N tokens as the starting prefix
         current_prefix = tuple(tokens[-self.n:])
 
         for _ in range(length):
+            # Check for exact prefix in cache
             if current_prefix in self.cache:
+                # Refresh position for LRU (move to end)
+                self.cache.move_to_end(current_prefix, last=True)
+                # Important: Use most_common(1) on the counter
                 next_token = self.cache[current_prefix].most_common(1)[0][0]
                 proposals.append(next_token)
+                # Update prefix for next iteration
                 current_prefix = current_prefix[1:] + (next_token,)
             else:
                 break

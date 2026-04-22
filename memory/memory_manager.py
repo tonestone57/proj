@@ -248,7 +248,9 @@ class MemoryManager(CognitiveModule):
             # Check if chunk is a function or class
             if chunk.startswith("def ") or chunk.startswith("class "):
                 # Normalize chunk (strip comments and whitespace for consistent hashing)
-                normalized = re.sub(r"#.*", "", chunk).strip()
+                # SGI 2026: Enhanced normalization (lowercase + internal space collapse)
+                normalized = re.sub(r"#.*", "", chunk).lower().strip()
+                normalized = re.sub(r"\s+", " ", normalized)
                 h = xxhash.xxh128(normalized.encode()).hexdigest() # 128-bit hash
 
                 if h in self.semantic_hash_registry:

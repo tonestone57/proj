@@ -136,6 +136,39 @@ TEST_CASES = [
             "Forum: How does SGI manage its RAM?",
             "Archiving logs to LanceDB using Zstd-19."
         ]
+    },
+    {
+        "query": "SGI thermal governor",
+        "ground_truth": "The PID governor maintains CPU temperature by calculating a stutter interval based on thermal error.",
+        "candidates": [
+            "The system uses a basic thermal controller.",
+            "The PID governor maintains CPU temperature by calculating a stutter interval based on thermal error.",
+            "Forum: How do I control my CPU temp?",
+            "Technical details on PID loop frequency.",
+            "Governor vs controller: a nomenclature debate."
+        ]
+    },
+    {
+        "query": "Apriel reasoning trace distillation",
+        "ground_truth": "Apriel utilizes the MemoryManager to perform reasoning trace distillation (synaptic pruning) on low-saliency memories.",
+        "candidates": [
+            "Apriel model uses standard RAG for retrieval.",
+            "Reasoning traces are stored in the Wisdom Cache.",
+            "Apriel utilizes the MemoryManager to perform reasoning trace distillation (synaptic pruning) on low-saliency memories.",
+            "Distillation is a process of knowledge transfer.",
+            "Forum: What is Apriel distillation?"
+        ]
+    },
+    {
+        "query": "Tier 3 Reasoning Path",
+        "ground_truth": "Tier 3 Reasoning Path: Higher-order reasoning (Planning, Complex Coding) via Apriel-1.6-15B-Thinker.",
+        "candidates": [
+            "Tier 1 handles reflex tasks.",
+            "Tier 3 utilizes the 0.8B model for speed.",
+            "Tier 3 Reasoning Path: Higher-order reasoning (Planning, Complex Coding) via Apriel-1.6-15B-Thinker.",
+            "Memory retrieval is a Tier 2 process.",
+            "Forum: Help with Tier 3 configuration."
+        ]
     }
 ]
 
