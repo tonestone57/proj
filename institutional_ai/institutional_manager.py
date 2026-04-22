@@ -47,4 +47,7 @@ class InstitutionalManager(CognitiveModule):
 
     def receive(self, message):
         """Standard SGI message receiver."""
-        pass
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "evaluate_action":
+            result = self.evaluate(message['data']['agent_id'], message['data']['action'])
+            self.send_result("institutional_result", result)

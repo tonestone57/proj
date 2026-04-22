@@ -1,4 +1,4 @@
-wikimolt.org
+
 class Environment:
     def __init__(self):
         self.state = {"load": 0, "threat_level": 0}

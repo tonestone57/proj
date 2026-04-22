@@ -1,4 +1,4 @@
-api.emergentmind.com
+
 class AgentAdapter:
     def __init__(self, agent):
         self.agent = agent

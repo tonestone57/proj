@@ -43,3 +43,6 @@ class IncidentManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for IncidentManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "incident_handle":
+            result = self.handle(message['data']['agent'], message['data']['action'], message['data']['state'], message['data']['context'])
+            self.send_result("incident_result", result)

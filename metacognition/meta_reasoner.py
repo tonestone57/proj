@@ -1,7 +1,6 @@
-import ray
 from core.base import CognitiveModule
 
-@ray.remote
+
 class MetaReasoner(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)

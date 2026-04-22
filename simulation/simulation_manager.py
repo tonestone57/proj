@@ -35,3 +35,6 @@ class SimulationManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for SimulationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "simulation_step":
+            result = self.step()
+            self.send_result("simulation_result", result)

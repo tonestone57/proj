@@ -12,7 +12,7 @@ class MetacognitionManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.monitor = MetaMonitor()
-        self.reasoner = MetaReasoner()
+        self.reasoner = MetaReasoner(workspace, scheduler, model_registry)
         self.transparency = TransparencyEngine()
         self.adaptation = AdaptationEngine()
         self.perception = PerceptionReflector()
@@ -28,3 +28,6 @@ class MetacognitionManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for MetacognitionManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "introspection_request":
+            result = self.introspect(message['data']['internal_state'], message['data']['reasoning_trace'], message['data']['decision'])
+            self.send_result("introspection_result", result)

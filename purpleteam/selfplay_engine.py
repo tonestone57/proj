@@ -1,4 +1,4 @@
-macropraxis.org
+
 class SelfPlayEngine:
     def evolve(self, red, blue, history):
         if history[-1]["breach"]:

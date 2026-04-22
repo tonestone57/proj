@@ -48,3 +48,9 @@ class ConsoleManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ConsoleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "review_request":
+            result = self.review_action(message['data']['action_id'], message['data']['action_result'])
+            self.send_result("review_result", result)
+        elif message["type"] == "queue_process":
+            result = self.process_queue()
+            self.send_result("queue_result", result)

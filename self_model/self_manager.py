@@ -35,3 +35,9 @@ class SelfManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for SelfManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "self_update":
+            result = self.update_self(message['data']['state'], message['data']['policy'])
+            self.send_result("self_update_result", result)
+        elif message["type"] == "approval_request":
+            result = self.approve_update(message['data']['proposed_update'])
+            self.send_result("approval_result", result)

@@ -33,6 +33,9 @@ class PurpleManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for PurpleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "cycle_trigger":
+            result = self.run_cycle(message['data']['state'])
+            self.send_result("cycle_result", result)
 
 class GovernanceLayer:
     def __init__(self, governance_graph=None, oversight_agent=None):

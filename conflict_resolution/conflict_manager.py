@@ -39,6 +39,9 @@ class ConflictManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ConflictManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "resolve_conflict":
+            result = self.resolve(message['data']['beliefs'], message['data']['action'], message['data']['context'])
+            self.send_result("conflict_result", result)
 
 class GovernanceLayer:
     def __init__(self, policy_engine, oversight_agent):

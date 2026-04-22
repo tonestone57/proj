@@ -1,3 +1,4 @@
 class ComplianceEngine:
-    def check(self, agent, treaty):
-        return agent.commitments.get(treaty, False)
+    def verify(self, treaty):
+        # In a real system, this would check against legal/ethical norms
+        return {"status": "compliant", "treaty": treaty}

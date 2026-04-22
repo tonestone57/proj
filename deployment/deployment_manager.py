@@ -2,7 +2,7 @@ from core.base import CognitiveModule
 import ray
 @ray.remote
 class DeploymentManager(CognitiveModule):
-    def __init__(self, env, registry, version_manager, policy_loader, workspace=None, scheduler=None, model_registry=None):
+    def __init__(self, env=None, registry=None, version_manager=None, policy_loader=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.env = env
         self.registry = registry
@@ -16,4 +16,7 @@ class DeploymentManager(CognitiveModule):
 
     def receive(self, message):
         """Standard SGI message receiver."""
-        pass
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "deployment_request":
+            result = self.deploy(message['data']['agent_id'], message['data']['agent'], message['data']['metadata'], message['data']['version'])
+            self.send_result("deployment_result", result)

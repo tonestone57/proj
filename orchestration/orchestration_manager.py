@@ -44,3 +44,9 @@ class OrchestrationManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for OrchestrationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "event_handle":
+            result = self.handle_event(message['data']['event'])
+            self.send_result("event_result", result)
+        elif message["type"] == "task_request":
+            result = self.run_sequential(message['data']['tasks'])
+            self.send_result("task_result", result)

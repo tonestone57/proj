@@ -35,3 +35,6 @@ class BlueTeamManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for BlueTeamManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "defense_request":
+            result = self.defend(message['data']['traffic'])
+            self.send_result("defense_result", result)
