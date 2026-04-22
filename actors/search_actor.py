@@ -31,8 +31,7 @@ class LicenseActor:
             if pattern.search(content): return True
         return False
 
-@ray.remote(num_cpus=CORES_SEARCH)
-class SearchActor(CognitiveModule):
+class SearchActorBase(CognitiveModule):
     # SGI 2026: Configurable scoring weights for reranking heuristics
     SCORING_WEIGHTS = {
         "technical_identifier": 30.0, # Increased for Tier 1 / Neuro-Symbolic precision
@@ -67,22 +66,56 @@ class SearchActor(CognitiveModule):
 
             # SGI 2026: GraphRAG context enhancement
             graph_context = ""
-            if self.knowledge_graph and ("code" in query or "function" in query):
+            if self.knowledge_graph and any(kw in query.lower() for kw in ["code", "function", "class", "module", "dependency", "import"]):
                 print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
-                # Extract potential node name from query, filtering out common terms
-                stop_words = {"code", "function", "what", "how", "find", "search", "where", "docs", "info", "related"}
-                # SGI 2026: Refined node extraction regex to prioritize snake_case or CamelCase identifiers
-                potential_nodes = [n for n in re.findall(r'\b[a-zA-Z_]\w*\b', query) if len(n) > 3 and n.lower() not in stop_words]
+                # SGI 2026: Enhanced node extraction for complex patterns and multi-file dependencies
+                # Matches: snake_case, CamelCase, file_path.py, Class.method, module.submodule
+                node_patterns = [
+                    r'\b[a-zA-Z_][\w\-\./]*\.py\b',           # File paths
+                    r'\b[A-Z][a-zA-Z0-9]*\.[a-z_][\w]*\b',     # Class.method
+                    r'\b[a-z_][\w]*\.[a-z_][\w]*\b',           # module.function
+                    r'\b[a-zA-Z_]\w{3,}\b'                     # Standard identifiers (>3 chars)
+                ]
+
+                stop_words = {"code", "function", "class", "module", "what", "how", "find", "search", "where", "docs", "info", "related", "dependency", "import"}
+
+                potential_nodes = set()
+                for pattern in node_patterns:
+                    matches = re.findall(pattern, query)
+                    for m in matches:
+                        if m.lower() not in stop_words:
+                            potential_nodes.add(m)
 
                 current_subgraphs = []
                 if potential_nodes:
-                    # SGI 2026: Batched Ray remote calls for zero-latency context retrieval
-                    futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
-                    results_sg = ray.get(futures)
+                    # SGI 2026: Multi-Hop Traversal. Retrieve context for nodes and their immediate neighbors.
+                    if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):
+                        futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
+                        results_sg = ray.get(futures)
+                    else:
+                        results_sg = [self.knowledge_graph.get_context_subgraph(node) for node in potential_nodes]
 
                     for node, sg in zip(potential_nodes, results_sg):
-                        if sg["edges"]:
+                        if sg.get("edges"):
                             current_subgraphs.append(f"Related to {node}: {sg['edges']}")
+
+                            # SGI 2026: Level 2 traversal for deeply coupled dependencies
+                            # Extract neighbors from edges (assuming format "rel:neighbor")
+                            neighbors = []
+                            for edge in sg["edges"]:
+                                if ":" in edge:
+                                    neighbors.append(edge.split(":")[1])
+
+                            if neighbors:
+                                if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):
+                                    n_futures = [self.knowledge_graph.get_context_subgraph.remote(n) for n in neighbors[:3]] # Limit to 3 neighbors
+                                    n_results = ray.get(n_futures)
+                                else:
+                                    n_results = [self.knowledge_graph.get_context_subgraph(n) for n in neighbors[:3]]
+
+                                for n_node, n_sg in zip(neighbors, n_results):
+                                    if n_sg.get("edges"):
+                                        current_subgraphs.append(f"  [Neighbor {n_node}]: {n_sg['edges']}")
 
                 if current_subgraphs:
                     graph_context = "\n[Graph Context] " + " | ".join(current_subgraphs)
@@ -99,9 +132,15 @@ class SearchActor(CognitiveModule):
 
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
-            self.scheduler.submit.remote(handle, {
-                "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
-            })
+
+            if hasattr(self.scheduler.submit, "remote"):
+                self.scheduler.submit.remote(handle, {
+                    "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
+                })
+            else:
+                self.scheduler.submit(handle, {
+                    "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
+                })
 
     def stem(self, word):
         """SGI 2026: Conservative suffix-stripping stemming to avoid false positives."""
@@ -446,3 +485,7 @@ class SearchActor(CognitiveModule):
     def perform_search(self, query):
         # SGI 2026: Use tiered retrieval
         return self.tiered_search(query)
+
+@ray.remote(num_cpus=CORES_SEARCH)
+class SearchActor(SearchActorBase):
+    pass
