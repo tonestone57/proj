@@ -1,6 +1,6 @@
 import re
 
-class DLPAagent:
+class DLPAgent:
     def __init__(self):
         self.sensitive_patterns = {
             "api_key": r"(?:api|secret|token)_?(?:key|secret)?['\"]?\s*[:=]\s*['\"]?([a-zA-Z0-9]{32,})['\"]?",

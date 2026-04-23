@@ -14,8 +14,13 @@ class TheoryOfMind(CognitiveModule):
 
         if message["type"] == "infer_intention":
             # Data might contain the agent name, or it might be in a top-level 'agent' field
-            agent = message.get("agent") or message.get("data")
-            if isinstance(agent, dict): agent = agent.get("agent")
+            agent = message.get("agent")
+            if not agent:
+                data = message.get("data")
+                if isinstance(data, dict):
+                    agent = data.get("agent")
+                elif isinstance(data, str):
+                    agent = data
 
             intention = self.infer_intention(agent)
             try: handle = ray.get_runtime_context().current_actor

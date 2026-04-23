@@ -17,14 +17,21 @@ class SchemaManager(CognitiveModule):
             schema["features"][k] = schema["features"].get(k, 0) + v
 
     def apply_schema(self, partial_memory):
+        # SGI 2026: Apply prototypical schema to reconstruct partial memories
         category = partial_memory.get("category")
-        if category in self.schemas:
-            schema = self.schemas[category]
-            enriched = partial_memory.copy()
-            enriched["features"] = {
-                **schema["features"],
-                **partial_memory.get("features", {})
-            }
-            return enriched
-        return partial_memory
+        if category not in self.schemas:
+            return partial_memory
 
+        schema = self.schemas[category]
+        count = schema["count"]
+
+        reconstructed = partial_memory.copy()
+        for k, total_val in schema["features"].items():
+            if k not in reconstructed:
+                # Fill in missing data with schema average
+                reconstructed[k] = total_val / count
+
+        return reconstructed
+
+    def get_known_categories(self):
+        return list(self.schemas.keys())

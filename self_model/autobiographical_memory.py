@@ -1,18 +1,20 @@
+import time
+
 class AutobiographicalMemory:
-    def __init__(self):
+    def __init__(self, capacity=1000):
         self.episodes = []
-        self.semantic_summary = {}
+        self.capacity = capacity
 
-    def store_episode(self, event):
-        self.episodes.append(event)
+    def store_episode(self, data):
+        # SGI 2026: Episodic storage of self-states
+        entry = {
+            "timestamp": time.time(),
+            "data": data,
+            "salience": 0.5
+        }
+        self.episodes.append(entry)
+        if len(self.episodes) > self.capacity:
+            self.episodes.pop(0)
 
-    def summarize(self):
-        summary = {}
-        for ep in self.episodes:
-            for k, v in ep.get("tags", {}).items():
-                summary[k] = summary.get(k, 0) + v
-        self.semantic_summary = summary
-        return summary
-
-    def retrieve(self, n=5):
+    def recall_recent(self, n=5):
         return self.episodes[-n:]

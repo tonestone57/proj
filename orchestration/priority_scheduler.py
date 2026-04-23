@@ -1,6 +1,3 @@
-
-import heapq
-
 import heapq
 import time
 

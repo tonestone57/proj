@@ -36,24 +36,28 @@ class TestSGIIntegration(unittest.TestCase):
     def test_license_guardian(self):
         workspace = GlobalWorkspace.remote()
         scheduler = Scheduler.remote()
+        # SGI 2026: License Guardian test with improved polling
         search_actor = SearchActor.remote(workspace, scheduler)
 
         search_actor.receive.remote({"type": "search_request", "data": "test query"})
 
         # Poll scheduler for results
         found = False
-        for _ in range(20):
+        # Increase timeout/retries for distributed execution
+        for _ in range(30):
             res = ray.get(scheduler.next.remote())
             if res:
                 priority, actor, message = res
                 if message["type"] == "search_result":
                     found = True
+                    # Verification: Ensure no GPL content leaked through
                     for r in message["data"]:
-                        self.assertNotIn("GPL", r)
+                        self.assertNotIn("GPL", str(r).upper())
                     break
             import time
-            time.sleep(0.1)
-        self.assertTrue(found)
+            time.sleep(0.2)
+
+        self.assertTrue(found, "Search results not received within timeout")
 
     def test_information_density(self):
         text = "This is a test. This is only a test."

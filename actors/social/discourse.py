@@ -10,14 +10,30 @@ class DiscourseModule(CognitiveModule):
             })
 
     def analyze_pragmatics(self, text):
-        # Placeholder pragmatic inference
-        if "please" in text.lower():
-            return {"intent": "request"}
+        # SGI 2026: Pragmatic analysis for intent and tone
+        t_lower = str(text).lower()
 
-        if "why" in text.lower():
-            return {"intent": "question"}
+        # Intent detection
+        intent = "statement"
+        if "?" in t_lower or any(w in t_lower for w in ["why", "how", "what", "where"]):
+            intent = "question"
+        elif any(w in t_lower for w in ["please", "could you", "can you"]):
+            intent = "request"
+        elif any(w in t_lower for w in ["must", "stop", "halt"]):
+            intent = "command"
 
-        return {"intent": "statement"}
+        # Tone/Affective tagging
+        tone = "neutral"
+        if any(w in t_lower for w in ["thanks", "good", "great", "happy"]):
+            tone = "positive"
+        elif any(w in t_lower for w in ["wrong", "bad", "error", "fail"]):
+            tone = "negative"
+
+        return {
+            "intent": intent,
+            "tone": tone,
+            "complexity": len(t_lower.split())
+        }
 
 from actors.social.theory_of_mind import TheoryOfMind
 from actors.social.social_reasoner import SocialReasoner

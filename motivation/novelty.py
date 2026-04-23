@@ -1,10 +1,13 @@
 class NoveltyModule:
     def __init__(self):
-        self.visited_states = set()
+        self.known_patterns = set()
 
     def compute_novelty(self, state):
-        state_hash = str(state)
-        if state_hash not in self.visited_states:
-            self.visited_states.add(state_hash)
-            return 1.0
-        return 0.0
+        # SGI 2026: Signal novelty drive
+        state_key = str(state.get("last_action", "none"))
+
+        if state_key in self.known_patterns:
+            return 0.1
+
+        self.known_patterns.add(state_key)
+        return 0.9

@@ -18,8 +18,9 @@ class IntrinsicRewardEngine:
             reward += contribution
             applied_signals[key] = contribution
 
+        import time
         return {
             "total_intrinsic_reward": reward,
             "signal_contributions": applied_signals,
-            "timestamp": time.time() if "time" in globals() else 0
+            "timestamp": time.time()
         }

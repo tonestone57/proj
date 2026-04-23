@@ -204,7 +204,7 @@ async def cognitive_cycle():
     hub.register_autonomous_task(orchestration_manager, "event_handle", {"event": {"type": "heartbeat_tick", "tick": 0}})
     hub.register_autonomous_task(safety_manager, "safety_evaluation", {"action": {"type": "self_improvement"}, "internal_state": {}})
     hub.register_autonomous_task(ethics_manager, "ethics_check", {"data": "Autonomous code refactoring for MDL"})
-    hub.register_autonomous_task(cee_manager, "stimulus_processing", {"stimuli": "High entropy detected", "reasoning_score": 0.85, "action": "re-planning", "context": "heartbeat"})
+    hub.register_autonomous_task(cee_manager, "stimulus_processing", {"stimuli": {"entropy": 0.8}, "reasoning_score": 0.85, "action": "re-planning", "context": "heartbeat"})
 
     drives = DriveEngine()
     thermal_pid = PIDController(setpoint=72.0)
@@ -283,6 +283,7 @@ async def cognitive_cycle():
 
                 # Update dynamic fields in payloads
                 if isinstance(payload, dict):
+                    payload = payload.copy()
                     # Consistently provide state and internal_state
                     if "internal_state" in payload: payload["internal_state"] = state
                     if "state" in payload: payload["state"] = state

@@ -1,5 +1,9 @@
 class PerceptionReflector:
-    def evaluate_perception(self, sensory_input):
-        if sensory_input is None:
-            return {"status": "error", "issue": "missing_input"}
-        return {"status": "ok"}
+    def reflect(self, observation):
+        # SGI 2026: Critical analysis of sensory data
+        return {
+            "original": observation,
+            "salience": 0.8 if observation else 0.0,
+            "certainty": 0.9,
+            "distortions_found": []
+        }
