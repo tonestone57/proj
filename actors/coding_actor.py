@@ -98,6 +98,11 @@ class CodingActorBase(CognitiveModule):
                 else:
                     transformed = self.model_registry.generate(prompt)
 
+                # SGI 2026: Clean extraction of refactored code
+                # Strip thought blocks if present
+                if "<thought>" in transformed:
+                    transformed = re.sub(r"<thought>.*?</thought>\s*", "", transformed, flags=re.DOTALL)
+
                 # Cleanup potential Markdown
                 if "```python" in transformed:
                     transformed = transformed.split("```python")[1].split("```")[0].strip()
