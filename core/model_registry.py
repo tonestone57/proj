@@ -157,8 +157,8 @@ class ModelRegistryBase:
 
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.bfloat16,
-                bnb_4bit_quant_type="nf4"
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_quant_type="Q4_K_M"
             )
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
@@ -171,8 +171,8 @@ class ModelRegistryBase:
         except Exception as e:
             print(f"[ModelRegistry] BitsAndBytes loading failed: {e}")
 
-        # 3. Attempt Standard Transformers (bfloat16/CPU)
-        print(f"[ModelRegistry] Attempting Stage 3: Standard Transformers CPU Loading...")
+        # 3. Attempt Standard Transformers (fp16/CPU)
+        print(f"[ModelRegistry] Attempting Stage 3: Standard Transformers CPU Loading (fp16)...")
         try:
             if self.tokenizer is None:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -180,14 +180,14 @@ class ModelRegistryBase:
 
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
                 device_map="cpu",
                 trust_remote_code=True,
                 low_cpu_mem_usage=True
             )
             self.draft_model = AutoModelForCausalLM.from_pretrained(
                 draft_model_id,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
                 device_map="cpu",
                 trust_remote_code=True,
                 low_cpu_mem_usage=True
