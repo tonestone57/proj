@@ -18,7 +18,12 @@ app = FastAPI(title="SGI API Server")
 
 # Instantiate core logic locally
 search_actor = SearchActorBase(workspace=None, scheduler=None)
-model_registry = ModelRegistryBase(search_actor=search_actor)
+# Ensure we use IDs that the registry knows how to map to real models
+model_registry = ModelRegistryBase(
+    model_id="Apriel-1.6-15B-Thinker",
+    draft_model_id="Qwen3.5-2B",
+    search_actor=search_actor
+)
 coding_actor = CodingActorBase(workspace=None, scheduler=None, model_registry=model_registry)
 
 class ChatMessage(BaseModel):

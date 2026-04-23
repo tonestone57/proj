@@ -151,7 +151,7 @@ class ModelRegistryBase:
             if model_id == "Apriel-1.6-15B-Thinker":
                 model_id = "Qwen/Qwen2.5-7B-Instruct"
             if draft_model_id == "Qwen3.5-2B":
-                draft_model_id = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+                draft_model_id = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 
             self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
             self.ngram_cache.tokenizer = self.tokenizer

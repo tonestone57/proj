@@ -262,9 +262,20 @@ except ImportError:
             with open(script_path, "w") as f:
                 f.write(full_code)
 
+            # Helper to set limits in child process
+            def set_limits():
+                try:
+                    import resource
+                    # Set 1GB memory limit (Address Space)
+                    limit_bytes = 1024 * 1024 * 1024
+                    resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
+                    # Set 15s CPU time limit
+                    resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
+                except Exception:
+                    pass
+
             try:
                 # SGI 2026: Resource limits for the subprocess
-                # We use a wrapper to set limits before execution if on Linux
                 cmd = [sys.executable, script_path]
 
                 result = subprocess.run(
@@ -272,7 +283,7 @@ except ImportError:
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    # Limit memory of subprocess if possible
+                    preexec_fn=set_limits
                 )
                 if result.returncode == 0:
                     return {"status": "success", "output": result.stdout}
