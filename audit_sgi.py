@@ -48,18 +48,13 @@ def audit_directory(directory):
     return discrepancies
 
 def main():
-    dirs_to_audit = [
-        "actors", "blueteam", "cee_layer", "conflict_resolution", "deployment",
-        "economics", "emotion", "incident_response", "institutional_ai",
-        "memory", "memory_consolidation", "meta_learning", "metacognition",
-        "monitoring", "motivation", "negotiation", "orchestration", "purpleteam",
-        "redteam", "safety_ethics", "simulation", "training", "world_model"
-    ]
+    # Dynamic directory discovery to avoid hardcoded lists
+    excluded_dirs = {".git", "__pycache__", "tests", "human-eval", "LiveCodeBench", "livebench", "inspect_evals"}
+    dirs_to_audit = [d for d in os.listdir(".") if os.path.isdir(d) and d not in excluded_dirs]
 
     all_discrepancies = []
-    for d in dirs_to_audit:
-        if os.path.exists(d):
-            all_discrepancies.extend(audit_directory(d))
+    for d in sorted(dirs_to_audit):
+        all_discrepancies.extend(audit_directory(d))
 
     if all_discrepancies:
         print("SGI LLM Audit Found Discrepancies:")

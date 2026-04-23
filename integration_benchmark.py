@@ -29,9 +29,10 @@ async def run_integration_benchmark(ticks=10):
 
     workspace = GlobalWorkspace.remote()
     scheduler = Scheduler.remote()
+    from core.config import SGI_SETTINGS
     thermal_guard = ThermalGuard.remote(threshold_temp=80.0)
     graph_memory = KnowledgeGraph.remote()
-    model_provider = ModelRegistry.remote(model_id="Apriel-1.6-15B-Thinker")
+    model_provider = ModelRegistry.remote(model_id=SGI_SETTINGS.inference.primary_model)
 
     reasoner = ReasonerActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     coder = CodingActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
