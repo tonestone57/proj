@@ -58,6 +58,7 @@ class SearchActorBase(CognitiveModule):
         self.license_actor = LicenseActor()
         self.knowledge_graph = graph_memory
         self.memory_manager = memory_manager
+        self.synonym_cache = {} # SGI 2026: Local synonym cache for performance
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
@@ -176,11 +177,14 @@ class SearchActorBase(CognitiveModule):
         query_bigrams = set(zip(query_tokens, query_tokens[1:]))
         q_norm = " ".join(query_tokens_raw).lower()
 
-        # SGI 2026: Pre-calculate synonym reverse map for O(1) unigram lookup
-        synonym_reverse_map = {}
-        for qk, syn in self.TECHNICAL_SYNONYMS.items():
-            if self.stem(qk) in query_token_set:
-                synonym_reverse_map[self.stem(syn)] = self.stem(qk)
+        # SGI 2026: Pre-calculate synonym reverse map for O(1) unigram lookup with caching
+        synonym_reverse_map = self.synonym_cache.get(q_norm)
+        if synonym_reverse_map is None:
+            synonym_reverse_map = {}
+            for qk, syn in self.TECHNICAL_SYNONYMS.items():
+                if self.stem(qk) in query_token_set:
+                    synonym_reverse_map[self.stem(syn)] = self.stem(qk)
+            self.synonym_cache[q_norm] = synonym_reverse_map
 
         # Phase 1: Initial Scoring
         initial_scored = []

@@ -115,6 +115,22 @@ class SGIHub:
             "timestamp": time.time()
         }
 
+    def hot_reload_system(self):
+        """
+        SGI 2026: Triggers a global configuration reload across all modules.
+        """
+        print("[Hub] 🔄 Initiating Autonomous Hot-Reload...")
+        try:
+            # Re-import core config to get latest values from config.yaml
+            import importlib
+            from core import config
+            importlib.reload(config)
+            print(f"[Hub] Global configuration reloaded. New thermal threshold: {config.THERMAL_THRESHOLD_C}°C")
+            return True
+        except Exception as e:
+            print(f"[Hub] Hot-reload failed: {e}")
+            return False
+
     async def poll_scheduler(self, conflict_manager=None):
         res_obj = await self.scheduler.next.remote()
         if res_obj:
@@ -287,6 +303,11 @@ async def cognitive_cycle():
             elif entropy < THRESHOLD_CONSOLIDATE:
                 # SGI 2026: Autonomous Self-Improvement Cycle
                 print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
+
+                # Check for pending patches from MetaManager (simulated)
+                # In a real system, we'd query the meta_manager actor
+                if tick % 10 == 0:
+                     hub.hot_reload_system()
 
                 # Use the Registry-based rotation
                 task_idx = tick % len(hub.autonomous_task_registry)

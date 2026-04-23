@@ -35,12 +35,22 @@ def audit_directory(directory):
                                     has_ray_remote = True
 
                     # Heuristic: if it's in actors/ or managers/ (implied by directory name), it should follow the pattern
-                    if "manager" in file or "actor" in file or "module" in file:
+                    # Improved heuristic: Also check if class names contain Manager or Actor, but exclude core/config.py
+                    if "config.py" in path:
+                         continue
+
+                    is_core_component = "manager" in file or "actor" in file or "module" in file
+                    for node in tree.body:
+                        if isinstance(node, ast.ClassDef):
+                            if "Manager" in node.name or "Actor" in node.name:
+                                is_core_component = True
+
+                    if is_core_component:
                         if not has_cognitive_module:
                             discrepancies.append(f"{path}: Missing CognitiveModule inheritance")
                         if not has_receive:
                             discrepancies.append(f"{path}: Missing receive method")
-                        if not has_ray_remote and "manager" in file:
+                        if not has_ray_remote and ("manager" in file or "Manager" in str([n.name for n in tree.body if isinstance(n, ast.ClassDef)])):
                              discrepancies.append(f"{path}: Missing @ray.remote (optional but recommended for managers)")
 
                 except Exception as e:
@@ -48,11 +58,22 @@ def audit_directory(directory):
     return discrepancies
 
 def main():
-    # Dynamic directory discovery to avoid hardcoded lists
+    # Dynamic discovery including root directory
     excluded_dirs = {".git", "__pycache__", "tests", "human-eval", "LiveCodeBench", "livebench", "inspect_evals"}
     dirs_to_audit = [d for d in os.listdir(".") if os.path.isdir(d) and d not in excluded_dirs]
 
     all_discrepancies = []
+
+    # Audit files in root directory
+    root_files = [f for f in os.listdir(".") if f.endswith(".py") and not f.startswith("__") and f != "audit_sgi.py"]
+    for f in root_files:
+        try:
+            with open(f, "r") as file_handle:
+                tree = ast.parse(file_handle.read())
+            # Root files might be scripts, so less strict on inheritance/receive
+        except Exception as e:
+            all_discrepancies.append(f"{f}: Error parsing: {e}")
+
     for d in sorted(dirs_to_audit):
         all_discrepancies.extend(audit_directory(d))
 
