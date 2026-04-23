@@ -5,7 +5,7 @@ from blueteam.detection_engine import DetectionEngine
 from blueteam.adaptive_defense_agent import AdaptiveDefenseAgent
 from blueteam.deception_layer import DeceptionLayer
 from blueteam.firewall_agent import FirewallAgent
-from blueteam.dlp_agent import DLPAagent
+from blueteam.dlp_agent import DLPAgent
 from blueteam.cyber_range import CyberRange
 
 @ray.remote
@@ -17,7 +17,7 @@ class BlueTeamManager(CognitiveModule):
         self.adaptive = AdaptiveDefenseAgent()
         self.deception = DeceptionLayer()
         self.firewall = FirewallAgent()
-        self.dlp = DLPAagent()
+        self.dlp = DLPAgent()
         self.range = CyberRange()
 
     def defend(self, traffic):

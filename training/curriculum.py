@@ -1,16 +1,29 @@
 class Curriculum:
     def __init__(self):
         self.level = 0
-        self.thresholds = [10, 20, 40, 80]
+        self.thresholds = [10, 25, 50, 100]
+        self.task_map = {
+            0: ["simple_perception", "basic_syntax"],
+            1: ["logic_synthesis", "basic_planning"],
+            2: ["multi_step_reasoning", "strategic_alignment"],
+            3: ["social_inference", "recursive_mdl_refactoring"]
+        }
 
-    def update(self, performance):
-        if performance > self.thresholds[self.level]:
-            self.level = min(self.level + 1, len(self.thresholds) - 1)
+    def update(self, performance_metrics):
+        # SGI 2026: Dynamic curriculum scaling
+        avg_score = performance_metrics.get("average_score", 0)
+
+        if avg_score > self.thresholds[self.level]:
+            if self.level < len(self.thresholds) - 1:
+                self.level += 1
+                print(f"[Curriculum] Scaling up to level {self.level}")
+        elif avg_score < self.thresholds[self.level] * 0.5:
+             if self.level > 0:
+                self.level -= 1
+                print(f"[Curriculum] Scaling down to level {self.level}")
 
     def get_current_tasks(self):
-        return {
-            0: ["simple perception"],
-            1: ["basic planning"],
-            2: ["multi-step reasoning"],
-            3: ["social inference"],
-        }[self.level]
+        return self.task_map.get(self.level, ["unknown"])
+
+    def get_status(self):
+        return {"current_level": self.level, "tasks": self.get_current_tasks()}

@@ -35,7 +35,7 @@ class ConsolidationManager(CognitiveModule):
 
         replay_batch = [ep["sensory"] for ep in selected]
         # trainer and schemas are local objects
-        loss = self.trainer.train(replay_batch) if hasattr(self.trainer, 'train') else 0.1
+        loss = self.trainer.train_on_replay(replay_batch) if hasattr(self.trainer, 'train_on_replay') else 0.1
 
         for ep in selected:
             self.schemas.update_schema(ep)

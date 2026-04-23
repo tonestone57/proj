@@ -18,5 +18,5 @@ class IdentityKernel:
     def enforce(self, proposed_update):
         for key, val in proposed_update.items():
             if key in self.core_values and val != self.core_values[key]:
-                return False
-        return True
+                return {"enforced": False, "reason": f"Value conflict: {key}"}
+        return {"enforced": True}

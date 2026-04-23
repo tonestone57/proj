@@ -21,9 +21,10 @@ class InstitutionalManager(CognitiveModule):
         self.control = RealTimeControl()
 
     def evaluate(self, agent_id, action):
-        if not self.rules.evaluate(action):
+        rule_result = self.rules.evaluate(action)
+        if not rule_result["compliant"]:
             self.trust.update(agent_id, False)
-            return {"approved": False, "reason": "rule_violation"}
+            return {"approved": False, "reason": "rule_violation", "violations": rule_result["violations"]}
 
         if not self.oversight.review(action):
             self.trust.update(agent_id, False)

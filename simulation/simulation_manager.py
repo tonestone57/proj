@@ -20,8 +20,8 @@ class SimulationManager(CognitiveModule):
         self.agents = agents
 
     def step(self):
-        event = self.core.tick()
-        if event:
+        events = self.core.tick()
+        for event in events:
             self.env.update(event)
         for agent in self.agents:
             obs = self.env.state

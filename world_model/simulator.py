@@ -1,27 +1,19 @@
 class Simulator:
     def __init__(self, world_state, causal_graph):
-        self.world_state = world_state
-        self.causal_graph = causal_graph
+        self.state = world_state
+        self.causal = causal_graph
 
-    def simulate_step(self, action):
-        effects = self.causal_graph.get_effects(action)
-        new_state = self.world_state.snapshot()
+    def simulate_action(self, action):
+        # SGI 2026: Simulate action effects using causal graph
+        current_state = self.state.snapshot()
 
-        # Update external entities based on causal effects
+        # Propagate effects
+        effects = self.causal.propagate([action])
+
+        # Apply effects to state (simplified)
         for effect in effects:
-            if effect in new_state["external"]["entities"]:
-                # Simulation logic: increment entity property value if it exists
-                entity = new_state["external"]["entities"][effect]
-                if isinstance(entity, dict) and "value" in entity:
-                    entity["value"] += 1
-            else:
-                # Add new entity if it's a discovered effect
-                new_state["external"]["entities"][effect] = {"type": "inferred", "value": 1}
+            if isinstance(effect, str) and "=" in effect:
+                k, v = effect.split("=")
+                current_state["external"][k] = v
 
-        return new_state
-
-    def simulate_sequence(self, actions):
-        state = self.world_state.snapshot()
-        for action in actions:
-            state = self.simulate_step(action)
-        return state
+        return current_state
