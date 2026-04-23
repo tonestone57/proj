@@ -44,7 +44,7 @@ from memory_consolidation.consolidation_manager import ConsolidationManager
 from self_model.self_manager import SelfManager
 from blueteam.blueteam_manager import BlueTeamManager
 from redteam.redteam_manager import RedTeamManager
-from purpleteam.purple_manager import PurpleManager, GovernanceIntegratedPurpleManager
+from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
 from incident_response.incident_manager import IncidentManager
 from monitoring.monitoring_manager import MonitoringManager
 from economics.economic_manager import EconomicManager

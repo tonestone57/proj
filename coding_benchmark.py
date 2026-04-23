@@ -2,20 +2,18 @@ import ray
 import sys
 import os
 
-# Ensure the project root is in PYTHONPATH
-sys.path.append(os.getcwd())
-
 from actors.coding_actor import CodingActor
 from core.workspace import GlobalWorkspace
 from core.scheduler import Scheduler
 from core.model_registry import ModelRegistry
+from core.config import SGI_SETTINGS
 
 def test_coding_actor():
     ray.init(ignore_reinit_error=True)
 
     workspace = GlobalWorkspace.remote()
     scheduler = Scheduler.remote()
-    model_id = "Apriel-1.6-15B-Thinker"
+    model_id = SGI_SETTINGS.inference.primary_model
     model_registry = ModelRegistry.remote(model_id=model_id)
 
     coder = CodingActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_registry)
@@ -41,6 +39,12 @@ def factorial(n):
 """
     transformed = ray.get(coder.iterative_transform.remote(recursive_code))
     print(f"Transformed Code:\n{transformed}")
+
+    # Assertions for verification
+    assert transformed != recursive_code, "Transformation should modify the code"
+    assert any(term in transformed.lower() for term in ["while", "stack", "mock"]), "Transformation should introduce iterative pattern or be a mock"
+
+    print("✅ Iterative Transformation Test Passed")
 
     ray.shutdown()
 
