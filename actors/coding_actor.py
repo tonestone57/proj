@@ -1,6 +1,7 @@
 import sys
 import io
 import contextlib
+import re
 import ray
 from core.base import CognitiveModule
 from core.config import CORES_CODING
