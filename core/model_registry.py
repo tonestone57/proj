@@ -147,27 +147,21 @@ class ModelRegistryBase:
             except Exception as e:
                 print(f"[ModelRegistry] Stage 1 failed: {e}")
 
-        # 2. Attempt Standard Transformers + IPEX int8
-        print(f"[ModelRegistry] Attempting Stage 2: Standard Transformers + IPEX int8 optimization...")
+        # 2. Attempt Standard Transformers (bfloat16)
+        print(f"[ModelRegistry] Attempting Stage 2: Standard Transformers CPU Loading (bfloat16)...")
         try:
             if self.tokenizer is None:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.ngram_cache.tokenizer = self.tokenizer
 
-            # Load standard, then optimize
-            temp_model = AutoModelForCausalLM.from_pretrained(
+            self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
-                torch_dtype=torch.float32,
+                torch_dtype=torch.bfloat16,
                 device_map="cpu",
                 trust_remote_code=True,
                 low_cpu_mem_usage=True
             )
-            if IPEX_AVAILABLE:
-                self.model = optimize_model(temp_model, low_bit="int8")
-                print(f"[ModelRegistry] Success: Loaded {model_id} via Stage 2 (int8).")
-            else:
-                self.model = temp_model
-                print(f"[ModelRegistry] Success: Loaded {model_id} in fp32 (IPEX optimize_model not available).")
+            print(f"[ModelRegistry] Success: Loaded {model_id} via Stage 2 (bfloat16).")
 
             return
         except Exception as e:
