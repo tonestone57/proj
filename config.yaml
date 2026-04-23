@@ -66,6 +66,6 @@ drive_engine:
 # SECTION 5: Reasoning & Inference Hybrid
 inference:
   primary_model: "Apriel-1.6-15B-Thinker"
-  draft_model: "Qwen-3.5-0.8B"
+  draft_model: "Qwen3.5-2B"
   speculative_decoding: true
   wisdom_cache: true               # Enable Reasoning Trace archiving
