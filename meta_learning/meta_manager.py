@@ -1,5 +1,6 @@
 import ray
 import z3
+import time
 from core.base import CognitiveModule
 from meta_learning.performance_tracker import PerformanceTracker
 from meta_learning.strategy_optimizer import StrategyOptimizer
@@ -98,6 +99,20 @@ class MetaManager(CognitiveModule):
             print(f"[MetaManager] ❌ Config patch REJECTED: Invariant violation or corruption detected. ({result})")
             return False
 
+    def persist_patch(self, patch_data):
+        """
+        SGI 2026: Persists verified patches to the system optimization report.
+        """
+        report_path = "SGI_OPTIMIZATION_REPORT.md"
+        try:
+            with open(report_path, "a") as f:
+                f.write(f"\n### Autonomous Patch: {patch_data['timestamp']}\n")
+                f.write(f"- **Objective**: {patch_data['objective']}\n")
+                f.write(f"- **Patch**: `{patch_data['patch']}`\n")
+            print(f"[MetaManager] Patch persisted to {report_path}")
+        except Exception as e:
+            print(f"[MetaManager] Failed to persist patch: {e}")
+
     def propose_and_verify_patch(self, objective):
         print(f"[MetaManager] Proposing patch for: {objective}")
         # SGI 2026: Z3-Verified Patch Generation
@@ -112,11 +127,13 @@ class MetaManager(CognitiveModule):
         if s.check() == z3.sat:
             print("[MetaManager] Patch verified. Applying to system state.")
             # SGI 2026: Simulate patch application by recording it
-            self.applied_patches.append({
+            patch_data = {
                 "objective": objective,
                 "patch": patch,
-                "timestamp": "2026-04-21T15:00:00Z"
-            })
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            }
+            self.applied_patches.append(patch_data)
+            self.persist_patch(patch_data)
             print(f"[MetaManager] Patch successfully integrated. Total patches: {len(self.applied_patches)}")
         else:
             print("[MetaManager] Patch verification failed. Aborting.")

@@ -104,6 +104,17 @@ class SGIHub:
             print("🚨 Thermal Guard Active: CPU cooling down...")
             return False
 
+    def get_hub_health(self):
+        """
+        Returns a snapshot of the Hub's health and task registry.
+        """
+        return {
+            "status": "active",
+            "registered_tasks": len(self.autonomous_task_registry),
+            "state_focus": self.state["focus"],
+            "timestamp": time.time()
+        }
+
     async def poll_scheduler(self, conflict_manager=None):
         res_obj = await self.scheduler.next.remote()
         if res_obj:
