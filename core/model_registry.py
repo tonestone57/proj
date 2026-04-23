@@ -7,6 +7,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 try:
     from ipex_llm.transformers import AutoModelForCausalLM as IpexModel
+    from ipex_llm import optimize_model
     IPEX_AVAILABLE = True
 except Exception:
     IPEX_AVAILABLE = False
@@ -88,9 +89,9 @@ class NGramCache:
 class ModelRegistryBase:
     """
     Singleton Model Provider with Multi-stage Fallbacks.
-    1. IPEX-LLM (Intel CPU acceleration, sym_int8)
-    2. BitsAndBytes (4-bit quantization)
-    3. Standard Transformers (bfloat16/float32)
+    1. IPEX-LLM (Direct Optimized Loading, sym_int8)
+    2. Standard Transformers Optimized with IPEX (sym_int8)
+    3. BitsAndBytes (4-bit, nf4)
     4. Mock Responses
     """
     def __init__(self, model_id="Apriel-1.6-15B-Thinker", draft_model_id="Qwen3.5-2B", search_actor=None):
@@ -118,7 +119,7 @@ class ModelRegistryBase:
         self._load_with_fallbacks(model_id, draft_model_id)
 
     def _load_with_fallbacks(self, model_id, draft_model_id):
-        # 1. Attempt IPEX-LLM
+        # 1. Attempt IPEX-LLM (Direct Optimized Loading)
         if IPEX_AVAILABLE:
             print(f"[ModelRegistry] Attempting Stage 1: IPEX-LLM Optimized Loading (sym_int8)...")
             try:
@@ -131,30 +132,50 @@ class ModelRegistryBase:
                     trust_remote_code=True,
                     use_cache=True
                 )
-                print(f"[ModelRegistry] Success: Loaded {model_id} via IPEX-LLM.")
+                print(f"[ModelRegistry] Success: Loaded {model_id} via IPEX-LLM Stage 1.")
 
-                # Load draft model via IPEX too
                 try:
                     self.draft_model = IpexModel.from_pretrained(
                         draft_model_id,
                         load_in_low_bit="sym_int8",
                         trust_remote_code=True
                     )
-                    print(f"[ModelRegistry] Success: Loaded draft {draft_model_id} via IPEX-LLM.")
-                except Exception as e:
-                    print(f"[ModelRegistry] Draft loading via IPEX failed: {e}")
+                except Exception:
+                    pass
 
-                return # Stage 1 Success
+                return
             except Exception as e:
-                print(f"[ModelRegistry] IPEX-LLM loading failed: {e}")
+                print(f"[ModelRegistry] Stage 1 failed: {e}")
 
-        # 2. Attempt BitsAndBytes (4-bit)
-        print(f"[ModelRegistry] Attempting Stage 2: BitsAndBytes 4-bit Loading...")
+        # 2. Attempt Standard Transformers + IPEX int8
+        print(f"[ModelRegistry] Attempting Stage 2: Standard Transformers + IPEX int8 optimization...")
         try:
             if self.tokenizer is None:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
                 self.ngram_cache.tokenizer = self.tokenizer
 
+            # Load standard, then optimize
+            temp_model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                torch_dtype=torch.float32,
+                device_map="cpu",
+                trust_remote_code=True,
+                low_cpu_mem_usage=True
+            )
+            if IPEX_AVAILABLE:
+                self.model = optimize_model(temp_model, low_bit="int8")
+                print(f"[ModelRegistry] Success: Loaded {model_id} via Stage 2 (int8).")
+            else:
+                self.model = temp_model
+                print(f"[ModelRegistry] Success: Loaded {model_id} in fp32 (IPEX optimize_model not available).")
+
+            return
+        except Exception as e:
+            print(f"[ModelRegistry] Stage 2 failed: {e}")
+
+        # 3. Attempt BitsAndBytes (4-bit, nf4)
+        print(f"[ModelRegistry] Attempting Stage 3: BitsAndBytes 4-bit Loading...")
+        try:
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.float16,
@@ -163,39 +184,13 @@ class ModelRegistryBase:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 quantization_config=bnb_config,
-                device_map="cpu", # Fallback to CPU if no GPU
+                device_map="cpu",
                 trust_remote_code=True
             )
-            print(f"[ModelRegistry] Success: Loaded {model_id} via BitsAndBytes.")
-            return # Stage 2 Success
+            print(f"[ModelRegistry] Success: Loaded {model_id} via BitsAndBytes Stage 3.")
+            return
         except Exception as e:
-            print(f"[ModelRegistry] BitsAndBytes loading failed: {e}")
-
-        # 3. Attempt Standard Transformers (fp16/CPU)
-        print(f"[ModelRegistry] Attempting Stage 3: Standard Transformers CPU Loading (fp16)...")
-        try:
-            if self.tokenizer is None:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-                self.ngram_cache.tokenizer = self.tokenizer
-
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16,
-                device_map="cpu",
-                trust_remote_code=True,
-                low_cpu_mem_usage=True
-            )
-            self.draft_model = AutoModelForCausalLM.from_pretrained(
-                draft_model_id,
-                torch_dtype=torch.float16,
-                device_map="cpu",
-                trust_remote_code=True,
-                low_cpu_mem_usage=True
-            )
-            print(f"[ModelRegistry] Success: Loaded models via Standard Transformers CPU.")
-            return # Stage 3 Success
-        except Exception as e:
-            print(f"[ModelRegistry] Standard loading failed: {e}. Reverting to Mock Mode.")
+            print(f"[ModelRegistry] Stage 3 failed: {e}. Reverting to Mock Mode.")
 
     def set_power_mode(self, reflex_only=False):
         if reflex_only != self.reflex_only:
