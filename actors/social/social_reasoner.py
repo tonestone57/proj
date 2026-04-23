@@ -9,6 +9,9 @@ class SocialReasoner(CognitiveModule):
         print(f"[SocialReasoner] Initialized.")
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
+
         if message["type"] == "user_interaction":
             context = self.get_context()
             response = self.social_process(message["data"], context)

@@ -1,5 +1,7 @@
+import ray
 from core.base import CognitiveModule
 
+@ray.remote
 class SchemaManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
@@ -35,3 +37,13 @@ class SchemaManager(CognitiveModule):
 
     def get_known_categories(self):
         return list(self.schemas.keys())
+
+    def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        if message["type"] == "update_schema":
+            self.update_schema(message["data"])
+        elif message["type"] == "apply_schema":
+            result = self.apply_schema(message["data"])
+            self.send_result("schema_result", result)

@@ -15,6 +15,9 @@ class DeploymentManager(CognitiveModule):
         self.env.launch_agent(agent_id, agent)
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
+
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "deployment_request":

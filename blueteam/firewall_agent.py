@@ -1,4 +1,7 @@
+import ray
 from core.base import CognitiveModule
+
+@ray.remote
 class FirewallAgent(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
@@ -18,6 +21,12 @@ class FirewallAgent(CognitiveModule):
         return {"blocked": False}
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
         """Standard SGI message receiver."""
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "add_firewall_rule":
             self.add_rule(message["data"]["pattern"], message["data"].get("action", "block"))
+        elif message["type"] == "defense_request":
+             result = self.filter(message["data"].get("traffic"))
+             self.send_result("defense_result", result)

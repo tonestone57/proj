@@ -14,6 +14,9 @@ class VersionManager:
         return self.versions.get(agent_id)
 
     def receive(self, message):
+        if message["type"] == "ping":
+            self.send_result("pong", {"status": "alive"})
+
         """Standard SGI message receiver."""
         if message["type"] == "version_check":
             v = self.get_version(message["data"]["agent_id"])

@@ -1,10 +1,15 @@
+import ray
 from core.base import CognitiveModule
 
+@ray.remote
 class VisionModule(CognitiveModule):
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
+        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "image_input":
             processed = self.process_image(message["data"])
-            self.scheduler.submit(self, {"type": "vision_output", "data": processed})
+            self.send_result("vision_output", processed)
 
     def process_image(self, img):
         # Simulate neural vision compression (NeuralLVC / CoPE)

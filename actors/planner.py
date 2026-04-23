@@ -8,6 +8,9 @@ class Planner(CognitiveModule):
         print(f"[Planner] Initialized with Shared Model Provider.")
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
+
         if message["type"] == "goal":
             plan = self.create_plan(message["data"])
             try: handle = ray.get_runtime_context().current_actor

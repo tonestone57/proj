@@ -11,8 +11,8 @@ class ConsolidationManager(CognitiveModule):
         super().__init__(workspace, scheduler, model_registry)
         self.replay = HippocampalReplay(episodic_memory)
         self.trainer = GenerativeTrainer(generative_model)
-        self.scheduler = ConsolidationScheduler()
-        self.schemas = SchemaManager()
+        self.consolidation_scheduler = ConsolidationScheduler()
+        self.schemas = SchemaManager.remote()
         self.world_model = world_model
         self.episodic_memory = episodic_memory
 
@@ -38,10 +38,10 @@ class ConsolidationManager(CognitiveModule):
         loss = self.trainer.train_on_replay(replay_batch) if hasattr(self.trainer, 'train_on_replay') else 0.1
 
         for ep in selected:
-            self.schemas.update_schema(ep)
+            self.schemas.update_schema.remote(ep)
 
         for ep in selected:
-            enriched = self.schemas.apply_schema(ep)
+            enriched = ray.get(self.schemas.apply_schema.remote(ep))
             if self.world_model:
                 try:
                     ray.get(self.world_model.update_entity.remote(ep["id"], enriched))
@@ -51,7 +51,10 @@ class ConsolidationManager(CognitiveModule):
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
         # Standard SGI 2026 message handling for ConsolidationManager
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "consolidation_trigger":
             result = self.consolidate()

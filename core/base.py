@@ -33,4 +33,7 @@ class CognitiveModule:
             self.scheduler.submit.remote(handle, {"type": result_type, "data": data})
 
     def receive(self, message):
+        if message["type"] == "ping":
+            self.send_result("pong", {"status": "alive"})
+
         raise NotImplementedError

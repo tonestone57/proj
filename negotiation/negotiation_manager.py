@@ -34,6 +34,9 @@ class NegotiationManager(CognitiveModule):
         return self.compliance.verify(treaty)
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "negotiation_request":
             result = self.negotiate(message['data']['issue'], message['data']['agents'])

@@ -30,10 +30,20 @@ class SelfManager(CognitiveModule):
         return {"ICM": icm, "PDM": pdm}
 
     def approve_update(self, proposed_update):
-        return self.endorsement.endorse(self.kernel, proposed_update)
+        # SGI 2026: Self-Consistency check via IdentityKernel
+        enforcement = self.kernel.enforce(proposed_update)
+        if not enforcement["enforced"]:
+            print(f"[SelfManager] Rejecting update: {enforcement['reason']}")
+            return {"approved": False, "reason": enforcement["reason"]}
+
+        endorsement = self.endorsement.endorse(self.kernel, proposed_update)
+        return {"approved": endorsement, "reason": "endorsement_passed" if endorsement else "endorsement_failed"}
 
     def receive(self, message):
+        try: super().receive(message)
+        except NotImplementedError: pass
         # Standard SGI 2026 message handling for SelfManager
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "self_update":
             result = self.update_self(message['data']['state'], message['data']['policy'])
