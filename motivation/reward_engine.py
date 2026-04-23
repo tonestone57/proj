@@ -8,7 +8,18 @@ class IntrinsicRewardEngine:
         }
 
     def compute(self, signals):
+        # SGI 2026: Weighted intrinsic reward synthesis
         reward = 0.0
+        applied_signals = {}
+
         for key, value in signals.items():
-            reward += self.weights.get(key, 0) * value
-        return reward
+            weight = self.weights.get(key, 0.0)
+            contribution = weight * value
+            reward += contribution
+            applied_signals[key] = contribution
+
+        return {
+            "total_intrinsic_reward": reward,
+            "signal_contributions": applied_signals,
+            "timestamp": time.time() if "time" in globals() else 0
+        }

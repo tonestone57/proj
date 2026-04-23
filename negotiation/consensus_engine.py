@@ -5,8 +5,16 @@ class ConsensusEngine:
     def vote(self, agents, proposal):
         total = 0
         for agent in agents:
-            weight = self.role_weights.get(agent.role, 1)
-            total += weight * proposal.utility.get(agent.id, 0)
+            # SGI 2026: Weighted voting with role-based multipliers
+            agent_id = agent.id if hasattr(agent, "id") else str(agent)
+            agent_role = agent.role if hasattr(agent, "role") else "generic"
+
+            weight = self.role_weights.get(agent_role, 1)
+
+            # Use specific utility if available, else fallback to 'others'
+            utility = proposal.utility.get(agent_id, proposal.utility.get("others", 0.5))
+
+            total += weight * utility
         return total
 
     def consensus(self, agents, proposals):
