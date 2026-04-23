@@ -158,7 +158,7 @@ class ModelRegistryBase:
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_quant_type="Q4_K_M"
+                bnb_4bit_quant_type="nf4"
             )
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
