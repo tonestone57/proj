@@ -21,21 +21,14 @@ class AttentionGate:
         # 2. Ethical filter (Proactive Veto logic)
         if self.ethics_manager:
             # SGI 2026: Non-blocking safety check
-            # For high-frequency paths, we rely on fast-path heuristics.
-            # is_safe is implemented as a synchronous method in EthicsManager.
-
-            # Use local or fast-path check
-            try:
-                # If it's a Ray actor, we skip it here to avoid ray.get()
-                # and rely on downstream SafetyManager checks.
-                if hasattr(self.ethics_manager, "is_safe") and not hasattr(self.ethics_manager, "_ray_actor_methods"):
-                    is_safe = self.ethics_manager.is_safe(message.get("data", ""))
-                    safety_score = 1.0 if is_safe else 0.0
-                else:
-                    # For remote handles, we assume safe here but verify elsewhere
-                    # This prevents the blocking safety bypass
-                    safety_score = 1.0
-            except Exception:
+            # For high-frequency paths, we rely on cached or fast-path heuristics
+            # instead of blocking Ray calls.
+            if hasattr(self.ethics_manager, "is_safe"):
+                # Use local check if possible
+                is_safe = self.ethics_manager.is_safe(message.get("data", ""))
+                safety_score = 1.0 if is_safe else 0.0
+            else:
+                # Default to safe if manager is present but incompatible
                 safety_score = 1.0
 
             if safety_score < 0.5:
