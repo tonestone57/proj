@@ -1,5 +1,4 @@
 import heapq
-import time
 
 class PriorityScheduler:
     def __init__(self):

@@ -1,7 +1,7 @@
 import yaml
 import os
 from pydantic import BaseModel, Field, ValidationError
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 
 # Pydantic Models for Schema Validation
 class SystemIdentity(BaseModel):

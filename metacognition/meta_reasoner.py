@@ -14,7 +14,6 @@ class MetaReasoner(CognitiveModule):
             self.scheduler.submit.remote(handle, {"type": "evaluation_result", "data": result})
 
     def evaluate_reasoning(self, trace):
-        import ray
         print(f"[MetaReasoner] Evaluating reasoning trace via Shared Model Provider...")
         if self.model_registry:
             # SGI 2026: Semantic quality evaluation via LLM inference

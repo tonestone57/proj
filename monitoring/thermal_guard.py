@@ -1,6 +1,5 @@
 import ray
 import psutil
-import time
 
 @ray.remote
 class ThermalGuard:
