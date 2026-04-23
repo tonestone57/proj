@@ -14,7 +14,7 @@ The system utilizes an Asynchronous Predictive Workspace (APW). Unlike tradition
 
 To maximize performance and prevent thermal throttling on the 15W i7-8265U, cognitive workload is tiered based on computational "cost":
 
-- **Tier 1: Reflex (Fast Path)**: Low-latency modules (Safety, Syntax Checking) and a dedicated **Reflex Actor** (Qwen-3.5-0.8B) for instant, low-cost responses.
+- **Tier 1: Reflex (Fast Path)**: Low-latency modules (Safety, Syntax Checking) and a dedicated **Reflex Actor** (Qwen3.5-2B) for instant, low-cost responses.
 - **Tier 2: Memory (Search)**: **Matryoshka-Tiered Retrieval** using nomic-embed-text-v1.5. A 2-stage "Coarse-to-Fine" funnel (128-dim scan → 768-dim re-rank) minimizes search latency.
 - **Tier 3: Reasoning (Slow Path)**: Higher-order reasoning (Planning, Complex Coding) via **Apriel-1.6-15B-Thinker**. Uses **Speculative Decoding** and preserves **Reasoning Traces** in a Wisdom Cache.
 - **Tier 4: Autonomy (Meta)**: **Active Inference** loop in the MetaManager. It monitors logs for inefficiencies and generates Z3-verified patches.
@@ -82,8 +82,8 @@ To fit within the memory bandwidth and thermal envelope of the 8265U, the model 
 - **LanceDB**: The "Cortical Archive." Supports LLM-Arithmetic Coding (Lossless Neural Archiving/LLM-Zip), achieving 5x to 10x better compression than Zstd/7z by storing token probabilities predicted by the LLM.
 - **NebulaGraph/TuGraph**: Stores the Neural Map for GraphRAG. Uses Tree-sitter Serialization to compactly store code as Abstract Syntax Tree (AST) node operations, bypassing re-parsing for immediate Control Flow Graphs.
 
-- **Model: Apriel-1.6-15B-Thinker & Qwen-3.5-0.8B**
-The system uses a dual-model architecture. **Apriel-1.6-15B-Thinker** serves as the primary reasoning brain, while **Qwen-3.5-0.8B** acts as a lightweight draft model for **Speculative Decoding** and **Reflex-path** tasks. They are managed as shared singletons in the ModelRegistry to minimize RAM pressure.
+- **Model: Apriel-1.6-15B-Thinker & Qwen3.5-2B**
+The system uses a dual-model architecture. **Apriel-1.6-15B-Thinker** serves as the primary reasoning brain, while **Qwen3.5-2B** acts as a lightweight draft model for **Speculative Decoding** and **Reflex-path** tasks. They are managed as shared singletons in the ModelRegistry to minimize RAM pressure.
 
 ## Getting Started
 

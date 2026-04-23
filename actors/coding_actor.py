@@ -1,6 +1,7 @@
 import sys
 import io
 import contextlib
+import re
 import ray
 from core.base import CognitiveModule
 from core.config import CORES_CODING
@@ -97,6 +98,11 @@ class CodingActorBase(CognitiveModule):
                     transformed = ray.get(self.model_registry.generate.remote(prompt))
                 else:
                     transformed = self.model_registry.generate(prompt)
+
+                # SGI 2026: Clean extraction of refactored code
+                # Strip thought blocks if present
+                if "<thought>" in transformed:
+                    transformed = re.sub(r"<thought>.*?</thought>\s*", "", transformed, flags=re.DOTALL)
 
                 # Cleanup potential Markdown
                 if "```python" in transformed:
@@ -199,12 +205,97 @@ class CodingActorBase(CognitiveModule):
                 return {"status": "exception", "error": str(e)}
 
     def execute_logic_internal(self, code):
+        """
+        SGI 2026: Internal execution logic with proactive refactoring.
+        Now supports isolated execution via subprocess to prevent server OOM.
+        """
         # SGI 2026: Proactive Recursive Refactoring
-        # Only refactor if recursion is detected to save compute on simple scripts
         recursive_funcs = self.detect_recursion(code)
         if recursive_funcs:
             code = self.iterative_transform(code, recursive_funcs=recursive_funcs)
 
+        # To avoid MemoryError in the main process, we'll use a subprocess for execution
+        return self.execute_isolated(code)
+
+    def execute_isolated(self, code):
+        import subprocess
+        import sys
+        import tempfile
+        import os
+
+        # Prepend standard SGI 2026 imports
+        imports = """
+import math
+import collections
+import heapq
+import bisect
+import itertools
+import functools
+import operator
+import re
+import typing
+import numpy as np
+import pandas as pd
+import dataclasses
+import string
+import traceback
+import gc
+import sys
+
+# Inject common names into global scope for convenience
+from collections import deque, Counter, defaultdict, OrderedDict
+from functools import cache, lru_cache
+from itertools import accumulate, permutations, combinations, product, groupby, islice, chain, repeat
+from math import inf, nan, comb, gcd, ceil, floor, sqrt
+from typing import List, Dict, Tuple, Set, Optional, Union, Any, Callable, Iterable, Iterator, Generator
+
+try:
+    import sortedcontainers
+    from sortedcontainers import SortedList, SortedDict, SortedSet
+except ImportError:
+    SortedList = SortedDict = SortedSet = None
+"""
+        full_code = imports + "\n" + code
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            script_path = os.path.join(tmpdir, "script.py")
+            with open(script_path, "w") as f:
+                f.write(full_code)
+
+            # Helper to set limits in child process
+            def set_limits():
+                try:
+                    import resource
+                    # Set 1GB memory limit (Address Space)
+                    limit_bytes = 1024 * 1024 * 1024
+                    resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
+                    # Set 15s CPU time limit
+                    resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
+                except Exception:
+                    pass
+
+            try:
+                # SGI 2026: Resource limits for the subprocess
+                cmd = [sys.executable, script_path]
+
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    preexec_fn=set_limits
+                )
+                if result.returncode == 0:
+                    return {"status": "success", "output": result.stdout}
+                else:
+                    return {"status": "failed", "error": result.stdout + result.stderr}
+            except subprocess.TimeoutExpired:
+                return {"status": "failed", "error": "Execution timed out (15s limit)"}
+            except Exception as e:
+                return {"status": "exception", "error": str(e)}
+
+    def _execute_logic_internal_legacy(self, code):
+        # Keeping this for reference or non-isolated needs
         stdout, stderr = io.StringIO(), io.StringIO()
 
         # SGI 2026: Inject high-performance libraries for Dynamic Programming, Graph Theory & Symbolic Reasoning
@@ -236,7 +327,8 @@ class CodingActorBase(CognitiveModule):
                 "dict": dict, "list": list, "set": set, "tuple": tuple, "bool": bool,
                 "float": float, "abs": abs, "min": min, "max": max, "sum": sum,
                 "sorted": sorted, "reversed": reversed, "enumerate": enumerate, "zip": zip,
-                "any": any, "all": all, "map": map, "filter": filter, "round": round, "pow": pow
+                "any": any, "all": all, "map": map, "filter": filter, "round": round, "pow": pow,
+                "repr": repr, "chr": chr, "ord": ord, "hex": hex, "bin": bin, "oct": oct
             },
             "math": math,
             "collections": collections,
@@ -278,8 +370,8 @@ class CodingActorBase(CognitiveModule):
             try:
                 import resource
                 # Adjusted for sandbox: 1GB memory and 15s CPU
-                resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
-                resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
+                #resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
+                #resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
             except (ImportError, Exception):
                 pass
 
