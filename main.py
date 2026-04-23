@@ -44,7 +44,7 @@ from memory_consolidation.consolidation_manager import ConsolidationManager
 from self_model.self_manager import SelfManager
 from blueteam.blueteam_manager import BlueTeamManager
 from redteam.redteam_manager import RedTeamManager
-from purpleteam.purple_manager import PurpleManager
+from purpleteam.purple_manager import PurpleManager, GovernanceIntegratedPurpleManager
 from incident_response.incident_manager import IncidentManager
 from monitoring.monitoring_manager import MonitoringManager
 from economics.economic_manager import EconomicManager
@@ -157,22 +157,22 @@ async def cognitive_cycle():
     self_manager = SelfManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     blueteam_manager = BlueTeamManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     redteam_manager = RedTeamManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    purpleteam_manager = PurpleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    # Initialize ASOC for security auditing & Governance
+    risk_classifier = RiskClassifier()
+    oversight_agent = OversightAgent(risk_classifier)
+    governance = GovernanceLayer(policy_engine=MockPolicyEngine(), oversight_agent=oversight_agent)
+    asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
     incident_manager = IncidentManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     monitoring_manager = MonitoringManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     economic_manager = EconomicManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     negotiation_manager = NegotiationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     deployment_manager = DeploymentManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     orchestration_manager = OrchestrationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    simulation_manager = SimulationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    simulation_manager = SimulationManager.remote(agents=[reasoner, coder, searcher], workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     console_manager = ConsoleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-
-    # Initialize ASOC for security auditing
-    risk_classifier = RiskClassifier()
-    oversight_agent = OversightAgent(risk_classifier)
-    governance = GovernanceLayer(policy_engine=MockPolicyEngine(), oversight_agent=oversight_agent)
-    asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    purpleteam_manager = GovernanceIntegratedPurpleManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
 
