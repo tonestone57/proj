@@ -1,5 +1,7 @@
+import ray
 from core.base import CognitiveModule
 
+@ray.remote
 class SelfModel(CognitiveModule):
     def __init__(self, workspace, scheduler):
         super().__init__(workspace, scheduler)

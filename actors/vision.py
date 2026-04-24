@@ -1,5 +1,7 @@
+import ray
 from core.base import CognitiveModule
 
+@ray.remote
 class VisionModule(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
