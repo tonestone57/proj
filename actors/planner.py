@@ -9,7 +9,6 @@ class Planner(CognitiveModule):
 
     def receive(self, message):
         if super().receive(message): return
-
         if message["type"] == "goal":
             plan = self.create_plan(message["data"])
             try: handle = ray.get_runtime_context().current_actor

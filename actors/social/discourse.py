@@ -1,14 +1,14 @@
-import ray
 from core.base import CognitiveModule
 
-@ray.remote
 class DiscourseModule(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "utterance":
             pragmatic = self.analyze_pragmatics(message["text"])
-            self.send_result("pragmatic_inference", pragmatic)
+            self.scheduler.submit(self, {
+                "type": "pragmatic_inference",
+                "data": pragmatic
+            })
 
     def analyze_pragmatics(self, text):
         # SGI 2026: Pragmatic analysis for intent and tone
@@ -35,3 +35,29 @@ class DiscourseModule(CognitiveModule):
             "tone": tone,
             "complexity": len(t_lower.split())
         }
+
+from actors.social.theory_of_mind import TheoryOfMind
+from actors.social.social_reasoner import SocialReasoner
+from actors.social.discourse import DiscourseModule
+
+def main():
+    workspace = GlobalWorkspace()
+    scheduler = Scheduler()
+
+    modules = {
+        "vision": VisionModule(workspace, scheduler),
+        "symbolic_reasoner": SymbolicReasoner(workspace, scheduler),
+        "planner": Planner(workspace, scheduler),
+        "self_model": SelfModel(workspace, scheduler),
+        "theory_of_mind": TheoryOfMind(workspace, scheduler),
+        "social_reasoner": SocialReasoner(workspace, scheduler),
+        "discourse": DiscourseModule(workspace, scheduler)
+    }
+
+    router = TaskRouter(modules)
+    priority_engine = PriorityEngine()
+    attention_gate = AttentionGate()
+    dps = DPSController(workspace, scheduler, router, priority_engine, attention_gate)
+
+    loop = AutonomousLoop(workspace, scheduler, dps)
+    loop.run()

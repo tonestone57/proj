@@ -20,6 +20,29 @@ class EconomicManager(CognitiveModule):
         self.optimizer = Optimizer()
         self.orchestrator = OrchestrationLayer()
 
+    def resolve_resource_conflict(self, agents, tasks):
+        """
+        SGI 2026: Resolves resource contention among multiple agents.
+        """
+        print(f"[EconomicManager] Resolving conflict for {len(tasks)} tasks...")
+        total_demand = sum(t.demand for t in tasks)
+        proposals = self.optimizer.optimize(agents, {"available": total_demand})
+        fairness_score = self.fairness_engine.fairness(proposals)
+
+        if fairness_score < 0.6:
+            print("[EconomicManager] Low fairness detected. Re-allocating with greedy demand-first strategy.")
+            # SGI 2026: Greedy allocation by task demand to resolve conflict quickly
+            sorted_tasks = sorted(tasks, key=lambda x: x.demand, reverse=True)
+            greedy_allocation = {}
+            for i, task in enumerate(sorted_tasks):
+                agent = agents[i % len(agents)]
+                greedy_allocation[agent] = task.id
+            consensus = greedy_allocation
+        else:
+            consensus = self.protocol.consensus(proposals)
+
+        return {"consensus": consensus, "fairness": fairness_score}
+
     def allocate(self, agents, task, context):
         adjusted_demand = self.context.adjust(task.demand, context)
         proposals = self.optimizer.optimize(agents, {"available": adjusted_demand})
@@ -36,8 +59,10 @@ class EconomicManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for EconomicManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "allocation_request":
             result = self.allocate(message['data']['agents'], message['data']['task'], message['data']['context'])
             self.send_result("allocation_result", result)
+        elif message["type"] == "resolve_conflict":
+            result = self.resolve_resource_conflict(message['data']['agents'], message['data']['tasks'])
+            self.send_result("conflict_resolution_result", result)

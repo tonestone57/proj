@@ -16,14 +16,14 @@ class BlueTeamManager(CognitiveModule):
         self.detect = DetectionEngine()
         self.adaptive = AdaptiveDefenseAgent()
         self.deception = DeceptionLayer()
-        self.firewall = FirewallAgent.remote()
+        self.firewall = FirewallAgent()
         self.dlp = DLPAgent()
         self.range = CyberRange()
 
     def defend(self, traffic):
         alert = self.detect.detect(traffic)
         response = self.adaptive.respond(alert)
-        firewall = ray.get(self.firewall.filter.remote(traffic))
+        firewall = self.firewall.filter(traffic)
         dlp = self.dlp.inspect(traffic)
         return {
             "alert": alert,
@@ -35,7 +35,6 @@ class BlueTeamManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for BlueTeamManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "defense_request":
             result = self.defend(message['data']['traffic'])

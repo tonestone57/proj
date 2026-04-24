@@ -34,7 +34,6 @@ class MonitoringManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for MonitoringManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "monitoring_request":
             result = self.monitor(message['data']['agent_id'], message['data']['state'], message['data']['action'], message['data']['reasoning'], message['data']['allowed_actions'])

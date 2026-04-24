@@ -1,7 +1,6 @@
-import ray
 from core.base import CognitiveModule
+import ray
 
-@ray.remote
 class MetaReasoner(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
@@ -9,10 +8,11 @@ class MetaReasoner(CognitiveModule):
 
     def receive(self, message):
         if super().receive(message): return
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "evaluate_reasoning":
             result = self.evaluate_reasoning(message["data"])
-            self.send_result("evaluation_result", result)
+            try: handle = ray.get_runtime_context().current_actor
+            except Exception: handle = None
+            self.scheduler.submit.remote(handle, {"type": "evaluation_result", "data": result})
 
     def evaluate_reasoning(self, trace):
         print(f"[MetaReasoner] Evaluating reasoning trace via Shared Model Provider...")
@@ -20,7 +20,6 @@ class MetaReasoner(CognitiveModule):
             # SGI 2026: Semantic quality evaluation via LLM inference
             prompt = f"Critically evaluate this reasoning chain for logical consistency and depth. Return a JSON with 'score' (0-1) and 'feedback'. Trace: {trace}"
             try:
-                # SGI 2026: Execute reasoning via ModelRegistry
                 response = ray.get(self.model_registry.generate.remote(prompt))
                 return {"status": "success", "evaluation": response}
             except Exception as e:
