@@ -44,7 +44,9 @@ class OrchestrationManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for OrchestrationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "event_handle":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "event_handle":
             result = self.handle_event(message['data']['event'])
             self.send_result("event_result", result)
         elif message["type"] == "task_request":

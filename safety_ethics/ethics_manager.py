@@ -31,6 +31,8 @@ class EthicsManager(CognitiveModule):
     def receive(self, message):
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "ethics_check":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "ethics_check":
             score = self.assess_safety(message.get("data"))
             self.send_result("ethics_result", {"safety_score": score})

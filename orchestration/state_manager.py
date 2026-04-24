@@ -17,7 +17,9 @@ class StateManager(CognitiveModule):
     def receive(self, message):
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "update_state":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "update_state":
             self.update(message["data"]["key"], message["data"]["value"])
         elif message["type"] == "get_state":
             result = self.get(message["data"]["key"])

@@ -35,6 +35,8 @@ class NegotiationManager(CognitiveModule):
 
     def receive(self, message):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "negotiation_request":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "negotiation_request":
             result = self.negotiate(message['data']['issue'], message['data']['agents'])
             self.send_result("negotiation_result", result)

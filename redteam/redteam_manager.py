@@ -28,6 +28,8 @@ class RedTeamManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for RedTeamManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "attack_simulation":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "attack_simulation":
             result = self.run(message['data']['target'], message['data']['scenario_name'])
             self.send_result("attack_result", result)

@@ -31,7 +31,9 @@ class TrainingManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for TrainingManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "autonomous_training":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "autonomous_training":
             print("[TrainingManager] Starting autonomous training step...")
             # Simulate background training data and states
             data = "Background system logs and experience traces"

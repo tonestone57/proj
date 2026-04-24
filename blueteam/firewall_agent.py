@@ -5,6 +5,7 @@ class FirewallAgent(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.rules = []
+        self.history = [] # SGI 2026: History for stateful inspection
 
     def add_rule(self, pattern, action="block"):
         self.rules.append({"pattern": pattern, "action": action})
@@ -12,6 +13,14 @@ class FirewallAgent(CognitiveModule):
     def filter(self, packet):
         # SGI 2026: Stateful inspection and pattern matching
         packet_str = str(packet)
+
+        # 0. Stateful inspection (Simulated: Block if rapid identical packets)
+        if hasattr(self, 'history'):
+            self.history.append(packet_str)
+            if len(self.history) > 50: self.history.pop(0)
+            if self.history.count(packet_str) > 10:
+                print(f"[FirewallAgent] 🚨 Stateful Block: Rapid identical packets detected.")
+                return {"blocked": True, "rule": "stateful_flood_protection"}
 
         # 1. Check user-defined rules
         for rule in self.rules:

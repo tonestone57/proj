@@ -9,7 +9,9 @@ class SocialReasoner(CognitiveModule):
         print(f"[SocialReasoner] Initialized.")
 
     def receive(self, message):
-        if message["type"] == "user_interaction":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "user_interaction":
             context = self.get_context()
             response = self.social_process(message["data"], context)
             try: handle = ray.get_runtime_context().current_actor

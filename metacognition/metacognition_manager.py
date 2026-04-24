@@ -28,6 +28,8 @@ class MetacognitionManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for MetacognitionManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "introspection_request":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "introspection_request":
             result = self.introspect(message['data']['internal_state'], message['data']['reasoning_trace'], message['data']['decision'])
             self.send_result("introspection_result", result)

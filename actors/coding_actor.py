@@ -75,6 +75,7 @@ class CodingActorBase(CognitiveModule):
         """
         SGI 2026: Neuro-Symbolic Refactoring.
         Converts detected recursion into stack-based loops using the Shared Model Registry.
+        Optimized with SortedList for O(log N) state management if available.
         """
         if recursive_funcs is None:
             recursive_funcs = self.detect_recursion(code)
@@ -252,7 +253,6 @@ from math import inf, nan, comb, gcd, ceil, floor, sqrt
 from typing import List, Dict, Tuple, Set, Optional, Union, Any, Callable, Iterable, Iterator, Generator
 
 try:
-    import sortedcontainers
     from sortedcontainers import SortedList, SortedDict, SortedSet
 except ImportError:
     SortedList = SortedDict = SortedSet = None

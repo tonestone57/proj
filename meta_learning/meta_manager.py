@@ -33,7 +33,9 @@ class MetaManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for MetaManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "active_inference_trigger":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "active_inference_trigger":
             self.active_inference_cycle()
 
     def active_inference_cycle(self):

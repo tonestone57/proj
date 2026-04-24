@@ -53,6 +53,8 @@ class ConsolidationManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for ConsolidationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "consolidation_trigger":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "consolidation_trigger":
             result = self.consolidate()
             self.send_result("consolidation_result", result)

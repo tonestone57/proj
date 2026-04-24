@@ -9,6 +9,9 @@ class TheoryOfMind(CognitiveModule):
         print(f"[TheoryOfMind] Initialized with Shared Model Provider.")
 
     def receive(self, message):
+        if message["type"] == "config_update":
+            self.reload_config()
+
         if message["type"] == "social_event":
             self.update_agent_model(message.get("agent"), message.get("data"))
 

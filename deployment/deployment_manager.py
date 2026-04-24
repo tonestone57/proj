@@ -17,6 +17,8 @@ class DeploymentManager(CognitiveModule):
     def receive(self, message):
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "deployment_request":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "deployment_request":
             result = self.deploy(message['data']['agent_id'], message['data']['agent'], message['data']['metadata'], message['data']['version'])
             self.send_result("deployment_result", result)

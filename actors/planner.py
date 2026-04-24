@@ -8,7 +8,9 @@ class Planner(CognitiveModule):
         print(f"[Planner] Initialized with Shared Model Provider.")
 
     def receive(self, message):
-        if message["type"] == "goal":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "goal":
             plan = self.create_plan(message["data"])
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None

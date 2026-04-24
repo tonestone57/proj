@@ -37,6 +37,8 @@ class CEEManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for CEEManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "stimulus_processing":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "stimulus_processing":
             result = self.process(message['data']['stimuli'], message['data']['reasoning_score'], message['data']['action'], message['data']['context'])
             self.send_result("stimulus_result", result)

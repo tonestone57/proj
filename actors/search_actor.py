@@ -173,7 +173,7 @@ class SearchActorBase(CognitiveModule):
 
         # SGI 2026: Pre-calculate query metadata
         q_lower = query.lower()
-        query_tokens_raw = re.findall(r'\w+', q_lower)
+        query_tokens_raw = re.findall(r'\b\w\w+\b', q_lower) # Improved tokenization: skip single chars
         query_tokens = [self.stem(t) for t in query_tokens_raw]
         query_token_set = set(query_tokens)
         query_bigrams = set(zip(query_tokens, query_tokens[1:]))

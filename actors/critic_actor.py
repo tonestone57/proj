@@ -20,7 +20,9 @@ class InternalCritic(CognitiveModule):
         return issues
 
     def receive(self, message):
-        if message["type"] == "critique_request":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "critique_request":
             issues = self.critique_code(message["data"])
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None

@@ -26,6 +26,8 @@ class MotivationManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for MotivationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "motivation_evaluation":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "motivation_evaluation":
             result = self.evaluate(message['data']['action'], message['data']['predicted_state'], message['data']['actual_state'])
             self.send_result("motivation_result", result)
