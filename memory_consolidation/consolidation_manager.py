@@ -11,7 +11,7 @@ class ConsolidationManager(CognitiveModule):
         super().__init__(workspace, scheduler, model_registry)
         self.replay = HippocampalReplay(episodic_memory)
         self.trainer = GenerativeTrainer(generative_model)
-        self.scheduler = ConsolidationScheduler()
+        self.consolidation_scheduler = ConsolidationScheduler()
         self.schemas = SchemaManager()
         self.world_model = world_model
         self.episodic_memory = episodic_memory
