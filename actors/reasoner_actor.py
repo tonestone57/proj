@@ -11,20 +11,25 @@ class ReasonerActor(CognitiveModule):
         print(f"[ReasonerActor] Initialized. Using Shared Model Provider for reasoning tasks...")
 
     def receive(self, message):
-        if super().receive(message): return
+        try:
+            if super().receive(message): return
+            handle = None
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                pass
 
-        try: handle = ray.get_runtime_context().current_actor
-        except Exception: handle = None
-
-        if message["type"] == "query":
-            if self.model_registry:
-                result = ray.get(self.model_registry.generate.remote(message["data"]))
-            else:
-                result = self.reason(message["data"])
-            self.scheduler.submit.remote(handle, {"type": "symbolic_result", "data": result})
-        elif message["type"] == "verification_request":
-            result = self.verify_logic(message["data"])
-            self.scheduler.submit.remote(handle, {"type": "verification_result", "data": result})
+            if message["type"] == "query":
+                if self.model_registry:
+                    result = ray.get(self.model_registry.generate.remote(message["data"]))
+                else:
+                    result = self.reason(message["data"])
+                self.scheduler.submit.remote(handle, {"type": "symbolic_result", "data": result})
+            elif message["type"] == "verification_request":
+                result = self.verify_logic(message["data"])
+                self.scheduler.submit.remote(handle, {"type": "verification_result", "data": result})
+        except Exception as e:
+            print(f"[ReasonerActor] Error in receive: {e}")
 
     def reason(self, query):
         if not isinstance(query, str): return "Error: Query must be a string."

@@ -1,8 +1,8 @@
-import ray
 import sys
 import io
-import contextlib
 import re
+import contextlib
+import ray
 from core.base import CognitiveModule
 from core.config import CORES_CODING
 
@@ -12,27 +12,29 @@ class CodingActorBase(CognitiveModule):
         print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
 
     def receive(self, message):
-        if super().receive(message): return
+        try:
+            if super().receive(message): return
+            if message["type"] == "code_execution":
+                code = message["data"]
+                persistent = message.get("persistent", False)
+                confidence = self.calculate_confidence_score()
 
-        if message["type"] == "code_execution":
-            code = message["data"]
-            persistent = message.get("persistent", False)
-            confidence = self.calculate_confidence_score()
+                if confidence < 0.4:
+                    self.scheduler.submit.remote(None, {
+                        "type": "search_request",
+                        "data": f"Docs for: {code[:50]}",
+                        "reason": "Low Confidence"
+                    })
 
-            if confidence < 0.4:
-                self.scheduler.submit.remote(None, {
-                    "type": "search_request",
-                    "data": f"Docs for: {code[:50]}",
-                    "reason": "Low Confidence"
-                })
+                if self.model_registry and "generate" in message.get("mode", ""):
+                    result = self.generate_and_verify(code)
+                else:
+                    result = self.execute_code(code, persistent=persistent)
+                result["confidence"] = confidence
 
-            if self.model_registry and "generate" in message.get("mode", ""):
-                result = self.generate_and_verify(code)
-            else:
-                result = self.execute_code(code, persistent=persistent)
-            result["confidence"] = confidence
-
-            self.send_result("code_result", result)
+                self.send_result("code_result", result)
+        except Exception as e:
+            print(f"[CodingActor] Error in receive: {e}")
 
     def calculate_confidence_score(self):
         from core.drives import calculate_entropy
@@ -75,6 +77,7 @@ class CodingActorBase(CognitiveModule):
         """
         SGI 2026: Neuro-Symbolic Refactoring.
         Converts detected recursion into stack-based loops using the Shared Model Registry.
+        Optimized with SortedList for O(log N) state management if available.
         """
         if recursive_funcs is None:
             recursive_funcs = self.detect_recursion(code)
@@ -252,7 +255,6 @@ from math import inf, nan, comb, gcd, ceil, floor, sqrt
 from typing import List, Dict, Tuple, Set, Optional, Union, Any, Callable, Iterable, Iterator, Generator
 
 try:
-    import sortedcontainers
     from sortedcontainers import SortedList, SortedDict, SortedSet
 except ImportError:
     SortedList = SortedDict = SortedSet = None
@@ -273,8 +275,8 @@ except ImportError:
                     resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
                     # Set 15s CPU time limit
                     resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"Failed to set resource limits: {e}")
 
             try:
                 # SGI 2026: Resource limits for the subprocess

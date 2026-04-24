@@ -12,7 +12,7 @@ class ConsolidationManager(CognitiveModule):
         self.replay = HippocampalReplay(episodic_memory)
         self.trainer = GenerativeTrainer(generative_model)
         self.consolidation_scheduler = ConsolidationScheduler()
-        self.schemas = SchemaManager.remote()
+        self.schemas = SchemaManager()
         self.world_model = world_model
         self.episodic_memory = episodic_memory
 
@@ -37,27 +37,22 @@ class ConsolidationManager(CognitiveModule):
         # trainer and schemas are local objects
         loss = self.trainer.train_on_replay(replay_batch) if hasattr(self.trainer, 'train_on_replay') else 0.1
 
-        # SGI 2026: Parallel schema updates
         for ep in selected:
-            self.schemas.update_schema.remote(ep)
+            self.schemas.update_schema(ep)
 
-        # SGI 2026: Batched enrichment
-        enriched_refs = [self.schemas.apply_schema.remote(ep) for ep in selected]
-        enriched_list = ray.get(enriched_refs)
-
-        if self.world_model:
-            update_refs = []
-            for ep, enriched in zip(selected, enriched_list):
-                update_refs.append(self.world_model.update_entity.remote(ep["id"], enriched))
-            # Fire and forget or batched wait? Fire and forget for performance if not critical.
-            # But let's at least trigger them.
+        for ep in selected:
+            enriched = self.schemas.apply_schema(ep)
+            if self.world_model:
+                try:
+                    ray.get(self.world_model.update_entity.remote(ep["id"], enriched))
+                except Exception:
+                    pass
 
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for ConsolidationManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "consolidation_trigger":
             result = self.consolidate()

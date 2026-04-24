@@ -5,10 +5,9 @@ from core.base import CognitiveModule
 class VisionModule(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "image_input":
             processed = self.process_image(message["data"])
-            self.send_result("vision_output", processed)
+            self.scheduler.submit(self, {"type": "vision_output", "data": processed})
 
     def process_image(self, img):
         # Simulate neural vision compression (NeuralLVC / CoPE)

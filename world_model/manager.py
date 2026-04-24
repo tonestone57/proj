@@ -36,7 +36,6 @@ class WorldModelManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for WorldModelManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] in ["world_update", "causal_update"]:
             self.update_world(message)

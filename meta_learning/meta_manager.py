@@ -1,6 +1,6 @@
 import ray
 import z3
-import psutil
+import time
 from core.base import CognitiveModule
 from meta_learning.performance_tracker import PerformanceTracker
 from meta_learning.strategy_optimizer import StrategyOptimizer
@@ -33,7 +33,6 @@ class MetaManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for MetaManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "active_inference_trigger":
             self.active_inference_cycle()
@@ -44,58 +43,31 @@ class MetaManager(CognitiveModule):
         Model "glances" at system logs and performance to find patterns of inefficiency.
         """
         print("[MetaManager] Starting Active Inference Cycle...")
-
-        # SGI 2026: Real-time memory pressure monitoring
-        from core.config import LOW_MEMORY_THRESHOLD_MB
-
-        mem = psutil.virtual_memory()
-        available_mb = mem.available / (1024 * 1024)
-
-        inefficiencies = []
-        if available_mb < LOW_MEMORY_THRESHOLD_MB:
-            inefficiencies.append("Memory Pressure")
-
-        # Simulate log analysis for other inefficiencies
+        # Simulate log analysis
         logs = "Thermal throttling detected at Tick 4. Search latency exceeded 500ms."
-        if "Search Latency" in logs:
-            inefficiencies.append("Search Latency")
+        inefficiency_detected = "Search Latency" in logs
 
-        for inefficiency in inefficiencies:
-            print(f"[MetaManager] Inefficiency detected: {inefficiency}. Formulating patch...")
-            if inefficiency == "Search Latency":
-                self.propose_and_verify_patch("Reduce search depth for 128-dim coarse scan.")
-            elif inefficiency == "Memory Pressure":
-                print("[MetaManager] Memory pressure detected. Proposing cache limit reduction...")
-                config_patch = {
-                    'memory_management': {
-                        'active_context_limit': 2048, # Reducing context to save RAM
-                        'pruning_threshold_pct': 0.7
-                    }
+        if inefficiency_detected:
+            print("[MetaManager] Inefficiency detected: Search Latency. Formulating patch...")
+            # Scenario 1: Logic patch
+            self.propose_and_verify_patch("Reduce search depth for 128-dim coarse scan.")
+
+            # Scenario 2: Config patch (Self-Optimization)
+            print("[MetaManager] Proposing autonomous config optimization...")
+            config_patch = {
+                'hardware_limits': {
+                    'max_threads': 2, # Reducing threads to mitigate thermal load
+                    'thermal_threshold_celsius': 75.0,
+                    'low_memory_warning_mb': 2500
                 }
-                # Verification logic could be expanded for memory-specific constraints
+            }
+            if self.verify_config_patch_z3(config_patch):
+                print("[MetaManager] Config patch verified. Applying autonomous optimization.")
                 self.applied_patches.append({
-                    "objective": "Mitigate memory pressure",
+                    "objective": "Mitigate thermal throttling via config optimization",
                     "patch": str(config_patch),
-                    "timestamp": "2026-04-21T15:10:00Z"
+                    "timestamp": "2026-04-21T15:05:00Z"
                 })
-
-            # Scenario: Config patch for thermal load (Self-Optimization)
-            if "Thermal" in logs:
-                print("[MetaManager] Proposing autonomous config optimization for thermal load...")
-                config_patch = {
-                    'hardware_limits': {
-                        'max_threads': 2, # Reducing threads to mitigate thermal load
-                        'thermal_threshold_celsius': 75.0,
-                        'low_memory_warning_mb': 2500
-                    }
-                }
-                if self.verify_config_patch_z3(config_patch):
-                    print("[MetaManager] Config patch verified. Applying autonomous optimization.")
-                    self.applied_patches.append({
-                        "objective": "Mitigate thermal throttling via config optimization",
-                        "patch": str(config_patch),
-                        "timestamp": "2026-04-21T15:05:00Z"
-                    })
 
     def verify_config_patch_z3(self, config_patch):
         """
@@ -128,6 +100,20 @@ class MetaManager(CognitiveModule):
             print(f"[MetaManager] ❌ Config patch REJECTED: Invariant violation or corruption detected. ({result})")
             return False
 
+    def persist_patch(self, patch_data):
+        """
+        SGI 2026: Persists verified patches to the system optimization report.
+        """
+        report_path = "SGI_OPTIMIZATION_REPORT.md"
+        try:
+            with open(report_path, "a") as f:
+                f.write(f"\n### Autonomous Patch: {patch_data['timestamp']}\n")
+                f.write(f"- **Objective**: {patch_data['objective']}\n")
+                f.write(f"- **Patch**: `{patch_data['patch']}`\n")
+            print(f"[MetaManager] Patch persisted to {report_path}")
+        except Exception as e:
+            print(f"[MetaManager] Failed to persist patch: {e}")
+
     def propose_and_verify_patch(self, objective):
         print(f"[MetaManager] Proposing patch for: {objective}")
         # SGI 2026: Z3-Verified Patch Generation
@@ -142,11 +128,13 @@ class MetaManager(CognitiveModule):
         if s.check() == z3.sat:
             print("[MetaManager] Patch verified. Applying to system state.")
             # SGI 2026: Simulate patch application by recording it
-            self.applied_patches.append({
+            patch_data = {
                 "objective": objective,
                 "patch": patch,
-                "timestamp": "2026-04-21T15:00:00Z"
-            })
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            }
+            self.applied_patches.append(patch_data)
+            self.persist_patch(patch_data)
             print(f"[MetaManager] Patch successfully integrated. Total patches: {len(self.applied_patches)}")
         else:
             print("[MetaManager] Patch verification failed. Aborting.")

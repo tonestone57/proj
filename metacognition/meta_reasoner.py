@@ -9,7 +9,6 @@ class MetaReasoner(CognitiveModule):
 
     def receive(self, message):
         if super().receive(message): return
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "evaluate_reasoning":
             result = self.evaluate_reasoning(message["data"])
             self.send_result("evaluation_result", result)
@@ -20,8 +19,11 @@ class MetaReasoner(CognitiveModule):
             # SGI 2026: Semantic quality evaluation via LLM inference
             prompt = f"Critically evaluate this reasoning chain for logical consistency and depth. Return a JSON with 'score' (0-1) and 'feedback'. Trace: {trace}"
             try:
-                # SGI 2026: Execute reasoning via ModelRegistry
-                response = ray.get(self.model_registry.generate.remote(prompt))
+                # Handle both Ray remote objects and local objects for testing
+                if hasattr(self.model_registry.generate, "remote"):
+                    response = ray.get(self.model_registry.generate.remote(prompt))
+                else:
+                    response = self.model_registry.generate(prompt)
                 return {"status": "success", "evaluation": response}
             except Exception as e:
                 return {"status": "error", "message": str(e)}

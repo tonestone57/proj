@@ -44,7 +44,7 @@ from memory_consolidation.consolidation_manager import ConsolidationManager
 from self_model.self_manager import SelfManager
 from blueteam.blueteam_manager import BlueTeamManager
 from redteam.redteam_manager import RedTeamManager
-from purpleteam.purple_manager import PurpleManager
+from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
 from incident_response.incident_manager import IncidentManager
 from monitoring.monitoring_manager import MonitoringManager
 from economics.economic_manager import EconomicManager
@@ -93,11 +93,6 @@ class SGIHub:
         return True
 
     async def safe_delegate(self, actor_handle, task_type, payload):
-        # SGI 2026: Input Validation (Allowing strings for code_execution)
-        if payload is not None and not isinstance(payload, (dict, str)):
-            print(f"🚨 [Hub] Invalid payload type for {task_type}: {type(payload)}. Expected dict, str or None.")
-            return False
-
         if not self.check_ram_guard():
             return False
 
@@ -107,6 +102,37 @@ class SGIHub:
             return True
         else:
             print("🚨 Thermal Guard Active: CPU cooling down...")
+            return False
+
+    def get_hub_health(self):
+        """
+        Returns a snapshot of the Hub's health and task registry.
+        """
+        return {
+            "status": "active",
+            "registered_tasks": len(self.autonomous_task_registry),
+            "state_focus": self.state["focus"],
+            "timestamp": time.time()
+        }
+
+    def hot_reload_system(self):
+        """
+        SGI 2026: Triggers a global configuration reload across all modules.
+        """
+        print("[Hub] 🔄 Initiating Autonomous Hot-Reload...")
+        try:
+            # 1. Hub reloads its own reference
+            import importlib
+            from core import config
+            importlib.reload(config)
+
+            # 2. Broadcast reload signal to all modules
+            self.workspace.broadcast.remote({"type": "config_update", "data": {}})
+
+            print(f"[Hub] Global configuration reloaded. New thermal threshold: {config.THERMAL_THRESHOLD_C}°C")
+            return True
+        except Exception as e:
+            print(f"[Hub] Hot-reload failed: {e}")
             return False
 
     async def poll_scheduler(self, conflict_manager=None):
@@ -162,22 +188,22 @@ async def cognitive_cycle():
     self_manager = SelfManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     blueteam_manager = BlueTeamManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     redteam_manager = RedTeamManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    purpleteam_manager = PurpleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    # Initialize ASOC for security auditing & Governance
+    risk_classifier = RiskClassifier()
+    oversight_agent = OversightAgent(risk_classifier)
+    governance = GovernanceLayer(policy_engine=MockPolicyEngine(), oversight_agent=oversight_agent)
+    asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
     incident_manager = IncidentManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     monitoring_manager = MonitoringManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     economic_manager = EconomicManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     negotiation_manager = NegotiationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     deployment_manager = DeploymentManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     orchestration_manager = OrchestrationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    simulation_manager = SimulationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    simulation_manager = SimulationManager.remote(agents=[reasoner, coder, searcher], workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     console_manager = ConsoleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-
-    # Initialize ASOC for security auditing
-    risk_classifier = RiskClassifier()
-    oversight_agent = OversightAgent(risk_classifier)
-    governance = GovernanceLayer(policy_engine=MockPolicyEngine(), oversight_agent=oversight_agent)
-    asoc_manager = ASOCManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    purpleteam_manager = GovernanceIntegratedPurpleManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
 
@@ -221,7 +247,6 @@ async def cognitive_cycle():
     # The Heartbeat Loop (Continuous Autonomous Operation)
     current_tick_interval = TICK_INTERVAL
     tick = 0
-    prev_entropy = 0.0
     while True:
         tick += 1
         print(f"\n--- Heartbeat Tick {tick} ---")
@@ -236,9 +261,7 @@ async def cognitive_cycle():
 
         state = await workspace.get_current_state.remote()
         entropy = drives.evaluate_state(state)
-        entropy_delta = abs(entropy - prev_entropy)
-        print(f"[Hub] System Entropy: {entropy:.4f} (Delta: {entropy_delta:.4f})")
-        prev_entropy = entropy
+        print(f"[Hub] System Entropy: {entropy:.4f}")
 
         # SGI 2026: Intrinsic Motivation Evaluation
         motivation_manager.receive.remote({
@@ -283,12 +306,14 @@ async def cognitive_cycle():
                     await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
             elif entropy < THRESHOLD_CONSOLIDATE:
                 # SGI 2026: Autonomous Self-Improvement Cycle
-                if entropy_delta < 0.05 and tick % 5 != 0:
-                    print(f"[Hub] Entropy stable ({entropy_delta:.4f}). Skipping redundant manager tasks.")
-                else:
-                    print(f"[Hub] Initiating Autonomous Self-Improvement Rotation...")
+                print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
-                    # Use the Registry-based rotation
+                # Check for pending patches from MetaManager (simulated)
+                # In a real system, we'd query the meta_manager actor
+                if tick % 10 == 0:
+                    hub.hot_reload_system()
+
+                # Use the Registry-based rotation
                 task_idx = tick % len(hub.autonomous_task_registry)
                 actor_h, t_type, payload = hub.autonomous_task_registry[task_idx]
 

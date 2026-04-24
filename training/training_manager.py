@@ -11,7 +11,7 @@ class TrainingManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None, modules=None, world_model=None, motivation=None):
         super().__init__(workspace, scheduler, model_registry)
         self.self_supervised = SelfSupervisedTrainer(modules)
-        self.rl = RLTrainer() # RLTrainer doesn't take arguments in its __init__
+        self.rl = RLTrainer(world_model, motivation)
         self.curriculum = Curriculum()
         self.world_model_trainer = WorldModelTrainer(world_model)
         self.meta = MetaLearning()
@@ -31,7 +31,6 @@ class TrainingManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for TrainingManager
-
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "autonomous_training":
             print("[TrainingManager] Starting autonomous training step...")

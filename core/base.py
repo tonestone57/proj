@@ -32,9 +32,16 @@ class CognitiveModule:
         if self.scheduler:
             self.scheduler.submit.remote(handle, {"type": result_type, "data": data})
 
+    def reload_config(self):
+        """SGI 2026: Autonomous configuration reload logic."""
+        print(f"[{self.__class__.__name__}] 🔄 Reloading configuration...")
+
     def receive(self, message):
         if message["type"] == "ping":
             self.send_result("pong", {"status": "alive"})
+            return True
+        elif message["type"] == "config_update":
+            self.reload_config()
             return True
 
         return False
