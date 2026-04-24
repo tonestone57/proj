@@ -1,7 +1,12 @@
+import ray
+from core.base import CognitiveModule
+
 import re
 
-class DLPAgent:
-    def __init__(self):
+@ray.remote
+class DLPAgent(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.sensitive_patterns = {
             "api_key": r"(?:api|secret|token)_?(?:key|secret)?['\"]?\s*[:=]\s*['\"]?([a-zA-Z0-9]{32,})['\"]?",
             "credit_card": r"\b(?:\d[ -]*?){13,16}\b",

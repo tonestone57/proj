@@ -1,6 +1,7 @@
 import ray
 import z3
 import time
+import psutil
 from core.base import CognitiveModule
 from meta_learning.performance_tracker import PerformanceTracker
 from meta_learning.strategy_optimizer import StrategyOptimizer
@@ -43,7 +44,14 @@ class MetaManager(CognitiveModule):
         Model "glances" at system logs and performance to find patterns of inefficiency.
         """
         print("[MetaManager] Starting Active Inference Cycle...")
-        # Simulate log analysis
+
+        # 1. Memory Pressure Monitoring
+        mem = psutil.virtual_memory()
+        if mem.percent > 80:
+            print(f"🚨 [MetaManager] High memory pressure detected: {mem.percent}%. Formulating proactive optimization...")
+            self.propose_and_verify_patch("Mitigate memory pressure via LRU eviction and cache capping.")
+
+        # 2. Simulate log analysis
         logs = "Thermal throttling detected at Tick 4. Search latency exceeded 500ms."
         inefficiency_detected = "Search Latency" in logs
 

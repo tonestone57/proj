@@ -4,8 +4,23 @@ import time
 class PriorityEngine:
     def __init__(self):
         self.baseline = 1.0
+        self.tokens = 100
+        self.last_refill = time.time()
+        self.max_tokens = 100
+        self.refill_rate = 10 # tokens per second
 
     def compute_priority(self, message):
+        # Token-Bucket rate limiting
+        now = time.time()
+        elapsed = now - self.last_refill
+        self.tokens = min(self.max_tokens, self.tokens + elapsed * self.refill_rate)
+        self.last_refill = now
+
+        if self.tokens < 1:
+            print("⚠️ [PriorityEngine] Rate limit exceeded. Throttling message.")
+            return 0.1 # Minimal priority for throttled messages
+
+        self.tokens -= 1
         msg_type = message.get("type")
 
         # Time-sensitive messages get higher priority

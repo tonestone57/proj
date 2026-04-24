@@ -1,7 +1,12 @@
+import ray
+from core.base import CognitiveModule
+
 import time
 
-class ForensicAgent:
-    def __init__(self):
+@ray.remote
+class ForensicAgent(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.evidence_log = []
 
     def analyze(self, network_trace):

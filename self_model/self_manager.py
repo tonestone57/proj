@@ -18,6 +18,12 @@ class SelfManager(CognitiveModule):
         self.last_policy = {}
 
     def update_self(self, state, policy):
+        # SGI 2026: IdentityKernel consistency enforcement
+        approval = self.approve_update(policy)
+        if not approval.get("enforced", True):
+            print(f"🚨 [SelfManager] Self-update rejected by IdentityKernel: {approval.get('reason')}")
+            return {"status": "rejected", "reason": approval.get("reason")}
+
         self.temporal.update_present(state)
         self.memory.store_episode({"state": state, "policy": policy})
 
@@ -27,7 +33,7 @@ class SelfManager(CognitiveModule):
         self.temporal.record_past()
         self.last_policy = policy.copy()
 
-        return {"ICM": icm, "PDM": pdm}
+        return {"status": "success", "ICM": icm, "PDM": pdm}
 
     def approve_update(self, proposed_update):
         return self.endorsement.endorse(self.kernel, proposed_update)

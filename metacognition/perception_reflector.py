@@ -1,4 +1,8 @@
-class PerceptionReflector:
+import ray
+from core.base import CognitiveModule
+
+@ray.remote
+class PerceptionReflector(CognitiveModule):
     def reflect(self, observation):
         # SGI 2026: Critical analysis of sensory data
         return {

@@ -1,5 +1,10 @@
-class ConsolidationScheduler:
-    def __init__(self, interval_ticks=50):
+import ray
+from core.base import CognitiveModule
+
+@ray.remote
+class ConsolidationScheduler(CognitiveModule):
+    def __init__(self, interval_ticks=50, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.priority_threshold = 0.5
         self.interval = interval_ticks
         self.last_run = 0

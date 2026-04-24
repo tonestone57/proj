@@ -1,5 +1,10 @@
-class GenerativeTrainer:
-    def __init__(self, generative_model):
+import ray
+from core.base import CognitiveModule
+
+@ray.remote
+class GenerativeTrainer(CognitiveModule):
+    def __init__(self, generative_model, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.model = generative_model
 
     def train_on_replay(self, replay_batch):
