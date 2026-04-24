@@ -67,7 +67,7 @@ async def run_check():
     managers = {
         "Reasoner": (ReasonerActor, {}),
         "Coder": (CodingActor, {}),
-        "Searcher": (SearchActor, {"graph_memory": None}),
+        "Searcher": (SearchActor, {"graph_memory": None, "memory_manager": None}),
         "Critic": (InternalCritic, {}),
         "Planner": (Planner, {}),
         "MemoryManager": (MemoryManager, {"graph_memory": None}),

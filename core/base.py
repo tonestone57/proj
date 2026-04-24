@@ -35,5 +35,6 @@ class CognitiveModule:
     def receive(self, message):
         if message["type"] == "ping":
             self.send_result("pong", {"status": "alive"})
+            return
 
         raise NotImplementedError

@@ -1,7 +1,11 @@
 import time
+import ray
+from core.base import CognitiveModule
 
-class VersionManager:
-    def __init__(self):
+@ray.remote
+class VersionManager(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.versions = {}
 
     def record_version(self, agent_id, version):
@@ -14,8 +18,8 @@ class VersionManager:
         return self.versions.get(agent_id)
 
     def receive(self, message):
-        if message["type"] == "ping":
-            self.send_result("pong", {"status": "alive"})
+        try: super().receive(message)
+        except NotImplementedError: pass
 
         """Standard SGI message receiver."""
         if message["type"] == "version_check":

@@ -212,21 +212,21 @@ class SearchActorBase(CognitiveModule):
 
                 if is_match:
                     if '_' in raw_t or any(c.isdigit() for c in raw_t) or (raw_t.isupper() and len(raw_t) > 1):
-                        unigram_score += self.SCORING_WEIGHT["technical_identifier"]
+                        unigram_score += self.SCORING_WEIGHTS["technical_identifier"]
                     elif len(t) > 5:
-                        unigram_score += self.SCORING_WEIGHT["long_word"]
+                        unigram_score += self.SCORING_WEIGHTS["long_word"]
                     else:
                         unigram_score += 1.0
 
             # 2. Concept Cohesion (n-grams)
             res_bigrams = list(zip(res_tokens, res_tokens[1:]))
-            bigram_matches = sum(self.SCORING_WEIGHT["bigram"] for b in res_bigrams if b in query_bigrams)
+            bigram_matches = sum(self.SCORING_WEIGHTS["bigram"] for b in res_bigrams if b in query_bigrams)
             res_skipgrams = list(zip(res_tokens, res_tokens[2:]))
-            bigram_matches += sum(self.SCORING_WEIGHT["bigram"] * 0.5 for b in res_skipgrams if b in query_bigrams)
+            bigram_matches += sum(self.SCORING_WEIGHTS["bigram"] * 0.5 for b in res_skipgrams if b in query_bigrams)
 
             # 3. Domain Bonus (Reward unique technical terms)
             matched_domains = {t for t in res_tokens if t in self.DOMAIN_TERMS}
-            domain_bonus = len(matched_domains) * self.SCORING_WEIGHT["domain_keyword_bonus"]
+            domain_bonus = len(matched_domains) * self.SCORING_WEIGHTS["domain_keyword_bonus"]
 
             # 4. Proximity Density
             proximity_bonus = 0.0
@@ -247,7 +247,7 @@ class SearchActorBase(CognitiveModule):
                             if span > 50: break
                             if len(unique_in_span) >= 2:
                                 density = len(unique_in_span) / span
-                                bonus = (len(unique_in_span) ** self.SCORING_WEIGHT["proximity_power"]) * density * 10.0
+                                bonus = (len(unique_in_span) ** self.SCORING_WEIGHTS["proximity_power"]) * density * 10.0
                                 proximity_bonus = max(proximity_bonus, bonus)
 
             # 5. Narrative & Sequence
@@ -259,12 +259,12 @@ class SearchActorBase(CognitiveModule):
                     ordered_matches += 1
                     curr_idx = found_at + 1
                 except ValueError: continue
-            sequence_bonus = (ordered_matches / len(query_tokens)) * self.SCORING_WEIGHT["ordered_fuzzy"] if ordered_matches >= 2 else 0.0
+            sequence_bonus = (ordered_matches / len(query_tokens)) * self.SCORING_WEIGHTS["ordered_fuzzy"] if ordered_matches >= 2 else 0.0
 
             # SGI 2026: Neuro-symbolic sequence alignment for Tier 1
             r_norm = " ".join(res_tokens_raw).lower()
             if "symbolic" in r_norm and "neuro" in r_norm and "tier 1" in query.lower():
-                sequence_bonus += self.SCORING_WEIGHT["ordered_fuzzy"] * 3.5
+                sequence_bonus += self.SCORING_WEIGHTS["ordered_fuzzy"] * 3.5
 
             # Combined Score with log-length normalization
             len_norm = math.log10(len(res_tokens) + 10)
@@ -273,13 +273,13 @@ class SearchActorBase(CognitiveModule):
 
             # 6. Coverage Multiplier
             coverage = len(matched_query_tokens) / len(query_token_set) if query_token_set else 0.0
-            if coverage > self.SCORING_WEIGHT["coverage_threshold"]:
-                total_score *= (1.0 + (coverage ** 3) * self.SCORING_WEIGHT["coverage_multiplier"])
+            if coverage > self.SCORING_WEIGHTS["coverage_threshold"]:
+                total_score *= (1.0 + (coverage ** 3) * self.SCORING_WEIGHTS["coverage_multiplier"])
 
             # 7. Exact Phrase alignment & Semantic Coverage
             r_norm = " ".join(res_tokens_raw).lower()
             if q_norm in r_norm:
-                total_score += self.SCORING_WEIGHT["exact_phrase"]
+                total_score += self.SCORING_WEIGHTS["exact_phrase"]
             else:
                 # Sliding window phrase matching for partial hits
                 q_words = q_norm.split()
@@ -287,12 +287,12 @@ class SearchActorBase(CognitiveModule):
                     for i in range(len(q_words) - 1):
                         subphrase = " ".join(q_words[i:i+2])
                         if subphrase in r_norm:
-                            total_score += self.SCORING_WEIGHT["exact_phrase"] * 0.2
+                            total_score += self.SCORING_WEIGHTS["exact_phrase"] * 0.2
 
                 if all(self.stem(w) in res_tokens for w in query_tokens_raw):
-                    total_score += self.SCORING_WEIGHT["exact_phrase"] * 0.9
+                    total_score += self.SCORING_WEIGHTS["exact_phrase"] * 0.9
                 elif coverage >= 0.8:
-                    total_score += self.SCORING_WEIGHT["exact_phrase"] * 0.6 * coverage
+                    total_score += self.SCORING_WEIGHTS["exact_phrase"] * 0.6 * coverage
 
             # SGI 2026: Tiered-Architecture Specific Boost
             # If query asks for a specific Tier, ensure ground truth is boosted
@@ -300,13 +300,13 @@ class SearchActorBase(CognitiveModule):
             if tier_match:
                 tier_num = tier_match.group(1)
                 if f"tier {tier_num}" in r_lower:
-                    total_score += self.SCORING_WEIGHT["exact_phrase"] * 5.0
+                    total_score += self.SCORING_WEIGHTS["exact_phrase"] * 5.0
                     # SGI 2026: Tier 3 specific mapping to Apriel reasoning brain
                     if tier_num == "3" and ("apriel" in r_lower or "thinker" in r_lower):
-                        total_score += self.SCORING_WEIGHT["exact_phrase"] * 5.0
+                        total_score += self.SCORING_WEIGHTS["exact_phrase"] * 5.0
                     # Additional boost if it's the Tier 1 Reflex path
                     if tier_num == "1" and ("symbolic" in r_lower or "reflex" in r_lower):
-                        total_score += self.SCORING_WEIGHT["exact_phrase"] * 5.0
+                        total_score += self.SCORING_WEIGHTS["exact_phrase"] * 5.0
 
             initial_scored.append({"score": total_score, "res": res, "tokens": res_tokens, "str": res_str, "coverage": coverage})
 
@@ -325,8 +325,8 @@ class SearchActorBase(CognitiveModule):
             res_len = len(item["tokens"])
             if res_len > 0:
                 saliency = score / math.log10(res_len + 10)
-                if saliency < self.SCORING_WEIGHT["quality_density_min"] * 20 and score < self.SCORING_WEIGHT["exact_hit_threshold"]:
-                    score *= self.SCORING_WEIGHT["quality_penalty"]
+                if saliency < self.SCORING_WEIGHTS["quality_density_min"] * 20 and score < self.SCORING_WEIGHTS["exact_hit_threshold"]:
+                    score *= self.SCORING_WEIGHTS["quality_penalty"]
 
             # Forum cross-verification
             if self.license_actor.is_forum(res_str):
@@ -335,7 +335,7 @@ class SearchActorBase(CognitiveModule):
                 if (len(verified) / len(sig_tokens) if sig_tokens else 1.0) < 0.3:
                     score = 0.0
                 else:
-                    score *= self.SCORING_WEIGHT["forum_penalty"]
+                    score *= self.SCORING_WEIGHTS["forum_penalty"]
 
             final_results.append((score, item["res"]))
 
