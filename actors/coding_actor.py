@@ -12,27 +12,30 @@ class CodingActorBase(CognitiveModule):
         print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
 
     def receive(self, message):
-        if message["type"] == "config_update":
-            self.reload_config()
-        elif message["type"] == "code_execution":
-            code = message["data"]
-            persistent = message.get("persistent", False)
-            confidence = self.calculate_confidence_score()
+        try:
+            if message["type"] == "config_update":
+                self.reload_config()
+            elif message["type"] == "code_execution":
+                code = message["data"]
+                persistent = message.get("persistent", False)
+                confidence = self.calculate_confidence_score()
 
-            if confidence < 0.4:
-                self.scheduler.submit.remote(None, {
-                    "type": "search_request",
-                    "data": f"Docs for: {code[:50]}",
-                    "reason": "Low Confidence"
-                })
+                if confidence < 0.4:
+                    self.scheduler.submit.remote(None, {
+                        "type": "search_request",
+                        "data": f"Docs for: {code[:50]}",
+                        "reason": "Low Confidence"
+                    })
 
-            if self.model_registry and "generate" in message.get("mode", ""):
-                result = self.generate_and_verify(code)
-            else:
-                result = self.execute_code(code, persistent=persistent)
-            result["confidence"] = confidence
+                if self.model_registry and "generate" in message.get("mode", ""):
+                    result = self.generate_and_verify(code)
+                else:
+                    result = self.execute_code(code, persistent=persistent)
+                result["confidence"] = confidence
 
-            self.send_result("code_result", result)
+                self.send_result("code_result", result)
+        except Exception as e:
+            print(f"[CodingActor] Error in receive: {e}")
 
     def calculate_confidence_score(self):
         from core.drives import calculate_entropy
@@ -273,8 +276,8 @@ except ImportError:
                     resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
                     # Set 15s CPU time limit
                     resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"Failed to set resource limits: {e}")
 
             try:
                 # SGI 2026: Resource limits for the subprocess

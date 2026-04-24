@@ -62,96 +62,99 @@ class SearchActorBase(CognitiveModule):
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
-        if message["type"] == "config_update":
-            self.reload_config()
-        elif message["type"] == "search_request":
-            query = message["data"]
+        try:
+            if message["type"] == "config_update":
+                self.reload_config()
+            elif message["type"] == "search_request":
+                query = message["data"]
 
-            # SGI 2026: GraphRAG context enhancement
-            graph_context = ""
-            if self.knowledge_graph and any(kw in query.lower() for kw in ["code", "function", "class", "module", "dependency", "import"]):
-                print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
-                # SGI 2026: Enhanced node extraction for complex patterns and multi-file dependencies
-                # Matches: snake_case, CamelCase, file_path.py, Class.method, module.submodule
-                node_patterns = [
-                    r'\b[a-zA-Z_][\w\-\./]*\.py\b',           # File paths
-                    r'\b[A-Z][a-zA-Z0-9]*\.[a-z_][\w]*\b',     # Class.method
-                    r'\b[a-z_][\w]*\.[a-z_][\w]*\b',           # module.function
-                    r'\b[a-zA-Z_]\w{3,}\b'                     # Standard identifiers (>3 chars)
-                ]
+                # SGI 2026: GraphRAG context enhancement
+                graph_context = ""
+                if self.knowledge_graph and any(kw in query.lower() for kw in ["code", "function", "class", "module", "dependency", "import"]):
+                    print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
+                    # SGI 2026: Enhanced node extraction for complex patterns and multi-file dependencies
+                    # Matches: snake_case, CamelCase, file_path.py, Class.method, module.submodule
+                    node_patterns = [
+                        r'\b[a-zA-Z_][\w\-\./]*\.py\b',           # File paths
+                        r'\b[A-Z][a-zA-Z0-9]*\.[a-z_][\w]*\b',     # Class.method
+                        r'\b[a-z_][\w]*\.[a-z_][\w]*\b',           # module.function
+                        r'\b[a-zA-Z_]\w{3,}\b'                     # Standard identifiers (>3 chars)
+                    ]
 
-                stop_words = {"code", "function", "class", "module", "what", "how", "find", "search", "where", "docs", "info", "related", "dependency", "import"}
+                    stop_words = {"code", "function", "class", "module", "what", "how", "find", "search", "where", "docs", "info", "related", "dependency", "import"}
 
-                potential_nodes = set()
-                for pattern in node_patterns:
-                    matches = re.findall(pattern, query)
-                    for m in matches:
-                        if m.lower() not in stop_words:
-                            potential_nodes.add(m)
+                    potential_nodes = set()
+                    for pattern in node_patterns:
+                        matches = re.findall(pattern, query)
+                        for m in matches:
+                            if m.lower() not in stop_words:
+                                potential_nodes.add(m)
 
-                current_subgraphs = []
-                if potential_nodes:
-                    # SGI 2026: Multi-Hop Traversal. Retrieve context for nodes and their immediate neighbors.
-                    if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):
-                        futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
-                        results_sg = ray.get(futures)
-                    else:
-                        results_sg = [self.knowledge_graph.get_context_subgraph(node) for node in potential_nodes]
+                    current_subgraphs = []
+                    if potential_nodes:
+                        # SGI 2026: Multi-Hop Traversal. Retrieve context for nodes and their immediate neighbors.
+                        if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):
+                            futures = [self.knowledge_graph.get_context_subgraph.remote(node) for node in potential_nodes]
+                            results_sg = ray.get(futures)
+                        else:
+                            results_sg = [self.knowledge_graph.get_context_subgraph(node) for node in potential_nodes]
 
-                    for node, sg in zip(potential_nodes, results_sg):
-                        if sg.get("edges"):
-                            current_subgraphs.append(f"Related to {node}: {sg['edges']}")
+                        for node, sg in zip(potential_nodes, results_sg):
+                            if sg.get("edges"):
+                                current_subgraphs.append(f"Related to {node}: {sg['edges']}")
 
-                            # SGI 2026: Level 2 traversal for deeply coupled dependencies
-                            # Extract neighbors from edges (assuming format "rel:neighbor")
-                            neighbors = []
-                            for edge in sg["edges"]:
-                                if ":" in edge:
-                                    # Use split(":", 1) to safely extract the target node
-                                    neighbors.append(edge.split(":", 1)[1])
+                                # SGI 2026: Level 2 traversal for deeply coupled dependencies
+                                # Extract neighbors from edges (assuming format "rel:neighbor")
+                                neighbors = []
+                                for edge in sg["edges"]:
+                                    if ":" in edge:
+                                        # Use split(":", 1) to safely extract the target node
+                                        neighbors.append(edge.split(":", 1)[1])
 
-                            if neighbors:
-                                if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):
-                                    n_futures = [self.knowledge_graph.get_context_subgraph.remote(n) for n in neighbors[:3]] # Limit to 3 neighbors
-                                    n_results = ray.get(n_futures)
-                                else:
-                                    n_results = [self.knowledge_graph.get_context_subgraph(n) for n in neighbors[:3]]
+                                if neighbors:
+                                    if hasattr(self.knowledge_graph, "get_context_subgraph") and hasattr(self.knowledge_graph.get_context_subgraph, "remote"):
+                                        n_futures = [self.knowledge_graph.get_context_subgraph.remote(n) for n in neighbors[:3]] # Limit to 3 neighbors
+                                        n_results = ray.get(n_futures)
+                                    else:
+                                        n_results = [self.knowledge_graph.get_context_subgraph(n) for n in neighbors[:3]]
 
-                                for n_node, n_sg in zip(neighbors, n_results):
-                                    if n_sg.get("edges"):
-                                        current_subgraphs.append(f"  [Neighbor {n_node}]: {n_sg['edges']}")
+                                    for n_node, n_sg in zip(neighbors, n_results):
+                                        if n_sg.get("edges"):
+                                            current_subgraphs.append(f"  [Neighbor {n_node}]: {n_sg['edges']}")
 
-                if current_subgraphs:
-                    graph_context = "\n[Graph Context] " + " | ".join(current_subgraphs)
+                    if current_subgraphs:
+                        graph_context = "\n[Graph Context] " + " | ".join(current_subgraphs)
 
-            results = self.perform_search(query)
-            compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
+                results = self.perform_search(query)
+                compliant_results = [res for res in results if self.license_actor.is_compliant(res)]
 
-            # SGI 2026: Rerank results for maximum relevance
-            reranked_results = self.rerank(query, compliant_results)
+                # SGI 2026: Rerank results for maximum relevance
+                reranked_results = self.rerank(query, compliant_results)
 
-            actionable_spec = self.distill_results(reranked_results)
-            if graph_context:
-                actionable_spec = graph_context + "\n" + actionable_spec
+                actionable_spec = self.distill_results(reranked_results)
+                if graph_context:
+                    actionable_spec = graph_context + "\n" + actionable_spec
 
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
+                try: handle = ray.get_runtime_context().current_actor
+                except Exception: handle = None
 
-            if hasattr(self.scheduler.submit, "remote"):
-                self.scheduler.submit.remote(handle, {
-                    "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
-                })
-            else:
-                self.scheduler.submit(handle, {
-                    "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
-                })
+                if hasattr(self.scheduler.submit, "remote"):
+                    self.scheduler.submit.remote(handle, {
+                        "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
+                    })
+                else:
+                    self.scheduler.submit(handle, {
+                        "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
+                    })
+        except Exception as e:
+            print(f"[SearchActor] Error in receive: {e}")
 
     def stem(self, word):
         """SGI 2026: Conservative suffix-stripping stemming to avoid false positives."""
         if not word or len(word) <= 4: return word
         w = word.lower()
         # Protect common technical terms and project-specific keywords
-        protected = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both", "quantization", "optimization", "distillation"}
+        protected = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both", "quantization", "optimization", "distillation", "sym_int8", "avx2", "q4_k_m", "q5_k_m", "llm-zip"}
         if w in protected: return w
         # Handle common plural and tense suffixes
         if w.endswith('ies') and len(w) > 5: return w[:-3] + 'y'
@@ -227,8 +230,8 @@ class SearchActorBase(CognitiveModule):
             res_skipgrams = list(zip(res_tokens, res_tokens[2:]))
             bigram_matches += sum(self.SCORING_WEIGHTS["bigram"] * 0.5 for b in res_skipgrams if b in query_bigrams)
 
-            # 3. Domain Bonus (Reward unique technical terms)
-            matched_domains = {t for t in res_tokens if t in self.DOMAIN_TERMS}
+            # 3. Domain Bonus (Reward query-relevant technical terms)
+            matched_domains = {t for t in res_tokens if t in self.DOMAIN_TERMS and t in query_token_set}
             domain_bonus = len(matched_domains) * self.SCORING_WEIGHTS["domain_keyword_bonus"]
 
             # 4. Proximity Density
@@ -263,11 +266,6 @@ class SearchActorBase(CognitiveModule):
                     curr_idx = found_at + 1
                 except ValueError: continue
             sequence_bonus = (ordered_matches / len(query_tokens)) * self.SCORING_WEIGHTS["ordered_fuzzy"] if ordered_matches >= 2 else 0.0
-
-            # SGI 2026: Neuro-symbolic sequence alignment for Tier 1
-            r_norm = " ".join(res_tokens_raw).lower()
-            if "symbolic" in r_norm and "neuro" in r_norm and "tier 1" in query.lower():
-                sequence_bonus += self.SCORING_WEIGHTS["ordered_fuzzy"] * 3.5
 
             # Combined Score with log-length normalization
             len_norm = math.log10(len(res_tokens) + 10)
