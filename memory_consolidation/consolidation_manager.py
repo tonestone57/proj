@@ -38,7 +38,8 @@ class ConsolidationManager(CognitiveModule):
         loss = self.trainer.train_on_replay(replay_batch) if hasattr(self.trainer, 'train_on_replay') else 0.1
 
         # SGI 2026: Parallel schema updates
-        [self.schemas.update_schema.remote(ep) for ep in selected]
+        for ep in selected:
+            self.schemas.update_schema.remote(ep)
 
         # SGI 2026: Batched enrichment
         enriched_refs = [self.schemas.apply_schema.remote(ep) for ep in selected]

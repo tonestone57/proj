@@ -48,11 +48,15 @@ class MockPolicyEngine:
 
 async def run_check():
     print("🚀 Starting SGI-Alpha Integration Check...")
-    # Initialize with enough cores for all actors if possible, or just limit them.
-    ray.init(ignore_reinit_error=True, num_cpus=16)
+    # Initialize Ray. Aggressive CPU count (16) is reduced for development stability.
+    ray.init(ignore_reinit_error=True, num_cpus=8)
 
     workspace = GlobalWorkspace.remote()
     scheduler = Scheduler.remote()
+
+    # Warm up Ray and Scheduler
+    print("Warming up Ray...")
+    await asyncio.sleep(2)
     model_provider = ModelRegistry.remote(model_id="Apriel-1.6-15B-Thinker")
 
     # Wait for ModelRegistry to initialize (it can take time to fail stages)
