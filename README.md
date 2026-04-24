@@ -2,13 +2,7 @@
 
 This repository contains a modular AGI (Artificial General Intelligence) architecture designed for high-level reasoning, mathematical evaluation, and logical processing. It has been strictly optimized for the Intel Core i7-8265U (15W TDP) with 16GB RAM, carefully balancing maximum cognitive density with strict thermal and memory limits.
 
-Moving the **Symbolic Reasoner** and **Coding Module** to Tier 1 is a brilliant move for a 15W TDP constraint. It pivots the system from a "Language-First" to a **"Logic-First"** architecture.
-
-On an i7-8265U, LLM inference is your most "expensive" operation in terms of thermal Joules per token. By moving Z3 and the Firecracker sandbox to Tier 1, you allow the system to solve problems via formal logic or execution *before* burning the thermal budget on the 15B parameter "Thinker."
-
-###
-
----
+SGI-Alpha implements a **"Logic-First"** architecture, specifically optimized for the 15W TDP constraint of the i7-8265U. By moving the **Symbolic Reasoner** (Z3 SMT Solver) and **Coding Module** (Firecracker Sandbox) to Tier 1, the system solves mathematical and algorithmic problems via formal logic or execution *before* utilizing the thermal budget for high-parameter LLM inference.
 
 ## Philosophical Foundation: Minimum Description Length (MDL)
 
@@ -20,7 +14,7 @@ The system utilizes an Asynchronous Predictive Workspace (APW). Unlike tradition
 
 ## 1. Improved Tiered Hierarchy (The "Logic-First" Pivot)
 
-To accommodate your changes, we should redefine the Tiers to ensure the LLM is only invoked when deterministic methods fail.
+The system utilizes a tiered hierarchy designed to ensure high-parameter LLMs are only invoked when deterministic methods fail.
 
 * **Tier 1: Reflex & Determinism (The "Fast Path")**
     * **Components:** Qwen3.5-2B (Reflex Actor), **Z3 SMT Solver**, **Code Sandbox (Firecracker)**, and Syntax Linters.
@@ -52,7 +46,7 @@ To accommodate your changes, we should redefine the Tiers to ensure the LLM is o
 
 ## 2. Technical Enhancements for the i7-8265U
 
-Since you are dealing with a Whiskey Lake processor (4 Cores / 8 Threads, but 15W), here is how to squeeze more "Cognitive Density" out of the hardware:
+To maximize "Cognitive Density" on the Whiskey Lake architecture (4 Cores / 8 Threads, 15W TDP), the system employs several hardware-aware optimizations:
 
 ### KV Cache Shadowing
 For the 15B model, the KV Cache will quickly eat your 16GB RAM.
@@ -64,7 +58,7 @@ Ensure the **Symbolic Reasoner** isn't just a passive tool but a **Gatekeeper**.
 
 ### Specialized Modules
 
-- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates SMT Solvers (Z3) for formal verification. Operates natively in sym_int8 precision for AVX2 efficiency.
+- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates SMT Solvers (Z3) for formal verification. Operates in high-precision `fp32` to maintain logical consistency without quantization overhead.
 - **Coding Module**: Executes and verifies code in a Stateful Digital Twin (Firecracker microVMs). Uses Q4_K_M precision for weights and sym_int8 for reasoning to maintain a consistent "Cognitive Heartbeat." Implements CodeComp (AST-Aware KV Cache Compression).
 - **Search Agent**: Performs autonomous online searches using Tavily and SearXNG at Q5_K_M precision. Implements **Matryoshka-Tiered Retrieval**, GraphRAG, and **Reasoning-Aware RAG** (utilizing the Wisdom Cache). Includes a License Guardian Classifier Gate (No GPL).
 - **Critic & Planner**: Evaluates reasoning for accuracy and generates step-by-step plans.
@@ -80,7 +74,7 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 - **Precision Tiers**:
     - **Weight Storage**: Q4_K_M (Balanced 4-bit GGUF/IPEX)
     - **Search Index**: Q5_K_M (Optimized for Retrieval, 5-bit)
-    - **Reasoning/Math**: sym_int8 (Symmetric 8-bit)
+    - **Reasoning (Math/Logic)**: fp32 / Q4_K_M (Component Dependent)
     - **KV Cache**: sym_int8 (Per-Channel Scaling)
 - **RAG Engine**: LanceDB (Archive) + FAISS (Reflex)
 
@@ -91,9 +85,9 @@ To maximize the AVX2 instruction set on your i7, we can refine your quantization
 | Component | Target Precision | Optimization Strategy |
 | :--- | :--- | :--- |
 | **Symbolic Logic** | `fp32` (limited) | Keep SMT solving in high precision; Z3 is lightweight enough that quantization adds more overhead than it saves. |
-| **Reasoning (Brain)** | `sym_int8` | Maximizes AVX2 throughput by removing zero-point offsets. |
+| **Reasoning (Brain)** | `Q4_K_M` | Apriel-1.6-15B-Thinker is only available in this format; ensure weights are paged efficiently. |
 | **Weights (Storage)** | `Q4_K_M` | Optimized for Intel AVX2 instructions (4-bit); ensures zero-lag activation. |
-| **Reflex Actor** | `Q4_K_M` | Qwen-2B stays more accurate |
+| **Reflex Actor** | `UD-Q4_K_XL` | Qwen3.5-2B (UD-Q4_K_XL) for maximum reflex accuracy and AVX2 throughput. |
 | **Search Results** | `Q5_K_M` | Optimized for online data indexing (5-bit). |
 | **KV Cache** | `sym_int8` | Use per-token dynamic scaling: $S = \frac{\max(|X|)}{7}$ to fit longer contexts in 16GB. |
 | **Index (RAG)** | `sym_int8 + BQ` | sym_int8 for distance calculations (Dot Product), Binary for scale. |
