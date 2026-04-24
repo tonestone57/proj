@@ -39,17 +39,6 @@ class PurpleManager(CognitiveModule):
         elif message["type"] == "config_update":
             self.reload_config()
 
-class GovernanceLayer:
-    def __init__(self, governance_graph=None, oversight_agent=None):
-        self.graph = governance_graph
-        self.oversight = oversight_agent
-
-    def authorize(self, action):
-        if not self.graph.enforce(action):
-            return {"authorized": False, "reason": "policy_violation"}
-        if not self.oversight.review(action):
-            return {"authorized": False, "reason": "oversight_block"}
-        return {"authorized": True}
 
 class GovernanceAwareRedAgent:
     def __init__(self, governance=None):

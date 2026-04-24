@@ -8,9 +8,10 @@ class ConcurrencyManager(CognitiveModule):
         super().__init__(workspace, scheduler, model_registry)
 
     def run_parallel(self, agents, input_data):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = {executor.submit(a.act, input_data): a for a in agents}
-            return [f.result() for f in futures]
+        """SGI 2026: Parallel execution of agent actions using Ray."""
+        # Note: In a Ray environment, this should ideally use ray.get on multiple futures
+        futures = [a.act.remote(input_data) for a in agents]
+        return ray.get(futures)
 
     def receive(self, message):
         """Standard SGI message receiver."""

@@ -311,7 +311,7 @@ async def cognitive_cycle():
                 # Check for pending patches from MetaManager (simulated)
                 # In a real system, we'd query the meta_manager actor
                 if tick % 10 == 0:
-                     hub.hot_reload_system()
+                    hub.hot_reload_system()
 
                 # Use the Registry-based rotation
                 task_idx = tick % len(hub.autonomous_task_registry)

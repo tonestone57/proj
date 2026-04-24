@@ -36,8 +36,11 @@ class CognitiveModule:
         """SGI 2026: Base implementation for hot-reloading configuration."""
         print(f"[{self.__class__.__name__}] Reloading configuration...")
         import importlib
-        from core import config
-        importlib.reload(config)
+        import core.config
+        importlib.reload(core.config)
+        # Update SGI_SETTINGS in modules that use it
+        import core.config as cfg
+        self.config = cfg.SGI_SETTINGS
 
     def receive(self, message):
         raise NotImplementedError
