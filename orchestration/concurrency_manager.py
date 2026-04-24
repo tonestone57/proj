@@ -16,6 +16,8 @@ class ConcurrencyManager(CognitiveModule):
     def receive(self, message):
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "parallel_execution":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "parallel_execution":
             result = self.run_parallel(message["data"]["agents"], message["data"]["input"])
             self.send_result("parallel_result", result)

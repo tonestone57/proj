@@ -59,7 +59,9 @@ class EconomicManager(CognitiveModule):
     def receive(self, message):
         # Standard SGI 2026 message handling for EconomicManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "allocation_request":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "allocation_request":
             result = self.allocate(message['data']['agents'], message['data']['task'], message['data']['context'])
             self.send_result("allocation_result", result)
         elif message["type"] == "resolve_conflict":

@@ -19,6 +19,8 @@ class StateManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "config_update":
             self.reload_config()
+        elif message["type"] == "ping":
+            self.send_result("pong", {"status": "active"})
         elif message["type"] == "update_state":
             self.update(message["data"]["key"], message["data"]["value"])
         elif message["type"] == "get_state":
