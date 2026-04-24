@@ -55,6 +55,10 @@ async def run_check():
     scheduler = Scheduler.remote()
     model_provider = ModelRegistry.remote(model_id="Apriel-1.6-15B-Thinker")
 
+    # Wait for ModelRegistry to initialize (it can take time to fail stages)
+    print("Waiting for ModelRegistry to stabilize...")
+    await asyncio.sleep(10)
+
     # Initialize components that are dependencies for others
     world_model_manager = WorldModelManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
