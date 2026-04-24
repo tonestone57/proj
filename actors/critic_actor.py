@@ -20,8 +20,7 @@ class InternalCritic(CognitiveModule):
         return issues
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
 
         if message["type"] == "critique_request":
             issues = self.critique_code(message["data"])

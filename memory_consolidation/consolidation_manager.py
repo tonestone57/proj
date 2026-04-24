@@ -55,8 +55,7 @@ class ConsolidationManager(CognitiveModule):
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
         # Standard SGI 2026 message handling for ConsolidationManager
 
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

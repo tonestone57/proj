@@ -39,8 +39,7 @@ class SchemaManager(CognitiveModule):
         return list(self.schemas.keys())
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "update_schema":
             self.update_schema(message["data"])

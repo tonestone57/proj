@@ -47,8 +47,7 @@ class MemoryManager(CognitiveModule):
         self.deep_archive = {}
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
 
         if message["type"] == "trigger_sleep_cycle":
             tick = message.get("data", {}).get("tick", 0) if isinstance(message.get("data"), dict) else 0

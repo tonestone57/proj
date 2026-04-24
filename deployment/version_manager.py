@@ -18,8 +18,7 @@ class VersionManager(CognitiveModule):
         return self.versions.get(agent_id)
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
 
         """Standard SGI message receiver."""
         if message["type"] == "version_check":

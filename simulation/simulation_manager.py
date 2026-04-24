@@ -33,8 +33,7 @@ class SimulationManager(CognitiveModule):
                 self.metrics.score(interaction)
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
         # Standard SGI 2026 message handling for SimulationManager
 
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")

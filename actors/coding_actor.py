@@ -12,8 +12,7 @@ class CodingActorBase(CognitiveModule):
         print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
 
     def receive(self, message):
-        try: super().receive(message)
-        except NotImplementedError: pass
+        if super().receive(message): return
 
         if message["type"] == "code_execution":
             code = message["data"]
