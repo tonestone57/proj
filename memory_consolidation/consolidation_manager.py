@@ -37,16 +37,19 @@ class ConsolidationManager(CognitiveModule):
         # trainer and schemas are local objects
         loss = self.trainer.train_on_replay(replay_batch) if hasattr(self.trainer, 'train_on_replay') else 0.1
 
-        for ep in selected:
-            self.schemas.update_schema.remote(ep)
+        # SGI 2026: Parallel schema updates
+        [self.schemas.update_schema.remote(ep) for ep in selected]
 
-        for ep in selected:
-            enriched = ray.get(self.schemas.apply_schema.remote(ep))
-            if self.world_model:
-                try:
-                    ray.get(self.world_model.update_entity.remote(ep["id"], enriched))
-                except Exception:
-                    pass
+        # SGI 2026: Batched enrichment
+        enriched_refs = [self.schemas.apply_schema.remote(ep) for ep in selected]
+        enriched_list = ray.get(enriched_refs)
+
+        if self.world_model:
+            update_refs = []
+            for ep, enriched in zip(selected, enriched_list):
+                update_refs.append(self.world_model.update_entity.remote(ep["id"], enriched))
+            # Fire and forget or batched wait? Fire and forget for performance if not critical.
+            # But let's at least trigger them.
 
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
