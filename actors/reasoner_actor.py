@@ -12,8 +12,11 @@ class ReasonerActor(CognitiveModule):
 
     def receive(self, message):
         try:
-            try: handle = ray.get_runtime_context().current_actor
-            except Exception: handle = None
+            handle = None
+            try:
+                handle = ray.get_runtime_context().current_actor
+            except Exception:
+                pass
 
             if message["type"] == "config_update":
                 self.reload_config()

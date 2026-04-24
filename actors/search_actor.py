@@ -52,6 +52,7 @@ class SearchActorBase(CognitiveModule):
     # SGI 2026: Domain-specific mapping for technical alignment
     DOMAIN_TERMS = {"sgi", "apriel", "sym_int8", "q4_k_m", "q5_k_m", "llm-zip", "avx2", "ipex-llm", "z3", "haiku", "bmessage", "stutter", "pid", "mdl", "neuro", "symbolic", "reflex", "tier", "distillation", "pruning", "saliency"}
     TECHNICAL_SYNONYMS = {"controller": "governor", "tier 1": "reflex", "mdl": "minimum description length", "distillation": "pruning", "tier 3": "apriel", "reasoning": "thought"}
+    PROTECTED_STEMS = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both", "quantization", "optimization", "distillation", "sym_int8", "avx2", "q4_k_m", "q5_k_m", "llm-zip"}
 
     def __init__(self, workspace, scheduler, model_registry=None, graph_memory=None, memory_manager=None):
         super().__init__(workspace, scheduler, model_registry)
@@ -154,8 +155,7 @@ class SearchActorBase(CognitiveModule):
         if not word or len(word) <= 4: return word
         w = word.lower()
         # Protect common technical terms and project-specific keywords
-        protected = {"this", "user", "used", "uses", "data", "code", "base", "with", "from", "each", "both", "quantization", "optimization", "distillation", "sym_int8", "avx2", "q4_k_m", "q5_k_m", "llm-zip"}
-        if w in protected: return w
+        if w in self.PROTECTED_STEMS: return w
         # Handle common plural and tense suffixes
         if w.endswith('ies') and len(w) > 5: return w[:-3] + 'y'
         if w.endswith('sses'): return w[:-2]

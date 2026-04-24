@@ -22,6 +22,8 @@ class VersionManager(CognitiveModule):
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "config_update":
             self.reload_config()
+        elif message["type"] == "ping":
+            self.send_result("pong", {"status": "active"})
         elif message["type"] == "version_check":
             v = self.get_version(message["data"]["agent_id"])
             self.send_result("version_result", {"agent_id": message["data"]["agent_id"], "version": v})
