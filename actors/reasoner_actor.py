@@ -14,7 +14,9 @@ class ReasonerActor(CognitiveModule):
         try: handle = ray.get_runtime_context().current_actor
         except Exception: handle = None
 
-        if message["type"] == "query":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "query":
             if self.model_registry:
                 result = ray.get(self.model_registry.generate.remote(message["data"]))
             else:

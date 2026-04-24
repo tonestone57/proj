@@ -36,6 +36,8 @@ class PurpleManager(CognitiveModule):
         if message["type"] == "cycle_trigger":
             result = self.run_cycle(message['data']['state'])
             self.send_result("cycle_result", result)
+        elif message["type"] == "config_update":
+            self.reload_config()
 
 class GovernanceLayer:
     def __init__(self, governance_graph=None, oversight_agent=None):
@@ -126,3 +128,5 @@ class GovernanceIntegratedPurpleManager(CognitiveModule):
         if message["type"] == "cycle_trigger":
             result = self.run_cycle(message['data']['state'])
             self.send_result("cycle_result", result)
+        elif message["type"] == "config_update":
+            self.reload_config()

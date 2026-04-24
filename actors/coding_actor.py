@@ -1,7 +1,7 @@
 import sys
 import io
-import contextlib
 import re
+import contextlib
 import ray
 from core.base import CognitiveModule
 from core.config import CORES_CODING
@@ -12,7 +12,9 @@ class CodingActorBase(CognitiveModule):
         print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
 
     def receive(self, message):
-        if message["type"] == "code_execution":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "code_execution":
             code = message["data"]
             persistent = message.get("persistent", False)
             confidence = self.calculate_confidence_score()

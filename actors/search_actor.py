@@ -62,7 +62,9 @@ class SearchActorBase(CognitiveModule):
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
-        if message["type"] == "search_request":
+        if message["type"] == "config_update":
+            self.reload_config()
+        elif message["type"] == "search_request":
             query = message["data"]
 
             # SGI 2026: GraphRAG context enhancement

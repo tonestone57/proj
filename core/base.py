@@ -32,5 +32,12 @@ class CognitiveModule:
         if self.scheduler:
             self.scheduler.submit.remote(handle, {"type": result_type, "data": data})
 
+    def reload_config(self):
+        """SGI 2026: Base implementation for hot-reloading configuration."""
+        print(f"[{self.__class__.__name__}] Reloading configuration...")
+        import importlib
+        from core import config
+        importlib.reload(config)
+
     def receive(self, message):
         raise NotImplementedError

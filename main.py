@@ -121,10 +121,14 @@ class SGIHub:
         """
         print("[Hub] 🔄 Initiating Autonomous Hot-Reload...")
         try:
-            # Re-import core config to get latest values from config.yaml
+            # 1. Hub reloads its own reference
             import importlib
             from core import config
             importlib.reload(config)
+
+            # 2. Broadcast reload signal to all modules
+            self.workspace.broadcast.remote({"type": "config_update", "data": {}})
+
             print(f"[Hub] Global configuration reloaded. New thermal threshold: {config.THERMAL_THRESHOLD_C}°C")
             return True
         except Exception as e:
