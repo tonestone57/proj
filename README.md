@@ -2,6 +2,8 @@
 
 This repository contains a modular AGI (Artificial General Intelligence) architecture designed for high-level reasoning, mathematical evaluation, and logical processing. It has been strictly optimized for the Intel Core i7-8265U (15W TDP) with 16GB RAM, carefully balancing maximum cognitive density with strict thermal and memory limits.
 
+SGI-Alpha implements a **"Logic-First"** architecture, specifically optimized for the 15W TDP constraint of the i7-8265U. By moving the **Symbolic Reasoner** (Z3 SMT Solver) and **Coding Module** (Firecracker Sandbox) to Tier 1, the system solves mathematical and algorithmic problems via formal logic or execution *before* utilizing the thermal budget for high-parameter LLM inference.
+
 ## Philosophical Foundation: Minimum Description Length (MDL)
 
 According to the Minimum Description Length (MDL) principle, the best "understanding" of a dataset is the shortest possible program that can recreate it. Our SGI system aims to achieve maximum information density and compression in its memory and reasoning loops.
@@ -10,14 +12,22 @@ According to the Minimum Description Length (MDL) principle, the best "understan
 
 The system utilizes an Asynchronous Predictive Workspace (APW). Unlike traditional models, the Hub acts as a Broadcast Center using Pub/Sub logic to eliminate bottlenecks. It implements a Multi-Stage Agentic RAG Pipeline and is designed for Self-Improvement, autonomously updating its data files and logic. The engine is hard-capped to utilize a maximum of 3 threads to maintain system stability and thermal headroom.
 
-### The Tiered Hybrid System (SGI-2026)
+## 1. Improved Tiered Hierarchy (The "Logic-First" Pivot)
 
-To maximize performance and prevent thermal throttling on the 15W i7-8265U, cognitive workload is tiered based on computational "cost":
+The system utilizes a tiered hierarchy designed to ensure high-parameter LLMs are only invoked when deterministic methods fail.
 
-- **Tier 1: Reflex (Fast Path)**: Low-latency modules (Safety, Syntax Checking) and a dedicated **Reflex Actor** (Qwen3.5-2B) for instant, low-cost responses.
-- **Tier 2: Memory (Search)**: **Matryoshka-Tiered Retrieval** using nomic-embed-text-v1.5. A 2-stage "Coarse-to-Fine" funnel (128-dim scan → 768-dim re-rank) minimizes search latency.
-- **Tier 3: Reasoning (Slow Path)**: Higher-order reasoning (Planning, Complex Coding) via **Apriel-1.6-15B-Thinker**. Uses **Speculative Decoding** and preserves **Reasoning Traces** in a Wisdom Cache.
-- **Tier 4: Autonomy (Meta)**: **Active Inference** loop in the MetaManager. It monitors logs for inefficiencies and generates Z3-verified patches.
+* **Tier 1: Reflex & Determinism (The "Fast Path")**
+    * **Components:** Qwen3.5-2B (Reflex Actor), **Z3 SMT Solver**, **Code Sandbox (Firecracker)**, and Syntax Linters.
+    * **Logic:** If the query is identified as mathematical or purely algorithmic, the system attempts a "Zero-LLM" solve using the Symbolic Reasoner or by generating and running a Python script in Tier 1.
+* **Tier 2: Context & Retrieval (The "Knowledge Path")**
+    * **Components:** Matryoshka-Tiered RAG (nomic-embed).
+    * **Logic:** Pulls documentation or previous "Wisdom Cache" hits to provide context if Tier 1 needs more data.
+* **Tier 3: Deep Reasoning (The "Slow Path")**
+    * **Components:** Apriel-1.6-15B-Thinker.
+    * **Logic:** Only engaged if Tier 1's "Internal Critic" fails the logic check or if the task is high-ambiguity (e.g., architectural design vs. simple bug fixing).
+* **Tier 4: Evolutionary Meta-Manager**
+    * **Components:** Active Inference Loop.
+    * **Logic:** Compiles logs from failed Tier 1 attempts to "teach" the Reflex actor better heuristics.
 
 ### Core Components
 
@@ -34,9 +44,21 @@ To maximize performance and prevent thermal throttling on the 15W i7-8265U, cogn
 - **Attention Gate**: Filters and amplifies signals to manage cognitive load. Integrates with the Ethics module for proactive vetting.
 - **Thermal Guard**: Monitors CPU temperature and load, pausing complex tasks if thresholds are exceeded to prevent thermal throttling.
 
+## 2. Technical Enhancements for the i7-8265U
+
+To maximize "Cognitive Density" on the Whiskey Lake architecture (4 Cores / 8 Threads, 15W TDP), the system employs several hardware-aware optimizations:
+
+### KV Cache Shadowing
+For the 15B model, the KV Cache will quickly eat your 16GB RAM.
+* **Improvement:** Implement **Layer-Wise KV Offloading**. Since you are capped at 3 threads, you aren't utilizing all cores. Use the "spare" threads to asynchronously compress the KV cache of inactive branches using the **LLM-Arithmetic Coding** you mentioned.
+
+### Formal Verification Bridge
+Ensure the **Symbolic Reasoner** isn't just a passive tool but a **Gatekeeper**.
+* **The "Hallucination Breaker":** Before Tier 3 (Apriel) outputs a math result, Tier 1 (Z3) must verify the logical consistency. If Z3 returns `UNSAT`, the response is discarded and re-routed to the Planner without user intervention.
+
 ### Specialized Modules
 
-- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates SMT Solvers (Z3) for formal verification. Operates natively in sym_int8 precision for AVX2 efficiency.
+- **Symbolic Reasoner**: Handles mathematical and logical queries. Integrates SMT Solvers (Z3) for formal verification. Operates in high-precision `fp32` to maintain logical consistency without quantization overhead.
 - **Coding Module**: Executes and verifies code in a Stateful Digital Twin (Firecracker microVMs). Uses Q4_K_M precision for weights and sym_int8 for reasoning to maintain a consistent "Cognitive Heartbeat." Implements CodeComp (AST-Aware KV Cache Compression).
 - **Search Agent**: Performs autonomous online searches using Tavily and SearXNG at Q5_K_M precision. Implements **Matryoshka-Tiered Retrieval**, GraphRAG, and **Reasoning-Aware RAG** (utilizing the Wisdom Cache). Includes a License Guardian Classifier Gate (No GPL).
 - **Critic & Planner**: Evaluates reasoning for accuracy and generates step-by-step plans.
@@ -52,22 +74,24 @@ To expand the AGI's knowledge base beyond its core modules, the system supports 
 - **Precision Tiers**:
     - **Weight Storage**: Q4_K_M (Balanced 4-bit GGUF/IPEX)
     - **Search Index**: Q5_K_M (Optimized for Retrieval, 5-bit)
-    - **Reasoning/Math**: sym_int8 (Symmetric 8-bit)
+    - **Reasoning (Math/Logic)**: fp32 / Q4_K_M (Component Dependent)
     - **KV Cache**: sym_int8 (Per-Channel Scaling)
 - **RAG Engine**: LanceDB (Archive) + FAISS (Reflex)
 
-### Hardware-Aware Precision Standard (i7-8265U Optimized)
+## 3. Optimized Precision Mapping
 
-To fit within the memory bandwidth and thermal envelope of the 8265U, the model forces specific quantization formats:
+To maximize the AVX2 instruction set on your i7, we can refine your quantization table:
 
-| Component | Format | Reasoning |
+| Component | Target Precision | Optimization Strategy |
 | :--- | :--- | :--- |
-| Reasoning (Brain) | sym_int8 | Maximizes AVX2 throughput by removing zero-point offsets. |
-| Weights (Storage) | Q4_K_M | Optimized for Intel AVX2 instructions (4-bit); ensures zero-lag activation. |
-| Search Results | Q5_K_M | Optimized for online data indexing (5-bit). |
-| KV Cache (Memory) | sym_int8 | Handles "spiky" data with Per-Channel Scaling ($S_i = \frac{\max(|x_i|)}{127}$). |
-| Index (RAG) | sym_int8 + BQ | sym_int8 for distance calculations (Dot Product), Binary for scale. |
-| Search/Text Logs | Zstd-19 | Standard high-ratio compression for raw text/logs. |
+| **Symbolic Logic** | `fp32` (limited) | Keep SMT solving in high precision; Z3 is lightweight enough that quantization adds more overhead than it saves. |
+| **Reasoning (Brain)** | `Q4_K_M` | Apriel-1.6-15B-Thinker is only available in this format; ensure weights are paged efficiently. |
+| **Weights (Storage)** | `Q4_K_M` | Optimized for Intel AVX2 instructions (4-bit); ensures zero-lag activation. |
+| **Reflex Actor** | `UD-Q4_K_XL` | Qwen3.5-2B (UD-Q4_K_XL) for maximum reflex accuracy and AVX2 throughput. |
+| **Search Results** | `Q5_K_M` | Optimized for online data indexing (5-bit). |
+| **KV Cache** | `sym_int8` | Use per-token dynamic scaling: $S = \frac{\max(|X|)}{7}$ to fit longer contexts in 16GB. |
+| **Index (RAG)** | `sym_int8 + BQ` | sym_int8 for distance calculations (Dot Product), Binary for scale. |
+| **Search/Text Logs** | `Zstd-19` | Standard high-ratio compression for raw text/logs. |
 
 ### The Tiered Memory Model & Codecs
 
@@ -140,6 +164,16 @@ The SymbolicReasoner evaluates complex expressions and performs formal reasoning
 ├── world_model/           # External reality & Runtime Digital Twin
 └── safety_ethics/         # Thermal Guard, License Guardian, and alignment
 ```
+
+## 4. Summary of Improvements
+
+The SGI-Alpha is now a **Deterministic-Hybrid AGI**. By promoting the Coding and Symbolic modules to Tier 1, you have achieved:
+
+1.  **Thermal Efficiency:** You solve math/code via low-overhead C++ binaries (Z3/Sandboxes) rather than high-overhead matrix multiplications.
+2.  **Reliability:** Mathematical "hallucinations" are physically impossible if the Symbolic Reasoner (Tier 1) acts as the final validator.
+3.  **RAM Headroom:** By utilizing "Reflex-first" logic, the 15B model stays in a "paged-out" or "frozen" state more often, leaving more of the 16GB RAM for the **World Model** and **GraphRAG**.
+
+> **Strategic Note:** Ensure your **Message Bus** uses shared memory (Unix Domain Sockets) rather than TCP/IP to keep latency sub-millisecond on this specific mobile chipset.
 
 ## Licensing and Compliance
 
