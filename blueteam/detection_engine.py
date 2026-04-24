@@ -41,8 +41,11 @@ class DetectionEngine:
         return {"alert": False}
 
     def _calculate_traffic_entropy(self, text):
+        """SGI 2026: Efficient entropy calculation using Counter."""
         if not text: return 0
-        probs = [text.count(c) / len(text) for c in set(text)]
+        from collections import Counter
+        counts = Counter(text)
+        probs = [count / len(text) for count in counts.values()]
         return -sum(p * math.log2(p) for p in probs)
 
     def _check_frequency_anomaly(self, text):
