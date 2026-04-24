@@ -61,6 +61,8 @@ class SearchActorBase(CognitiveModule):
         print(f"[SearchActor] Initialized with Shared Model Provider.")
 
     def receive(self, message):
+        if super().receive(message): return
+
         if message["type"] == "search_request":
             query = message["data"]
 

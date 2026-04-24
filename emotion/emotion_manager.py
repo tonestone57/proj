@@ -24,7 +24,9 @@ class EmotionManager(CognitiveModule):
 
 
     def receive(self, message):
+        if super().receive(message): return
         # Standard SGI 2026 message handling for EmotionManager
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "event_processing":
             result = self.process_event(message['data']['event'])

@@ -37,7 +37,9 @@ class ConflictManager(CognitiveModule):
         }
 
     def receive(self, message):
+        if super().receive(message): return
         # Standard SGI 2026 message handling for ConflictManager
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "resolve_conflict":
             result = self.resolve(message['data']['beliefs'], message['data']['action'], message['data']['context'])
@@ -121,7 +123,9 @@ class ASOCManager(CognitiveModule):
         return {"blocked": False, "result": result}
 
     def receive(self, message):
+        if super().receive(message): return
         # Standard SGI 2026 message handling for ASOCManager
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "security_audit":
             result = self.process_event(message['data'])

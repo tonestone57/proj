@@ -1,5 +1,6 @@
 import ray
 import z3
+import psutil
 from core.base import CognitiveModule
 from meta_learning.performance_tracker import PerformanceTracker
 from meta_learning.strategy_optimizer import StrategyOptimizer
@@ -30,7 +31,9 @@ class MetaManager(CognitiveModule):
         return self.policy.update(new_strategy)
 
     def receive(self, message):
+        if super().receive(message): return
         # Standard SGI 2026 message handling for MetaManager
+
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "active_inference_trigger":
             self.active_inference_cycle()
@@ -41,31 +44,58 @@ class MetaManager(CognitiveModule):
         Model "glances" at system logs and performance to find patterns of inefficiency.
         """
         print("[MetaManager] Starting Active Inference Cycle...")
-        # Simulate log analysis
+
+        # SGI 2026: Real-time memory pressure monitoring
+        from core.config import LOW_MEMORY_THRESHOLD_MB
+
+        mem = psutil.virtual_memory()
+        available_mb = mem.available / (1024 * 1024)
+
+        inefficiencies = []
+        if available_mb < LOW_MEMORY_THRESHOLD_MB:
+            inefficiencies.append("Memory Pressure")
+
+        # Simulate log analysis for other inefficiencies
         logs = "Thermal throttling detected at Tick 4. Search latency exceeded 500ms."
-        inefficiency_detected = "Search Latency" in logs
+        if "Search Latency" in logs:
+            inefficiencies.append("Search Latency")
 
-        if inefficiency_detected:
-            print("[MetaManager] Inefficiency detected: Search Latency. Formulating patch...")
-            # Scenario 1: Logic patch
-            self.propose_and_verify_patch("Reduce search depth for 128-dim coarse scan.")
-
-            # Scenario 2: Config patch (Self-Optimization)
-            print("[MetaManager] Proposing autonomous config optimization...")
-            config_patch = {
-                'hardware_limits': {
-                    'max_threads': 2, # Reducing threads to mitigate thermal load
-                    'thermal_threshold_celsius': 75.0,
-                    'low_memory_warning_mb': 2500
+        for inefficiency in inefficiencies:
+            print(f"[MetaManager] Inefficiency detected: {inefficiency}. Formulating patch...")
+            if inefficiency == "Search Latency":
+                self.propose_and_verify_patch("Reduce search depth for 128-dim coarse scan.")
+            elif inefficiency == "Memory Pressure":
+                print("[MetaManager] Memory pressure detected. Proposing cache limit reduction...")
+                config_patch = {
+                    'memory_management': {
+                        'active_context_limit': 2048, # Reducing context to save RAM
+                        'pruning_threshold_pct': 0.7
+                    }
                 }
-            }
-            if self.verify_config_patch_z3(config_patch):
-                print("[MetaManager] Config patch verified. Applying autonomous optimization.")
+                # Verification logic could be expanded for memory-specific constraints
                 self.applied_patches.append({
-                    "objective": "Mitigate thermal throttling via config optimization",
+                    "objective": "Mitigate memory pressure",
                     "patch": str(config_patch),
-                    "timestamp": "2026-04-21T15:05:00Z"
+                    "timestamp": "2026-04-21T15:10:00Z"
                 })
+
+            # Scenario: Config patch for thermal load (Self-Optimization)
+            if "Thermal" in logs:
+                print("[MetaManager] Proposing autonomous config optimization for thermal load...")
+                config_patch = {
+                    'hardware_limits': {
+                        'max_threads': 2, # Reducing threads to mitigate thermal load
+                        'thermal_threshold_celsius': 75.0,
+                        'low_memory_warning_mb': 2500
+                    }
+                }
+                if self.verify_config_patch_z3(config_patch):
+                    print("[MetaManager] Config patch verified. Applying autonomous optimization.")
+                    self.applied_patches.append({
+                        "objective": "Mitigate thermal throttling via config optimization",
+                        "patch": str(config_patch),
+                        "timestamp": "2026-04-21T15:05:00Z"
+                    })
 
     def verify_config_patch_z3(self, config_patch):
         """

@@ -93,6 +93,11 @@ class SGIHub:
         return True
 
     async def safe_delegate(self, actor_handle, task_type, payload):
+        # SGI 2026: Input Validation (Allowing strings for code_execution)
+        if payload is not None and not isinstance(payload, (dict, str)):
+            print(f"🚨 [Hub] Invalid payload type for {task_type}: {type(payload)}. Expected dict, str or None.")
+            return False
+
         if not self.check_ram_guard():
             return False
 
@@ -216,6 +221,7 @@ async def cognitive_cycle():
     # The Heartbeat Loop (Continuous Autonomous Operation)
     current_tick_interval = TICK_INTERVAL
     tick = 0
+    prev_entropy = 0.0
     while True:
         tick += 1
         print(f"\n--- Heartbeat Tick {tick} ---")
@@ -230,7 +236,9 @@ async def cognitive_cycle():
 
         state = await workspace.get_current_state.remote()
         entropy = drives.evaluate_state(state)
-        print(f"[Hub] System Entropy: {entropy:.4f}")
+        entropy_delta = abs(entropy - prev_entropy)
+        print(f"[Hub] System Entropy: {entropy:.4f} (Delta: {entropy_delta:.4f})")
+        prev_entropy = entropy
 
         # SGI 2026: Intrinsic Motivation Evaluation
         motivation_manager.receive.remote({
@@ -275,9 +283,12 @@ async def cognitive_cycle():
                     await hub.safe_delegate(coder, "code_execution", "print('Proactive self-test')")
             elif entropy < THRESHOLD_CONSOLIDATE:
                 # SGI 2026: Autonomous Self-Improvement Cycle
-                print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
+                if entropy_delta < 0.05 and tick % 5 != 0:
+                    print(f"[Hub] Entropy stable ({entropy_delta:.4f}). Skipping redundant manager tasks.")
+                else:
+                    print(f"[Hub] Initiating Autonomous Self-Improvement Rotation...")
 
-                # Use the Registry-based rotation
+                    # Use the Registry-based rotation
                 task_idx = tick % len(hub.autonomous_task_registry)
                 actor_h, t_type, payload = hub.autonomous_task_registry[task_idx]
 

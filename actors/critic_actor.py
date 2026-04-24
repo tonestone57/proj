@@ -20,6 +20,8 @@ class InternalCritic(CognitiveModule):
         return issues
 
     def receive(self, message):
+        if super().receive(message): return
+
         if message["type"] == "critique_request":
             issues = self.critique_code(message["data"])
             try: handle = ray.get_runtime_context().current_actor

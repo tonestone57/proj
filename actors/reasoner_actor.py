@@ -11,6 +11,8 @@ class ReasonerActor(CognitiveModule):
         print(f"[ReasonerActor] Initialized. Using Shared Model Provider for reasoning tasks...")
 
     def receive(self, message):
+        if super().receive(message): return
+
         try: handle = ray.get_runtime_context().current_actor
         except Exception: handle = None
 
