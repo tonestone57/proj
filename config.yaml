@@ -12,13 +12,13 @@ hardware_limits:
   ray_reserved_threads: 4           # Conserving for i7-8265U stability (Up to 4 cores)
   max_threads: 4                    # Scaled to 4 for requested performance
   thermal_threshold_celsius: 78.0   # Trigger "Cool-down" mode at 78C
-  low_memory_warning_mb: 2000       # Ensuring Heartbeat stays in physical RAM (16GB system)
+  low_memory_warning_mb: 1200       # Ensuring Heartbeat stays in physical RAM (16GB system)
   shared_gpu_memory: true           # Enable optimizations for HD 620 iGPU
 
 # SECTION 2: Specialized Actor Precision Tiers
 actors:
   symbolic_reasoner:
-    precision: "sym_int8"           # Fixed for AVX2 efficiency (No AVX-512)
+    precision: "Q4_K_M"             # Base weights (2026 standard)
     cpu_cores: 2
     priority: 1
 
@@ -35,13 +35,13 @@ actors:
 
 # SECTION 3: Memory & Context Management
 memory_management:
-  active_context_limit: 4096        # Optimized for 16GB RAM
+  active_context_limit: 65536       # Optimized for 16GB RAM (64K)
   pruning_threshold_pct: 0.80
   summarization_depth: "recursive"
   compression:
     vector_index: "sym_int8+BQ"     # 2026 Standard for AVX2
-    kv_cache: "sym_int8"            # Fixed for 8265U (No FP8 support)
-    reasoning_engine: "sym_int8"    # Fixed for AVX2 efficiency
+    kv_cache: "8-bit keys, 4-bit values (Hadamard Rotation)" # Fixed for 8265U
+    reasoning_engine: "Q4_K_M"       # Best accuracy-to-RAM ratio
     deep_archive: "LLM-Zip"         # Lossless Neural Archiving
     logs: "Zstd-19"                 # 2026 Standard for text logs
   vector_store:
@@ -66,6 +66,5 @@ drive_engine:
 # SECTION 5: Reasoning & Inference Hybrid
 inference:
   primary_model: "Apriel-1.6-15B-Thinker"
-  draft_model: "Qwen3.5-2B"
-  speculative_decoding: true
+  speculative_decoding: false
   wisdom_cache: true               # Enable Reasoning Trace archiving

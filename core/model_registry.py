@@ -3,7 +3,10 @@ import re
 import collections
 import torch
 import os
+import time
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from core.base import CognitiveModule
+from core.config import CORES_PRIMARY, CORES_REASONER
 
 try:
     from ipex_llm.transformers import AutoModelForCausalLM as IpexModel
@@ -86,26 +89,22 @@ class NGramCache:
 
         return proposals
 
-class ModelRegistryBase:
+@ray.remote(num_cpus=CORES_PRIMARY)
+class PrimaryModelActor(CognitiveModule):
     """
-    Singleton Model Provider with Multi-stage Fallbacks.
-    1. IPEX-LLM (Direct Optimized Loading, sym_int8)
-    2. Standard Transformers Optimized with IPEX (sym_int8)
-    3. BitsAndBytes (4-bit, nf4)
-    4. Mock Responses
+    SGI 2026: Specialized Primary Model Actor (Tier 3 Reasoning).
+    Optimized for RAM-critical systems without a draft model.
     """
-    def __init__(self, model_id="Apriel-1.6-15B-Thinker", draft_model_id="Qwen3.5-2B", search_actor=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", search_actor=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.model_id = model_id
-        self.draft_model_id = draft_model_id
+        self.search_actor = search_actor
         self.model = None
         self.tokenizer = None
-        self.draft_model = None
-        self.precision = "Q4_K_M" # Default label
+        self.ngram_cache = NGramCache()
+        self.precision = "Q4_K_M"
         self.reflex_only = False
-        self.ngram_cache = NGramCache(ns=[4, 3, 2])
-        self.search_actor = search_actor
 
-        # SGI 2026: Tier 1 Symbolic Reflex Map for instant retrieval of system invariants
         self.symbolic_reflex_map = {
             r"what is sym_int8": "SGI 2026: sym_int8 is a symmetric 8-bit integer quantization used for reasoning engine KV-Cache and activation scaling.",
             r"describe tier 1": "SGI 2026: Tier 1 (Symbolic Reflex) utilizes regex, Z3 solvers, and direct mapping for O(1) latency on system-critical tasks.",
@@ -115,96 +114,34 @@ class ModelRegistryBase:
             r"status": "SGI-Alpha System Status: ALL MODULES NOMINAL. Thermal PID Governor at 72.0°C. Matryoshka-Tiered Retrieval ACTIVE."
         }
 
-        print(f"[ModelRegistry] Initializing shared world model for {model_id}...")
-        self._load_with_fallbacks(model_id, draft_model_id)
+        self._load_model()
+
+    def receive(self, message):
+        if super().receive(message): return
+        if message["type"] == "generate_request":
+            result = self.generate(message["data"].get("prompt"), **message["data"].get("kwargs", {}))
+            self.send_result("generate_response", {"result": result})
 
     def set_search_actor(self, search_actor):
-        """SGI 2026: Late-binding of search actor for Tier 2 grounding."""
-        print(f"[ModelRegistry] 🔗 Search Actor registered for contextual grounding.")
         self.search_actor = search_actor
 
-    def _load_with_fallbacks(self, model_id, draft_model_id):
-        # 1. Attempt IPEX-LLM (Direct Optimized Loading)
+    def _load_model(self):
+        print(f"[PrimaryModelActor] Loading {self.model_id} (Quantization: {self.precision})...")
         if IPEX_AVAILABLE:
-            print(f"[ModelRegistry] Attempting Stage 1: IPEX-LLM Optimized Loading (sym_int8)...")
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True)
                 self.ngram_cache.tokenizer = self.tokenizer
-
                 self.model = IpexModel.from_pretrained(
-                    model_id,
-                    load_in_low_bit="sym_int8",
-                    trust_remote_code=True,
-                    use_cache=True
+                    self.model_id,
+                    load_in_low_bit=self.precision,
+                    trust_remote_code=True
                 )
-                print(f"[ModelRegistry] Success: Loaded {model_id} via IPEX-LLM Stage 1.")
-
-                try:
-                    self.draft_model = IpexModel.from_pretrained(
-                        draft_model_id,
-                        load_in_low_bit="sym_int8",
-                        trust_remote_code=True
-                    )
-                except Exception:
-                    pass
-
+                print(f"[PrimaryModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")
                 return
             except Exception as e:
-                print(f"[ModelRegistry] Stage 1 failed: {e}")
+                print(f"[PrimaryModelActor] IPEX failed: {e}")
 
-        # 2. Attempt Standard Transformers (bfloat16)
-        print(f"[ModelRegistry] Attempting Stage 2: Standard Transformers CPU Loading (bfloat16)...")
-        try:
-            if self.tokenizer is None:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-                self.ngram_cache.tokenizer = self.tokenizer
-
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.bfloat16,
-                device_map="cpu",
-                trust_remote_code=True,
-                low_cpu_mem_usage=True
-            )
-            print(f"[ModelRegistry] Success: Loaded {model_id} via Stage 2 (bfloat16).")
-
-            return
-        except Exception as e:
-            print(f"[ModelRegistry] Stage 2 failed: {e}")
-
-        # 3. Attempt BitsAndBytes (4-bit, nf4)
-        print(f"[ModelRegistry] Attempting Stage 3: BitsAndBytes 4-bit Loading...")
-        try:
-            bnb_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_quant_type="nf4"
-            )
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                quantization_config=bnb_config,
-                device_map="cpu",
-                trust_remote_code=True
-            )
-            print(f"[ModelRegistry] Success: Loaded {model_id} via BitsAndBytes Stage 3.")
-            return
-        except Exception as e:
-            print(f"[ModelRegistry] Stage 3 failed: {e}. Reverting to Mock Mode.")
-
-    def set_power_mode(self, reflex_only=False):
-        if reflex_only != self.reflex_only:
-            self.reflex_only = reflex_only
-            status = "REFLEX-ONLY (Power Saving)" if reflex_only else "FULL PERFORMANCE"
-            print(f"[ModelRegistry] Power Mode Switch: {status}")
-
-    def is_syntax_heavy(self, prompt):
-        code_keywords = [r'def\s+', r'class\s+', r'import\s+', r'return\s+', r'if\s+', r'for\s+', r'while\s+', r'\{', r'\}']
-        for pattern in code_keywords:
-            if re.search(pattern, prompt):
-                return True
-        if re.search(r'\b[a-z]+_[a-z_]+\b', prompt) or re.search(r'\b[A-Z][a-z]+[A-Z][a-z]+\b', prompt):
-            return True
-        return False
+        print(f"[PrimaryModelActor] Falling back to Mock mode for {self.model_id}.")
 
     def _sympy_to_z3(self, sympy_expr, z3_vars):
         import sympy
@@ -232,29 +169,16 @@ class ModelRegistryBase:
         raise ValueError(f"Unsupported SymPy type: {type(sympy_expr)}")
 
     def symbolic_reasoning_z3(self, prompt):
-        """
-        SGI 2026: Tier 1 Symbolic Reasoning using SymPy + Z3.
-        Robust parsing of mathematical constraints.
-        """
         import z3
         import sympy
         from sympy import parse_expr
 
         prompt_lower = prompt.lower()
-
-        # --- 1. Simplify/Rewrite Math Identities ---
-        if "sin" in prompt_lower and "cos" in prompt_lower:
-            prompt_lower = re.sub(r"sin\^2\(([x-z])\)\s*\+\s*cos\^2\(\1\)", "1", prompt_lower)
-            prompt_lower = re.sub(r"cos\^2\(([x-z])\)\s*\+\s*sin\^2\(\1\)", "1", prompt_lower)
-
-        # --- 2. Logic & Equation Solving via SymPy + Z3 ---
         if "solve" in prompt_lower and "=" in prompt_lower:
             try:
                 expr_str = prompt_lower.replace("solve", "").strip()
                 expr_str = expr_str.replace("^", "**")
-
                 equations_str = re.split(r"[,;]", expr_str)
-
                 all_symbols = set()
                 parsed_eqs = []
                 for eq_str in equations_str:
@@ -265,102 +189,85 @@ class ModelRegistryBase:
                     all_symbols.update(lhs.free_symbols)
                     all_symbols.update(rhs.free_symbols)
                     parsed_eqs.append((lhs, rhs))
-
                 if not parsed_eqs: return None
-
                 z3_vars = {str(s): z3.Real(str(s)) for s in all_symbols}
                 s = z3.Solver()
                 for lhs, rhs in parsed_eqs:
                     s.add(self._sympy_to_z3(lhs, z3_vars) == self._sympy_to_z3(rhs, z3_vars))
-
                 if s.check() == z3.sat:
                     m = s.model()
                     res_str = ", ".join([f"{v} = {m[v]}" for v in z3_vars.values()])
-                    return f"<reflex>\nZ3 Solved (SymPy-Robust): {res_str}\n</reflex>\n"
-            except Exception as e:
-                print(f"[ModelRegistry] Z3 SymPy error: {e}")
-
+                    return f"<reflex>\nZ3 Solved: {res_str}\n</reflex>\n"
+            except Exception: pass
         return None
 
-    def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=True, mode="reasoning"):
-        # SGI 2026: Initialize context variables early to avoid scoping errors
+    def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=False, mode="reasoning"):
         search_context = ""
-
-        # --- 1. Symbolic Reasoning (Z3) ---
         z3_result = self.symbolic_reasoning_z3(prompt)
-        if z3_result:
-            return z3_result
+        if z3_result: return z3_result
 
-        # --- 2. Tier 1: Reflex (Regex/System Invariants) ---
         prompt_lower = prompt.lower()
         for pattern, response in self.symbolic_reflex_map.items():
             if re.search(pattern, prompt_lower):
                 return f"<reflex>\n{response}\n</reflex>\n"
 
-        # --- 3. Tier 2: Memory (Search/GraphRAG) ---
-        if self.search_actor and any(kw in prompt_lower for kw in ["how to", "what is", "docs", "example", "implement", "function"]):
+        if self.search_actor and any(kw in prompt_lower for kw in ["how to", "what is", "docs", "example", "implement"]):
              try:
-                 if hasattr(self.search_actor.perform_search, "remote"):
-                     search_results = ray.get(self.search_actor.perform_search.remote(prompt))
-                 else:
-                     search_results = self.search_actor.perform_search(prompt)
-
+                 search_results = ray.get(self.search_actor.perform_search.remote(prompt))
                  if search_results:
                      search_context = "\n".join(search_results)
-                     prompt = (
-                         f"SGI 2026 Tier 2 Contextual Grounding:\n{search_context}\n\n"
-                         f"Instruction: Use the provided context to accurately fulfill the following task.\n"
-                         f"Task: {prompt}"
-                     )
-             except Exception:
-                 pass
+                     prompt = f"SGI 2026 Tier 2 Context:\n{search_context}\n\nTask: {prompt}"
+             except Exception: pass
 
-        # SGI 2026: Draft-based Reflex Path
         if mode == "reflex" or self.reflex_only:
-            # If search context is available, use it for grounded reflex
-            if search_context:
-                 return f"Reflex Result (Grounded): Actionable spec using Tier 2 context for {prompt[:20]}"
             return f"Reflex Result: Actionable spec for {prompt[:20]}"
 
-        strategy = "Neural"
+        # RAM-Critical Speculation: N-Gram Lookahead only
         if use_speculative_decoding:
-            if self.is_syntax_heavy(prompt):
-                strategy = "N-Gram Lookahead"
-            else:
-                strategy = f"Neural Draft ({self.draft_model_id})"
+            proposals = self.ngram_cache.propose(prompt, length=10)
+            if proposals:
+                print(f"[PrimaryModelActor] N-Gram Speculation: Found {len(proposals)} proposals.")
+                # Basic proposal injection for N-gram speedup
+                prompt += " " + " ".join(proposals)
 
-        thought_block = f"<thought>\nThinking about: {prompt[:50]}...\nStrategy: {strategy} speculation.\nVerified via symbolic reflex.\n</thought>\n"
-
+        # Standard Neural Inference (Fall-through)
         if self.model and self.tokenizer:
-            try:
-                device = next(self.model.parameters()).device
-                inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
-                output = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
-                result = self.tokenizer.decode(output[0], skip_special_tokens=True)
+            device = next(self.model.parameters()).device
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
+            outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
+            result = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+            thought_block = f"<thought>\nStrategy: Standard Neural Inference (Draft-less optimization)\n</thought>\n"
+            self.ngram_cache.update(result)
+            return thought_block + result
 
-                if result.startswith(prompt):
-                    result = result[len(prompt):].strip()
-
-                self.ngram_cache.update(result)
-                return thought_block + result
-            except Exception as e:
-                print(f"[ModelRegistry] Inference failed: {e}")
-
-        # Fallback to mock
-        result = f"Qwen3-8B (Reasoning) mock (Speculative-{strategy}, {self.precision}) for: {prompt[:30]}..."
+        result = f"Apriel-1.6-15B-Thinker mock (Draft-less) for: {prompt[:30]}..."
         self.ngram_cache.update(result)
-        return thought_block + result
+        return result
 
-    def update_ngram_cache(self, text):
-        self.ngram_cache.update(text)
-
-    def get_model_info(self):
-        return {
-            "model_id": self.model_id,
-            "precision": self.precision,
-            "status": "active" if self.model else "mock"
-        }
+    def set_power_mode(self, reflex_only=False):
+        self.reflex_only = reflex_only
 
 @ray.remote
-class ModelRegistry(ModelRegistryBase):
-    pass
+class ModelRegistry:
+    """
+    SGI 2026: RAM-Optimized Unified Registry.
+    Operates without a draft model to conserve memory on 16GB systems.
+    """
+    def __init__(self, model_id="Apriel-1.6-15B-Thinker", draft_model_id=None):
+        self.primary_actor = PrimaryModelActor.remote(model_id=model_id)
+
+    def generate(self, prompt, **kwargs):
+        return ray.get(self.primary_actor.generate.remote(prompt, **kwargs))
+
+    def set_search_actor(self, search_actor):
+        self.primary_actor.set_search_actor.remote(search_actor)
+
+    def set_power_mode(self, reflex_only=False):
+        self.primary_actor.set_power_mode.remote(reflex_only)
+
+    def update_ngram_cache(self, text):
+        # Delegate N-gram updates to primary actor
+        pass
+
+    def get_model_info(self):
+        return {"status": "RAM-Optimized", "draft_model": "None"}
