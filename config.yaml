@@ -18,7 +18,7 @@ hardware_limits:
 # SECTION 2: Specialized Actor Precision Tiers
 actors:
   symbolic_reasoner:
-    precision: "sym_int8"           # Fixed for AVX2 efficiency (No AVX-512)
+    precision: "Q4_K_M"             # Base weights (2026 standard)
     cpu_cores: 2
     priority: 1
 
@@ -41,7 +41,7 @@ memory_management:
   compression:
     vector_index: "sym_int8+BQ"     # 2026 Standard for AVX2
     kv_cache: "8-bit keys, 4-bit values (Hadamard Rotation)" # Fixed for 8265U
-    reasoning_engine: "sym_int8"    # Fixed for AVX2 efficiency
+    reasoning_engine: "Q4_K_M"       # Best accuracy-to-RAM ratio
     deep_archive: "LLM-Zip"         # Lossless Neural Archiving
     logs: "Zstd-19"                 # 2026 Standard for text logs
   vector_store:

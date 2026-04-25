@@ -314,29 +314,37 @@ class PrimaryModelActor(CognitiveModule):
 
             verified_text = ""
             if self.model and self.tokenizer:
-                # SGI 2026: Batch Verification (Plasma-Aware)
-                # In a real setup, this uses self.model.forward() to verify logprobs
-                # Here we simulate high-speed batch verification
+                # SGI 2026: Robust Speculative Verification (Token-Level)
+                # Performs true token-ID matching between Draft Proposals and Primary Predictions
                 device = next(self.model.parameters()).device
                 inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
 
-                # Mock high-speed verification result (Accepted prefix)
-                # We simulate that the first 80% of proposals are correct
-                valid_count = int(len(proposals) * 0.8)
-                verified_tokens = proposals[:valid_count]
-                verified_text = " ".join(verified_tokens)
+                # SGI 2026: Single-pass Verification (simulated via max_new_tokens)
+                outputs = self.model.generate(**inputs, max_new_tokens=len(proposals))
+                primary_gen_ids = outputs[0][inputs.input_ids.shape[1]:]
 
-                print(f"[PrimaryModelActor] Plasma Verification: Batch-verified {len(proposals)} tokens. Accepted: {valid_count}.")
+                # Re-tokenize proposals for exact ID comparison
+                draft_ids = self.tokenizer.encode(" ".join(proposals), add_special_tokens=False)
 
-                # SGI 2026: Sequential Verification & Repair
-                # If discrepancies found, continue generation from the point of failure
-                if valid_count < len(proposals):
-                    remaining_tokens = max(1, max_new_tokens - valid_count)
-                    new_prompt = prompt + " " + verified_text
-                    new_inputs = self.tokenizer(new_prompt, return_tensors="pt").to(device)
-                    outputs = self.model.generate(**new_inputs, max_new_tokens=remaining_tokens)
-                    extra_text = self.tokenizer.decode(outputs[0][new_inputs.input_ids.shape[1]:], skip_special_tokens=True)
-                    verified_text += " " + extra_text
+                valid_ids = []
+                for d_id, p_id in zip(draft_ids, primary_gen_ids):
+                    if d_id == p_id:
+                        valid_ids.append(d_id)
+                    else:
+                        break # First discrepancy found
+
+                valid_count = len(valid_ids)
+                verified_text = self.tokenizer.decode(valid_ids, skip_special_tokens=True)
+                print(f"[PrimaryModelActor] Plasma Verification: Token-matched {valid_count}/{len(draft_ids)} IDs.")
+
+                # Sequential Repair: Continue generation if IDs were rejected
+                if valid_count < max_new_tokens:
+                    remaining = max_new_tokens - valid_count
+                    repair_prompt = prompt + verified_text
+                    repair_inputs = self.tokenizer(repair_prompt, return_tensors="pt").to(device)
+                    repair_outputs = self.model.generate(**repair_inputs, max_new_tokens=remaining)
+                    extra_text = self.tokenizer.decode(repair_outputs[0][repair_inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                    verified_text += extra_text
             else:
                 verified_text = f"Apriel-1.6-15B-Thinker mock ({strategy}) for: {prompt[:30]}..."
 
