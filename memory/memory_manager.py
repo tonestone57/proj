@@ -68,6 +68,24 @@ class MemoryManager(CognitiveModule):
             except Exception:
                 handle = None
             self.scheduler.submit.remote(handle, {"type": "distillation_result", "data": distilled})
+        elif message["type"] == "archive_search_request":
+            query = message["data"].get("query")
+            results = message["data"].get("results")
+            self.archive_search_results(query, results)
+
+    def archive_search_results(self, query, results):
+        """
+        SGI 2026: Persists search results to the Wisdom Cache (LanceDB).
+        """
+        print(f"[MemoryManager] Archiving search results for: {query[:30]}...")
+        if not query or not results: return
+
+        # In a real system, this would write to LanceDB.
+        # Here we update the active Wisdom Cache.
+        key = query[:10] # Simplified key
+        summary = f"Summary of {len(results)} results for {query}: {str(results)[:100]}..."
+        self.active_wisdom_cache[key] = summary
+        self.wisdom_cache_metadata[summary] = time.time()
 
     def trigger_sleep_cycle(self, current_tick=0):
         print(f"[MemoryManager] Starting Sleep Cycle (Tick {current_tick})...")

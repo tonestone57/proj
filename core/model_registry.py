@@ -288,6 +288,7 @@ class PrimaryModelActor(CognitiveModule):
             return f"Reflex Result: Actionable spec for {prompt[:20]}"
 
         # 3. Speculative Decoding via Plasma (Ray Shared Memory)
+        strategy = "Plasma-backed Speculation"
         if use_speculative_decoding and self.draft_actor:
             start_time = time.time()
             # Proposal requested from separate Ray actor
@@ -295,36 +296,40 @@ class PrimaryModelActor(CognitiveModule):
             # Retrieved from Plasma Object Store (Zero-copy)
             proposals = ray.get(proposal_ref)
             latency = (time.time() - start_time) * 1000
-            print(f"[PrimaryModelActor] Verified {len(proposals)} tokens via Plasma in {latency:.2f}ms.")
 
-            strategy = "Plasma-backed Speculation"
-            thought_block = f"<thought>\nThinking about: {prompt[:50]}...\nStrategy: {strategy}\nVerified via Plasma Shared Memory.\n</thought>\n"
-
-            result = " ".join(proposals)
+            verified_text = ""
             if self.model and self.tokenizer:
-                # SGI 2026: Fast Batch Verification of Plasma proposals
-                # Matches draft tokens against primary model log-probabilities
+                # SGI 2026: Fast Batch Verification
                 device = next(self.model.parameters()).device
                 inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
                 outputs = self.model.generate(**inputs, max_new_tokens=len(proposals))
                 primary_tokens = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).split()
 
-                verified_tokens = []
+                matched = []
                 for d_tok, p_tok in zip(proposals, primary_tokens):
-                    if d_tok == p_tok:
-                        verified_tokens.append(d_tok)
-                    else:
-                        break # Halt at first discrepancy
+                    if d_tok == p_tok: matched.append(d_tok)
+                    else: break
 
-                print(f"[PrimaryModelActor] Plasma Verification: Accepted {len(verified_tokens)}/{len(proposals)} tokens.")
-                result = " ".join(verified_tokens)
+                verified_text = " ".join(matched)
+                print(f"[PrimaryModelActor] Plasma Verification: Accepted {len(matched)}/{len(proposals)} tokens.")
+
+                # If discrepancies found, continue generation from point of failure
+                if len(matched) < max_new_tokens:
+                    remaining = max_new_tokens - len(matched)
+                    new_prompt = prompt + " " + verified_text
+                    new_inputs = self.tokenizer(new_prompt, return_tensors="pt").to(device)
+                    new_outputs = self.model.generate(**new_inputs, max_new_tokens=remaining)
+                    extra_text = self.tokenizer.decode(new_outputs[0][new_inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                    verified_text += " " + extra_text
             else:
-                result = f"Qwen3-8B (Reasoning) mock ({strategy}) for: {prompt[:30]}..."
+                verified_text = f"Apriel-1.6-15B-Thinker mock ({strategy}) for: {prompt[:30]}..."
 
-            self.draft_actor.update_ngram.remote(result)
-            return thought_block + result
+            thought_block = f"<thought>\nStrategy: {strategy}\nVerified via Plasma Shared Memory ({latency:.2f}ms).\n</thought>\n"
+            self.draft_actor.update_ngram.remote(verified_text)
+            return thought_block + verified_text
 
-        return f"Primary result for {prompt[:20]}"
+        # Standard Fallback if speculative decoding is off or failed
+        return f"Primary result (Standard) for: {prompt[:20]}"
 
     def set_power_mode(self, reflex_only=False):
         self.reflex_only = reflex_only

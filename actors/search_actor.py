@@ -135,6 +135,13 @@ class SearchActorBase(CognitiveModule):
                 if graph_context:
                     actionable_spec = graph_context + "\n" + actionable_spec
 
+                # SGI 2026: Persistence. Archive results via MemoryManager.
+                if self.memory_manager:
+                    self.memory_manager.receive.remote({
+                        "type": "archive_search_request",
+                        "data": {"query": query, "results": reranked_results}
+                    })
+
                 try: handle = ray.get_runtime_context().current_actor
                 except Exception: handle = None
 
