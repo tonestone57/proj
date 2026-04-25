@@ -211,8 +211,19 @@ class MemoryManager(CognitiveModule):
         return "quantized_vectors_0xabc"
 
     def perform_kv_cache_compression(self, kv_cache):
-        print("[MemoryManager] Compressing KV Cache to INT8...")
-        return "int8_kv_cache"
+        """
+        SGI 2026: KV Cache Compression.
+        8-bit Keys | 4-bit Values | Hadamard Rotation (Flattening outlier spikes).
+        """
+        print("[MemoryManager] Performing Hadamard Rotation to flatten activations...")
+        # Simulated Hadamard transform
+        print("[MemoryManager] Compressing KV Cache: Keys (INT8), Values (INT4)...")
+        return {
+            "key_compression": "sym_int8",
+            "value_compression": "int4_quant",
+            "rotation_method": "Fast Hadamard Transform (FHT)",
+            "status": "spike_mitigated"
+        }
 
     def perform_reasoning_compression(self, logic_chain):
         print("[MemoryManager] Compressing Reasoning Engine to INT8...")

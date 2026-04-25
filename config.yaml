@@ -35,12 +35,12 @@ actors:
 
 # SECTION 3: Memory & Context Management
 memory_management:
-  active_context_limit: 131072      # Optimized for 16GB RAM (128K)
+  active_context_limit: 65536       # Optimized for 16GB RAM (64K)
   pruning_threshold_pct: 0.80
   summarization_depth: "recursive"
   compression:
     vector_index: "sym_int8+BQ"     # 2026 Standard for AVX2
-    kv_cache: "sym_int8"            # Fixed for 8265U (No FP8 support)
+    kv_cache: "8-bit keys, 4-bit values (Hadamard Rotation)" # Fixed for 8265U
     reasoning_engine: "sym_int8"    # Fixed for AVX2 efficiency
     deep_archive: "LLM-Zip"         # Lossless Neural Archiving
     logs: "Zstd-19"                 # 2026 Standard for text logs
