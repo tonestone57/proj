@@ -202,6 +202,15 @@ class PrimaryModelActor(CognitiveModule):
         return None
 
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=False, mode="reasoning"):
+        # SGI 2026: Proactive RAM Guard check before inference
+        from core.config import LOW_MEMORY_THRESHOLD_MB
+        import psutil
+        mem = psutil.virtual_memory()
+        available_mb = mem.available / (1024 * 1024)
+        if available_mb < LOW_MEMORY_THRESHOLD_MB:
+            print(f"🚨 [PrimaryModelActor] Critical memory pressure: {available_mb:.2f}MB available. Aborting deep reasoning.")
+            return f"<error>\nCritical memory pressure ({available_mb:.2f}MB available). Deep reasoning aborted to prevent system crash.\n</error>\n"
+
         search_context = ""
         z3_result = self.symbolic_reasoning_z3(prompt)
         if z3_result: return z3_result
@@ -241,8 +250,10 @@ class PrimaryModelActor(CognitiveModule):
             return thought_block + result
 
         result = f"Apriel-1.6-15B-Thinker mock (Draft-less) for: {prompt[:30]}..."
-        self.ngram_cache.update(result)
-        return result
+        thought_block = f"<thought>\nStrategy: Mock Neural Inference (Draft-less optimization)\n</thought>\n"
+        final_result = thought_block + result
+        self.ngram_cache.update(final_result)
+        return final_result
 
     def set_power_mode(self, reflex_only=False):
         self.reflex_only = reflex_only

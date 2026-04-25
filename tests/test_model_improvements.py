@@ -44,17 +44,18 @@ class TestModelImprovements(unittest.TestCase):
         self.assertIn(("d", "e"), cache.caches[2])
 
     def test_symbolic_reflex_path(self):
-        from core.model_registry import ModelRegistryBase
+        import ray
+        from core.model_registry import PrimaryModelActor
         # Initialize without loading actual models for speed/memory
-        registry = ModelRegistryBase()
+        registry = PrimaryModelActor.remote()
 
         # Test exact reflex match
-        res = registry.generate("What is sym_int8")
+        res = ray.get(registry.generate.remote("What is sym_int8"))
         self.assertIn("<reflex>", res)
         self.assertIn("symmetric 8-bit integer", res)
 
         # Test fuzzy reflex match (regex)
-        res_fuzzy = registry.generate("Can you describe Tier 1?")
+        res_fuzzy = ray.get(registry.generate.remote("Can you describe Tier 1?"))
         self.assertIn("<reflex>", res_fuzzy)
         self.assertIn("Symbolic Reflex", res_fuzzy)
 

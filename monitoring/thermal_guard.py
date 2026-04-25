@@ -21,13 +21,23 @@ class ThermalGuard:
         # Attempt to get temperature (OS dependent)
         temp = 45.0 # Default safe temperature
         try:
-            temps = psutil.sensors_temperatures()
-            if 'coretemp' in temps:
-                temp = temps['coretemp'][0].current
-            elif 'cpu_thermal' in temps:
-                temp = temps['cpu_thermal'][0].current
+            if hasattr(psutil, "sensors_temperatures"):
+                temps = psutil.sensors_temperatures()
+                if 'coretemp' in temps and temps['coretemp']:
+                    temp = temps['coretemp'][0].current
+                elif 'cpu_thermal' in temps and temps['cpu_thermal']:
+                    temp = temps['cpu_thermal'][0].current
+                elif 'acpitz' in temps and temps['acpitz']:
+                    temp = temps['acpitz'][0].current
+                elif not temps and load > 0:
+                    # Fallback heuristic: assume temp correlates with load if sensors fail
+                    temp = 40.0 + (load * 0.4)
+            else:
+                # Fallback heuristic for platforms without sensors_temperatures
+                temp = 40.0 + (load * 0.4)
         except Exception:
-            pass
+            # Final fallback
+            temp = 40.0 + (load * 0.4)
 
         is_throttled = temp > self.threshold_temp or load > self.threshold_load
 
