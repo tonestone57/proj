@@ -76,7 +76,8 @@ class LLMZipCodec:
             for i in range(sym_len + 1):
                 offset = 6 + sym_len + i*4
                 cum_freqs.append(struct.unpack(">I", header[offset:offset+4])[0])
-        except Exception: return "Error: Invalid Header"
+        except Exception as e:
+            raise ValueError(f"Arithmetic Decompression Error: Invalid Header or bitstream: {e}")
 
         # Bitstream to bits
         bits = []

@@ -145,8 +145,15 @@ class DraftModelActor(CognitiveModule):
                 device = next(self.model.parameters()).device
                 inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
                 outputs = self.model.generate(**inputs, max_new_tokens=length)
-                text = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-                proposals = text.split()
+
+                # SGI 2026: Robust Token-accurate Extract
+                # Retrieves the exact token IDs for the generated sequence
+                gen_ids = outputs[0][inputs.input_ids.shape[1]:]
+                # Converts each ID to its exact string representation to preserve spacing
+                proposals = [self.tokenizer.decode([tid], skip_special_tokens=True) for tid in gen_ids]
+                # Filter out empty/special residues
+                proposals = [p for p in proposals if p.strip()]
+
             except Exception as e:
                 print(f"[DraftModelActor] Neural draft failed: {e}")
 
