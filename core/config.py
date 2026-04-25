@@ -113,5 +113,7 @@ WORKSPACE_HISTORY_LIMIT = 100
 
 # Actor specific configs
 CORES_CODING = SGI_SETTINGS.actors.get("coding_actor", ActorConfig(precision="Q4_K_M", cpu_cores=2, priority=1)).cpu_cores
-CORES_REASONER = SGI_SETTINGS.actors.get("symbolic_reasoner", ActorConfig(precision="sym_int8", cpu_cores=2, priority=1)).cpu_cores
+CORES_PRIMARY = SGI_SETTINGS.actors.get("primary_actor", ActorConfig(precision="sym_int8", cpu_cores=2, priority=1)).cpu_cores
+CORES_DRAFT = SGI_SETTINGS.actors.get("draft_actor", ActorConfig(precision="Q4_K_M", cpu_cores=1, priority=2)).cpu_cores
+CORES_REASONER = CORES_PRIMARY
 CORES_SEARCH = SGI_SETTINGS.actors.get("search_actor", ActorConfig(precision="Q5_K_M", cpu_cores=1, priority=3)).cpu_cores
