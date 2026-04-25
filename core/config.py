@@ -56,7 +56,7 @@ class DriveEngineConfig(BaseModel):
 
 class InferenceConfig(BaseModel):
     primary_model: str
-    draft_model: str
+    draft_model: Optional[str] = None
     speculative_decoding: bool = True
     wisdom_cache: bool = True
 
@@ -68,6 +68,10 @@ class SGIConfig(BaseModel):
     compliance: ComplianceConfig
     drive_engine: DriveEngineConfig
     inference: InferenceConfig
+
+    @property
+    def APRIEL_1_6_15B(self):
+        return self.inference.primary_model
 
     @classmethod
     def load(cls, path: str):
@@ -113,7 +117,6 @@ WORKSPACE_HISTORY_LIMIT = 100
 
 # Actor specific configs
 CORES_CODING = SGI_SETTINGS.actors.get("coding_actor", ActorConfig(precision="Q4_K_M", cpu_cores=2, priority=1)).cpu_cores
-CORES_PRIMARY = SGI_SETTINGS.actors.get("symbolic_reasoner", ActorConfig(precision="Q4_K_M", cpu_cores=2, priority=1)).cpu_cores
-CORES_DRAFT = SGI_SETTINGS.actors.get("draft_actor", ActorConfig(precision="Q4_K_M", cpu_cores=1, priority=2)).cpu_cores
-CORES_REASONER = CORES_PRIMARY
+CORES_REASONER = SGI_SETTINGS.actors.get("symbolic_reasoner", ActorConfig(precision="Q4_K_M", cpu_cores=2, priority=1)).cpu_cores
+CORES_PRIMARY = CORES_REASONER
 CORES_SEARCH = SGI_SETTINGS.actors.get("search_actor", ActorConfig(precision="Q5_K_M", cpu_cores=1, priority=3)).cpu_cores

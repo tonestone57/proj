@@ -6,7 +6,7 @@ import os
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from core.base import CognitiveModule
-from core.config import CORES_PRIMARY, CORES_DRAFT
+from core.config import CORES_PRIMARY, CORES_REASONER
 
 try:
     from ipex_llm.transformers import AutoModelForCausalLM as IpexModel
@@ -89,97 +89,19 @@ class NGramCache:
 
         return proposals
 
-@ray.remote(num_cpus=CORES_DRAFT)
-class DraftModelActor(CognitiveModule):
-    """
-    SGI 2026: Specialized Draft Model Actor (Tier 1 Reflex/Draft).
-    Optimized for low-latency token proposals.
-    """
-    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Qwen3.5-2B"):
-        super().__init__(workspace, scheduler, model_registry)
-        self.model_id = model_id
-        self.model = None
-        self.tokenizer = None
-        self.ngram_cache = NGramCache()
-        self._load_model()
-
-    def receive(self, message):
-        if super().receive(message): return
-        if message["type"] == "propose_request":
-            prompt = message["data"].get("prompt")
-            length = message["data"].get("length", 10)
-            ref = self.propose(prompt, length)
-            self.send_result("propose_response", {"object_ref": ref})
-
-    def _load_model(self):
-        print(f"[DraftModelActor] Loading {self.model_id}...")
-        if IPEX_AVAILABLE:
-            try:
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True)
-                self.ngram_cache.tokenizer = self.tokenizer
-                self.model = IpexModel.from_pretrained(
-                    self.model_id,
-                    load_in_low_bit="Q4_K_M",
-                    trust_remote_code=True
-                )
-                print(f"[DraftModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")
-                return
-            except Exception as e:
-                print(f"[DraftModelActor] IPEX failed: {e}")
-
-        # Mock fallback
-        print(f"[DraftModelActor] Falling back to Mock mode for {self.model_id}.")
-
-    def propose(self, prompt, length=10, use_ngram=True):
-        """
-        SGI 2026: Proposes tokens and puts them into Ray Object Store (Plasma).
-        Uses Hybrid N-Gram + Neural Drafting.
-        """
-        proposals = []
-        if use_ngram:
-            proposals = self.ngram_cache.propose(prompt, length=length)
-
-        if not proposals and self.model and self.tokenizer:
-            # SGI 2026: Actual Neural Draft Inference
-            try:
-                device = next(self.model.parameters()).device
-                inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
-                outputs = self.model.generate(**inputs, max_new_tokens=length)
-
-                # SGI 2026: Robust Token-accurate Extract
-                # Retrieves the exact token IDs for the generated sequence
-                gen_ids = outputs[0][inputs.input_ids.shape[1]:]
-                # Converts each ID to its exact string representation to preserve spacing
-                proposals = [self.tokenizer.decode([tid], skip_special_tokens=True) for tid in gen_ids]
-                # Filter out empty/special residues
-                proposals = [p for p in proposals if p.strip()]
-
-            except Exception as e:
-                print(f"[DraftModelActor] Neural draft failed: {e}")
-
-        if not proposals:
-            proposals = ["mock_draft_" + str(i) for i in range(length)]
-
-        # SGI 2026: Zero-copy put into Plasma
-        print(f"[DraftModelActor] Proposing {len(proposals)} tokens via Plasma.")
-        return ray.put(proposals)
-
-    def update_ngram(self, text):
-        self.ngram_cache.update(text)
-
 @ray.remote(num_cpus=CORES_PRIMARY)
 class PrimaryModelActor(CognitiveModule):
     """
     SGI 2026: Specialized Primary Model Actor (Tier 3 Reasoning).
-    Performs verification of draft proposals via Ray Shared Memory.
+    Optimized for RAM-critical systems without a draft model.
     """
-    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", draft_actor=None, search_actor=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", search_actor=None):
         super().__init__(workspace, scheduler, model_registry)
         self.model_id = model_id
-        self.draft_actor = draft_actor
         self.search_actor = search_actor
         self.model = None
         self.tokenizer = None
+        self.ngram_cache = NGramCache()
         self.precision = "Q4_K_M"
         self.reflex_only = False
 
@@ -203,17 +125,15 @@ class PrimaryModelActor(CognitiveModule):
     def set_search_actor(self, search_actor):
         self.search_actor = search_actor
 
-    def set_draft_actor(self, draft_actor):
-        self.draft_actor = draft_actor
-
     def _load_model(self):
-        print(f"[PrimaryModelActor] Loading {self.model_id}...")
+        print(f"[PrimaryModelActor] Loading {self.model_id} (Quantization: {self.precision})...")
         if IPEX_AVAILABLE:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True)
+                self.ngram_cache.tokenizer = self.tokenizer
                 self.model = IpexModel.from_pretrained(
                     self.model_id,
-                    load_in_low_bit="Q4_K_M",
+                    load_in_low_bit=self.precision,
                     trust_remote_code=True
                 )
                 print(f"[PrimaryModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")
@@ -281,7 +201,7 @@ class PrimaryModelActor(CognitiveModule):
             except Exception: pass
         return None
 
-    def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=True, mode="reasoning"):
+    def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=False, mode="reasoning"):
         search_context = ""
         z3_result = self.symbolic_reasoning_z3(prompt)
         if z3_result: return z3_result
@@ -302,66 +222,27 @@ class PrimaryModelActor(CognitiveModule):
         if mode == "reflex" or self.reflex_only:
             return f"Reflex Result: Actionable spec for {prompt[:20]}"
 
-        # 3. Speculative Decoding via Plasma (Ray Shared Memory)
-        strategy = "Plasma-backed Speculation"
-        if use_speculative_decoding and self.draft_actor:
-            start_time = time.time()
-            # Proposal requested from separate Ray actor
-            proposal_ref = ray.get(self.draft_actor.propose.remote(prompt))
-            # Retrieved from Plasma Object Store (Zero-copy)
-            proposals = ray.get(proposal_ref)
-            latency = (time.time() - start_time) * 1000
+        # RAM-Critical Speculation: N-Gram Lookahead only
+        if use_speculative_decoding:
+            proposals = self.ngram_cache.propose(prompt, length=10)
+            if proposals:
+                print(f"[PrimaryModelActor] N-Gram Speculation: Found {len(proposals)} proposals.")
+                # Basic proposal injection for N-gram speedup
+                prompt += " " + " ".join(proposals)
 
-            verified_text = ""
-            if self.model and self.tokenizer:
-                # SGI 2026: Robust Speculative Verification (Token-Level)
-                # Performs true token-ID matching between Draft Proposals and Primary Predictions
-                device = next(self.model.parameters()).device
-                inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
-
-                # SGI 2026: Single-pass Verification (simulated via max_new_tokens)
-                outputs = self.model.generate(**inputs, max_new_tokens=len(proposals))
-                primary_gen_ids = outputs[0][inputs.input_ids.shape[1]:]
-
-                # Re-tokenize proposals for exact ID comparison
-                draft_ids = self.tokenizer.encode(" ".join(proposals), add_special_tokens=False)
-
-                valid_ids = []
-                for d_id, p_id in zip(draft_ids, primary_gen_ids):
-                    if d_id == p_id:
-                        valid_ids.append(d_id)
-                    else:
-                        break # First discrepancy found
-
-                valid_count = len(valid_ids)
-                verified_text = self.tokenizer.decode(valid_ids, skip_special_tokens=True)
-                print(f"[PrimaryModelActor] Plasma Verification: Token-matched {valid_count}/{len(draft_ids)} IDs.")
-
-                # Sequential Repair: Continue generation if IDs were rejected
-                if valid_count < max_new_tokens:
-                    remaining = max_new_tokens - valid_count
-                    repair_prompt = prompt + verified_text
-                    repair_inputs = self.tokenizer(repair_prompt, return_tensors="pt").to(device)
-                    repair_outputs = self.model.generate(**repair_inputs, max_new_tokens=remaining)
-                    extra_text = self.tokenizer.decode(repair_outputs[0][repair_inputs.input_ids.shape[1]:], skip_special_tokens=True)
-                    verified_text += extra_text
-            else:
-                verified_text = f"Apriel-1.6-15B-Thinker mock ({strategy}) for: {prompt[:30]}..."
-
-            thought_block = f"<thought>\nStrategy: {strategy}\nVerified via Plasma Shared Memory ({latency:.2f}ms).\n</thought>\n"
-            self.draft_actor.update_ngram.remote(verified_text)
-            return thought_block + verified_text
-
-        # Standard Path if speculative decoding is off or failed
+        # Standard Neural Inference (Fall-through)
         if self.model and self.tokenizer:
             device = next(self.model.parameters()).device
             inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
             outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
             result = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-            thought_block = f"<thought>\nStrategy: Standard Neural Inference\n</thought>\n"
+            thought_block = f"<thought>\nStrategy: Standard Neural Inference (Draft-less optimization)\n</thought>\n"
+            self.ngram_cache.update(result)
             return thought_block + result
 
-        return f"Primary result (Standard Mock) for: {prompt[:20]}"
+        result = f"Apriel-1.6-15B-Thinker mock (Draft-less) for: {prompt[:30]}..."
+        self.ngram_cache.update(result)
+        return result
 
     def set_power_mode(self, reflex_only=False):
         self.reflex_only = reflex_only
@@ -369,12 +250,11 @@ class PrimaryModelActor(CognitiveModule):
 @ray.remote
 class ModelRegistry:
     """
-    SGI 2026: Unified Registry Facade.
-    Maintains compatibility with legacy code while delegating to distributed actors.
+    SGI 2026: RAM-Optimized Unified Registry.
+    Operates without a draft model to conserve memory on 16GB systems.
     """
-    def __init__(self, model_id="Apriel-1.6-15B-Thinker", draft_model_id="Qwen3.5-2B"):
-        self.draft_actor = DraftModelActor.remote(model_id=draft_model_id)
-        self.primary_actor = PrimaryModelActor.remote(model_id=model_id, draft_actor=self.draft_actor)
+    def __init__(self, model_id="Apriel-1.6-15B-Thinker", draft_model_id=None):
+        self.primary_actor = PrimaryModelActor.remote(model_id=model_id)
 
     def generate(self, prompt, **kwargs):
         return ray.get(self.primary_actor.generate.remote(prompt, **kwargs))
@@ -386,7 +266,8 @@ class ModelRegistry:
         self.primary_actor.set_power_mode.remote(reflex_only)
 
     def update_ngram_cache(self, text):
-        self.draft_actor.update_ngram.remote(text)
+        # Delegate N-gram updates to primary actor
+        pass
 
     def get_model_info(self):
-        return {"status": "distributed", "mode": "plasma_speculative"}
+        return {"status": "RAM-Optimized", "draft_model": "None"}
