@@ -1,7 +1,7 @@
 import ray
 from core.base import CognitiveModule
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class AdaptiveDefenseAgent(CognitiveModule):
     def respond(self, alert):
         if alert["alert"]:

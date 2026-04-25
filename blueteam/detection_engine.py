@@ -4,7 +4,7 @@ from core.base import CognitiveModule
 import re
 import math
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class DetectionEngine(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)

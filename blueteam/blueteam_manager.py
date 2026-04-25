@@ -9,7 +9,7 @@ from blueteam.firewall_agent import FirewallAgent
 from blueteam.dlp_agent import DLPAgent
 from blueteam.cyber_range import CyberRange
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class BlueTeamManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)

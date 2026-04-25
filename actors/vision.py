@@ -1,7 +1,7 @@
 import ray
 from core.base import CognitiveModule
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class VisionModule(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return

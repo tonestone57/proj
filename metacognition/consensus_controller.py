@@ -1,7 +1,7 @@
 import ray
 from core.base import CognitiveModule
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class ConsensusController(CognitiveModule):
     def combine(self, monitor_data, reasoner_data):
         # SGI 2026: Multi-signal metacognitive integration

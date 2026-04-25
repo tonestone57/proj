@@ -6,7 +6,7 @@ from memory_consolidation.generative_trainer import GenerativeTrainer
 from memory_consolidation.consolidation_scheduler import ConsolidationScheduler
 from memory_consolidation.schema_manager import SchemaManager
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class ConsolidationManager(CognitiveModule):
     def __init__(self, episodic_memory=None, generative_model=None, world_model=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)

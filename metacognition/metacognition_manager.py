@@ -8,7 +8,7 @@ from metacognition.adaptation_engine import AdaptationEngine
 from metacognition.perception_reflector import PerceptionReflector
 from metacognition.consensus_controller import ConsensusController
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class MetacognitionManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
