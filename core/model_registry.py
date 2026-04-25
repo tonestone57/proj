@@ -119,7 +119,7 @@ class DraftModelActor(CognitiveModule):
                 self.ngram_cache.tokenizer = self.tokenizer
                 self.model = IpexModel.from_pretrained(
                     self.model_id,
-                    load_in_low_bit="sym_int8",
+                    load_in_low_bit="Q4_K_M",
                     trust_remote_code=True
                 )
                 print(f"[DraftModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")
@@ -213,7 +213,7 @@ class PrimaryModelActor(CognitiveModule):
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True)
                 self.model = IpexModel.from_pretrained(
                     self.model_id,
-                    load_in_low_bit="sym_int8",
+                    load_in_low_bit="Q4_K_M",
                     trust_remote_code=True
                 )
                 print(f"[PrimaryModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")

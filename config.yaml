@@ -12,7 +12,7 @@ hardware_limits:
   ray_reserved_threads: 4           # Conserving for i7-8265U stability (Up to 4 cores)
   max_threads: 4                    # Scaled to 4 for requested performance
   thermal_threshold_celsius: 78.0   # Trigger "Cool-down" mode at 78C
-  low_memory_warning_mb: 2000       # Ensuring Heartbeat stays in physical RAM (16GB system)
+  low_memory_warning_mb: 1200       # Ensuring Heartbeat stays in physical RAM (16GB system)
   shared_gpu_memory: true           # Enable optimizations for HD 620 iGPU
 
 # SECTION 2: Specialized Actor Precision Tiers
@@ -35,7 +35,7 @@ actors:
 
 # SECTION 3: Memory & Context Management
 memory_management:
-  active_context_limit: 4096        # Optimized for 16GB RAM
+  active_context_limit: 32768       # Optimized for 16GB RAM
   pruning_threshold_pct: 0.80
   summarization_depth: "recursive"
   compression:
