@@ -1,4 +1,5 @@
 import sys
+import os
 import io
 import re
 import contextlib
@@ -220,18 +221,13 @@ class CodingActorBase(CognitiveModule):
 
     def execute_logic_internal(self, code):
         """
-        SGI 2026: Internal execution logic with proactive refactoring.
-        Now supports isolated execution via subprocess to prevent server OOM.
+        SGI 2026: Internal execution logic with proactive refactoring and isolated execution.
         """
         # SGI 2026: Proactive Recursive Refactoring
         recursive_funcs = self.detect_recursion(code)
         if recursive_funcs:
             code = self.iterative_transform(code, recursive_funcs=recursive_funcs)
 
-        # To avoid MemoryError in the main process, we'll use a subprocess for execution
-        return self.execute_isolated(code)
-
-    def execute_isolated(self, code):
         import subprocess
         import sys
         import tempfile
@@ -285,7 +281,7 @@ except ImportError:
                     # Set 15s CPU time limit
                     resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
                 except Exception as e:
-                    print(f"Failed to set resource limits: {e}")
+                    pass # resource limits may not be supported on all platforms
 
             try:
                 # SGI 2026: Resource limits for the subprocess
@@ -296,7 +292,7 @@ except ImportError:
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    preexec_fn=set_limits
+                    preexec_fn=set_limits if os.name != 'nt' else None
                 )
                 if result.returncode == 0:
                     return {"status": "success", "output": result.stdout}

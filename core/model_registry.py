@@ -1,5 +1,6 @@
 import ray
 import re
+import xxhash
 import collections
 import torch
 import os
@@ -95,10 +96,11 @@ class PrimaryModelActor(CognitiveModule):
     SGI 2026: Specialized Primary Model Actor (Tier 3 Reasoning).
     Optimized for RAM-critical systems without a draft model.
     """
-    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", search_actor=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", search_actor=None, memory_manager=None):
         super().__init__(workspace, scheduler, model_registry)
         self.model_id = model_id
         self.search_actor = search_actor
+        self.memory_manager = memory_manager
         self.model = None
         self.tokenizer = None
         self.ngram_cache = NGramCache()
@@ -124,6 +126,9 @@ class PrimaryModelActor(CognitiveModule):
 
     def set_search_actor(self, search_actor):
         self.search_actor = search_actor
+
+    def set_memory_manager(self, memory_manager):
+        self.memory_manager = memory_manager
 
     def _load_model(self):
         print(f"[PrimaryModelActor] Loading {self.model_id} (Quantization: {self.precision})...")
@@ -202,6 +207,15 @@ class PrimaryModelActor(CognitiveModule):
         return None
 
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=False, mode="reasoning"):
+        # SGI 2026: Proactive RAM Guard check before inference
+        from core.config import LOW_MEMORY_THRESHOLD_MB
+        import psutil
+        mem = psutil.virtual_memory()
+        available_mb = mem.available / (1024 * 1024)
+        if available_mb < LOW_MEMORY_THRESHOLD_MB:
+            print(f"🚨 [PrimaryModelActor] Critical memory pressure: {available_mb:.2f}MB available. Aborting deep reasoning.")
+            return f"<error>\nCritical memory pressure ({available_mb:.2f}MB available). Deep reasoning aborted to prevent system crash.\n</error>\n"
+
         search_context = ""
         z3_result = self.symbolic_reasoning_z3(prompt)
         if z3_result: return z3_result
@@ -230,6 +244,27 @@ class PrimaryModelActor(CognitiveModule):
                 # Basic proposal injection for N-gram speedup
                 prompt += " " + " ".join(proposals)
 
+        # SGI 2026: Simulate Paged KV Cache Block Management
+        if self.memory_manager:
+            request_id = f"req_{xxhash.xxh32(prompt.encode()).hexdigest()}"
+            print(f"[PrimaryModelActor] Paged KV Management for request '{request_id}'...")
+
+            # 1. Allocate blocks for prompt (simulated tokens)
+            sim_tokens = prompt.split()
+            self.memory_manager.receive.remote({
+                "type": "kv_cache_allocate",
+                "data": {"request_id": request_id, "tokens": sim_tokens}
+            })
+
+            # 2. Retrieve KV for inference (simulated)
+            self.memory_manager.receive.remote({
+                "type": "kv_cache_retrieve",
+                "data": {"request_id": request_id}
+            })
+
+            # 3. Schedule release (simulated)
+            # In real system, this happens after inference completes.
+
         # Standard Neural Inference (Fall-through)
         if self.model and self.tokenizer:
             device = next(self.model.parameters()).device
@@ -241,8 +276,10 @@ class PrimaryModelActor(CognitiveModule):
             return thought_block + result
 
         result = f"Apriel-1.6-15B-Thinker mock (Draft-less) for: {prompt[:30]}..."
-        self.ngram_cache.update(result)
-        return result
+        thought_block = f"<thought>\nStrategy: Mock Neural Inference (Draft-less optimization)\n</thought>\n"
+        final_result = thought_block + result
+        self.ngram_cache.update(final_result)
+        return final_result
 
     def set_power_mode(self, reflex_only=False):
         self.reflex_only = reflex_only
@@ -261,6 +298,9 @@ class ModelRegistry:
 
     def set_search_actor(self, search_actor):
         self.primary_actor.set_search_actor.remote(search_actor)
+
+    def set_memory_manager(self, memory_manager):
+        self.primary_actor.set_memory_manager.remote(memory_manager)
 
     def set_power_mode(self, reflex_only=False):
         self.primary_actor.set_power_mode.remote(reflex_only)

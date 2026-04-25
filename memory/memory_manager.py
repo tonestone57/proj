@@ -3,7 +3,9 @@ import math
 import re
 import ray
 import time
+import os
 import xxhash
+import collections
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB
 from memory.codecs.llm_zip import LLMZipCodec
@@ -30,6 +32,121 @@ def calculate_information_density(words):
     density = entropy * (1 + symbol_ratio)
     return density
 
+class KVCacheManager:
+    """
+    SGI 2026: Paged KV Cache Manager with LRU Eviction and Storage Offloading.
+    Implements PagedAttention principles: non-contiguous blocks, virtual mapping, and block sharing.
+    Optimized for Intel-8265U with 16GB RAM.
+    """
+    def __init__(self, max_active_blocks=20, block_size=16, storage_path="./data/kv_cache_offload"):
+        self.max_active_blocks = max_active_blocks
+        self.block_size = block_size # Tokens per block
+        self.storage_path = storage_path
+
+        # Physical Block Pool (RAM)
+        self.physical_blocks = collections.OrderedDict()
+        self.block_ref_count = collections.Counter()
+
+        # Virtual Mapping: request_id -> list of physical_block_ids
+        self.virtual_table = {}
+
+        # Offload Registry: block_id -> storage_path
+        self.offload_registry = {}
+
+        self.codec = LLMZipCodec()
+        if not os.path.exists(self.storage_path):
+            os.makedirs(self.storage_path, exist_ok=True)
+
+    def allocate_request(self, request_id, tokens):
+        """
+        SGI 2026: Paged Allocation. Splits token sequence into non-contiguous physical blocks.
+        """
+        print(f"[KVCacheManager] Paged Allocation for request '{request_id}' ({len(tokens)} tokens).")
+        block_ids = []
+        for i in range(0, len(tokens), self.block_size):
+            chunk = tokens[i : i + self.block_size]
+            # Content-addressed block ID for potential sharing (De-duplication)
+            block_data = str(chunk)
+            block_id = f"pb_{xxhash.xxh32(block_data.encode()).hexdigest()}"
+
+            self._ensure_block_in_ram(block_id, block_data)
+            block_ids.append(block_id)
+            self.block_ref_count[block_id] += 1
+
+        self.virtual_table[request_id] = block_ids
+        return block_ids
+
+    def _ensure_block_in_ram(self, block_id, data=None):
+        """Ensures a block is present in physical memory, fetching from disk if needed."""
+        if block_id in self.physical_blocks:
+            self.physical_blocks.move_to_end(block_id)
+            return
+
+        if block_id in self.offload_registry:
+            print(f"[KVCacheManager] Paging: Reloading block '{block_id}' from disk offload.")
+            data = self._load_from_disk(block_id)
+
+        # Evict if full
+        if len(self.physical_blocks) >= self.max_active_blocks:
+            evict_id, evict_data = self.physical_blocks.popitem(last=False)
+            if self.block_ref_count[evict_id] > 0:
+                # Still referenced, offload instead of discard
+                self._offload_to_disk(evict_id, evict_data)
+
+        self.physical_blocks[block_id] = data
+
+    def _offload_to_disk(self, block_id, data):
+        """Compresses and offloads a physical block to disk."""
+        print(f"[KVCacheManager] LRU Eviction: Offloading block '{block_id}' to storage.")
+        compressed = self.codec.compress(str(data))
+        path = os.path.join(self.storage_path, f"{block_id}.bin")
+        with open(path, "wb") as f:
+            f.write(compressed)
+        self.offload_registry[block_id] = path
+
+    def _load_from_disk(self, block_id):
+        path = self.offload_registry.get(block_id)
+        if not path or not os.path.exists(path): return None
+        with open(path, "rb") as f:
+            comp = f.read()
+        return self.codec.decompress(comp)
+
+    def release_request(self, request_id):
+        """Releases blocks associated with a request, potentially freeing memory."""
+        if request_id not in self.virtual_table: return
+
+        for block_id in self.virtual_table[request_id]:
+            self.block_ref_count[block_id] -= 1
+            if self.block_ref_count[block_id] == 0:
+                # No one using it anymore, can be fully evicted from RAM and Disk
+                if block_id in self.physical_blocks:
+                    del self.physical_blocks[block_id]
+                if block_id in self.offload_registry:
+                    try: os.remove(self.offload_registry[block_id])
+                    except: pass
+                    del self.offload_registry[block_id]
+
+        del self.virtual_table[request_id]
+
+    def get_kv_for_request(self, request_id):
+        """Retrieves full KV sequence for a request by assembling virtual blocks."""
+        if request_id not in self.virtual_table: return None
+
+        full_kv = []
+        for block_id in self.virtual_table[request_id]:
+            self._ensure_block_in_ram(block_id)
+            full_kv.append(self.physical_blocks[block_id])
+
+        return full_kv
+
+    def get_status(self):
+        return {
+            "active_blocks": len(self.physical_blocks),
+            "offloaded_blocks": len(self.offload_registry),
+            "tracked_requests": len(self.virtual_table),
+            "shared_blocks": sum(1 for c in self.block_ref_count.values() if c > 1)
+        }
+
 @ray.remote
 class MemoryManager(CognitiveModule):
 
@@ -48,6 +165,8 @@ class MemoryManager(CognitiveModule):
         # SGI 2026: Deep Archive (Live LLM-Zip Codec)
         self.deep_archive = {}
         self.llm_zip = LLMZipCodec()
+        # SGI 2026: KV Cache Manager
+        self.kv_cache_manager = KVCacheManager()
 
     def receive(self, message):
         if super().receive(message): return
@@ -75,6 +194,22 @@ class MemoryManager(CognitiveModule):
             query = message["data"].get("query")
             results = message["data"].get("results")
             self.archive_search_results(query, results)
+        elif message["type"] == "kv_cache_allocate":
+            request_id = message["data"].get("request_id")
+            tokens = message["data"].get("tokens")
+            block_ids = self.kv_cache_manager.allocate_request(request_id, tokens)
+            self.send_result("kv_cache_allocate_response", {"request_id": request_id, "block_ids": block_ids})
+        elif message["type"] == "kv_cache_retrieve":
+            request_id = message["data"].get("request_id")
+            data = self.kv_cache_manager.get_kv_for_request(request_id)
+            self.send_result("kv_cache_retrieve_response", {"request_id": request_id, "data": data})
+        elif message["type"] == "kv_cache_release":
+            request_id = message["data"].get("request_id")
+            self.kv_cache_manager.release_request(request_id)
+            self.send_result("kv_cache_release_status", {"request_id": request_id, "status": "released"})
+        elif message["type"] == "kv_cache_status":
+            status = self.kv_cache_manager.get_status()
+            self.send_result("kv_cache_status_response", status)
 
     def archive_search_results(self, query, results):
         """
