@@ -1,8 +1,13 @@
+import ray
+from core.base import CognitiveModule
+
 import re
 import math
 
-class DetectionEngine:
-    def __init__(self):
+@ray.remote # SGI 2026: Standardized Ray Actor
+class DetectionEngine(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.signatures = [
             r"sql_injection",
             r"path_traversal",

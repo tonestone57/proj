@@ -1,13 +1,13 @@
 import ray
 from core.base import CognitiveModule
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class VisionModule(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return
         if message["type"] == "image_input":
             processed = self.process_image(message["data"])
-            self.scheduler.submit(self, {"type": "vision_output", "data": processed})
+            self.send_result("vision_output", processed)
 
     def process_image(self, img):
         # Simulate neural vision compression (NeuralLVC / CoPE)

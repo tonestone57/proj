@@ -1,6 +1,10 @@
+import ray
+from core.base import CognitiveModule
+
 import re
 
-class TransparencyEngine:
+@ray.remote # SGI 2026: Standardized Ray Actor
+class TransparencyEngine(CognitiveModule):
     def generate_explanation(self, reasoning_trace, decision):
         # SGI 2026: Extract key arguments from reasoning trace
         trace_str = str(reasoning_trace)

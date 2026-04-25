@@ -1,7 +1,11 @@
 import time
+import ray
+from core.base import CognitiveModule
 
-class MetaMonitor:
-    def __init__(self):
+@ray.remote # SGI 2026: Standardized Ray Actor
+class MetaMonitor(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.performance_history = []
 
     def observe(self, internal_state, reasoning_trace):

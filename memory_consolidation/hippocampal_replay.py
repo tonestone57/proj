@@ -1,7 +1,12 @@
+import ray
+from core.base import CognitiveModule
+
 import random
 
-class HippocampalReplay:
-    def __init__(self, episodic_memory):
+@ray.remote # SGI 2026: Standardized Ray Actor
+class HippocampalReplay(CognitiveModule):
+    def __init__(self, episodic_memory, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.episodic_memory = episodic_memory
 
     def sample_replay_batch(self, episodes, batch_size=5):

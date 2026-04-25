@@ -93,6 +93,10 @@ class SGIHub:
         return True
 
     async def safe_delegate(self, actor_handle, task_type, payload):
+        if not isinstance(payload, (dict, str)) and payload is not None:
+            print(f"🚨 [Hub] Invalid payload type: {type(payload)}. Expected dict or str.")
+            return False
+
         if not self.check_ram_guard():
             return False
 

@@ -1,5 +1,10 @@
-class AdaptationEngine:
-    def __init__(self):
+import ray
+from core.base import CognitiveModule
+
+@ray.remote # SGI 2026: Standardized Ray Actor
+class AdaptationEngine(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.adaptation_history = []
 
     def adapt(self, metrics):

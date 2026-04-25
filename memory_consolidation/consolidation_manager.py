@@ -1,28 +1,29 @@
 import ray
+import asyncio
 from core.base import CognitiveModule
 from memory_consolidation.hippocampal_replay import HippocampalReplay
 from memory_consolidation.generative_trainer import GenerativeTrainer
 from memory_consolidation.consolidation_scheduler import ConsolidationScheduler
 from memory_consolidation.schema_manager import SchemaManager
 
-@ray.remote
+@ray.remote # SGI 2026: Standardized Ray Actor
 class ConsolidationManager(CognitiveModule):
     def __init__(self, episodic_memory=None, generative_model=None, world_model=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        self.replay = HippocampalReplay(episodic_memory)
-        self.trainer = GenerativeTrainer(generative_model)
-        self.consolidation_scheduler = ConsolidationScheduler()
-        self.schemas = SchemaManager()
+        self.replay = HippocampalReplay.remote(episodic_memory, workspace, scheduler, model_registry)
+        self.trainer = GenerativeTrainer.remote(generative_model, workspace, scheduler, model_registry)
+        self.consolidation_scheduler = ConsolidationScheduler.remote(50, workspace, scheduler, model_registry)
+        self.schemas = SchemaManager.remote(workspace, scheduler, model_registry)
         self.world_model = world_model
         self.episodic_memory = episodic_memory
 
-    def consolidate(self):
+    async def consolidate(self):
         # Handle remote episodic memory
         if not self.episodic_memory: return {"error": "No episodic memory"}
 
         try:
             # Assuming episodic_memory actor has 'get_episodes' method
-            episodes = ray.get(self.episodic_memory.get_episodes.remote())
+            episodes = await self.episodic_memory.get_episodes.remote()
         except Exception:
             # Fallback for testing or non-actor objects
             episodes = getattr(self.episodic_memory, 'episodes', [])
@@ -34,26 +35,30 @@ class ConsolidationManager(CognitiveModule):
                 selected.append(ep)
 
         replay_batch = [ep["sensory"] for ep in selected]
-        # trainer and schemas are local objects
-        loss = self.trainer.train_on_replay(replay_batch) if hasattr(self.trainer, 'train_on_replay') else 0.1
+        # trainer and schemas are remote actors
+        loss = await self.trainer.train_on_replay.remote(replay_batch)
 
-        for ep in selected:
-            self.schemas.update_schema(ep)
+        # Concurrent schema updates
+        await asyncio.gather(*[self.schemas.update_schema.remote(ep) for ep in selected])
 
-        for ep in selected:
-            enriched = self.schemas.apply_schema(ep)
+        # Concurrent memory enrichment and world model synchronization
+        async def enrich_and_sync(ep):
+            enriched = await self.schemas.apply_schema.remote(ep)
             if self.world_model:
                 try:
-                    ray.get(self.world_model.update_entity.remote(ep["id"], enriched))
+                    await self.world_model.update_entity.remote(ep["id"], enriched)
                 except Exception:
                     pass
+            return enriched
+
+        await asyncio.gather(*[enrich_and_sync(ep) for ep in selected])
 
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
-    def receive(self, message):
+    async def receive(self, message):
         if super().receive(message): return
         # Standard SGI 2026 message handling for ConsolidationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "consolidation_trigger":
-            result = self.consolidate()
+            result = await self.consolidate()
             self.send_result("consolidation_result", result)
