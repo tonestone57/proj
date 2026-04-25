@@ -229,9 +229,7 @@ class CodingActorBase(CognitiveModule):
             code = self.iterative_transform(code, recursive_funcs=recursive_funcs)
 
         import subprocess
-        import sys
         import tempfile
-        import os
 
         # Prepend standard SGI 2026 imports
         imports = """
