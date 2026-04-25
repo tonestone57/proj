@@ -44,7 +44,7 @@ class ConsolidationManager(CognitiveModule):
             enriched = await self.schemas.apply_schema.remote(ep)
             if self.world_model:
                 try:
-                    ray.get(self.world_model.update_entity.remote(ep["id"], enriched))
+                    await self.world_model.update_entity.remote(ep["id"], enriched)
                 except Exception:
                     pass
 
