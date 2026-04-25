@@ -12,12 +12,12 @@ from metacognition.consensus_controller import ConsensusController
 class MetacognitionManager(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        self.monitor = MetaMonitor.remote()
+        self.monitor = MetaMonitor.remote(workspace, scheduler, model_registry)
         self.reasoner = MetaReasoner.remote(workspace, scheduler, model_registry)
-        self.transparency = TransparencyEngine.remote()
-        self.adaptation = AdaptationEngine.remote()
-        self.perception = PerceptionReflector.remote()
-        self.consensus = ConsensusController.remote()
+        self.transparency = TransparencyEngine.remote(workspace, scheduler, model_registry)
+        self.adaptation = AdaptationEngine.remote(workspace, scheduler, model_registry)
+        self.perception = PerceptionReflector.remote(workspace, scheduler, model_registry)
+        self.consensus = ConsensusController.remote(workspace, scheduler, model_registry)
 
     async def introspect(self, internal_state, reasoning_trace, decision):
         m_h = self.monitor.observe.remote(internal_state, reasoning_trace)

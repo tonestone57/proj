@@ -1,4 +1,5 @@
 import ray
+import asyncio
 from core.base import CognitiveModule
 from memory_consolidation.hippocampal_replay import HippocampalReplay
 from memory_consolidation.generative_trainer import GenerativeTrainer
@@ -9,9 +10,9 @@ from memory_consolidation.schema_manager import SchemaManager
 class ConsolidationManager(CognitiveModule):
     def __init__(self, episodic_memory=None, generative_model=None, world_model=None, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        self.replay = HippocampalReplay.remote(episodic_memory)
-        self.trainer = GenerativeTrainer.remote(generative_model)
-        self.consolidation_scheduler = ConsolidationScheduler.remote()
+        self.replay = HippocampalReplay.remote(episodic_memory, workspace, scheduler, model_registry)
+        self.trainer = GenerativeTrainer.remote(generative_model, workspace, scheduler, model_registry)
+        self.consolidation_scheduler = ConsolidationScheduler.remote(50, workspace, scheduler, model_registry)
         self.schemas = SchemaManager.remote(workspace, scheduler, model_registry)
         self.world_model = world_model
         self.episodic_memory = episodic_memory
@@ -37,16 +38,20 @@ class ConsolidationManager(CognitiveModule):
         # trainer and schemas are remote actors
         loss = await self.trainer.train_on_replay.remote(replay_batch)
 
-        for ep in selected:
-            await self.schemas.update_schema.remote(ep)
+        # Concurrent schema updates
+        await asyncio.gather(*[self.schemas.update_schema.remote(ep) for ep in selected])
 
-        for ep in selected:
+        # Concurrent memory enrichment and world model synchronization
+        async def enrich_and_sync(ep):
             enriched = await self.schemas.apply_schema.remote(ep)
             if self.world_model:
                 try:
                     await self.world_model.update_entity.remote(ep["id"], enriched)
                 except Exception:
                     pass
+            return enriched
+
+        await asyncio.gather(*[enrich_and_sync(ep) for ep in selected])
 
         return {"consolidation_loss": loss, "episodes": len(selected)}
 
