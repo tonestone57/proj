@@ -1,5 +1,6 @@
 import ray
 import re
+import xxhash
 import collections
 import torch
 import os
@@ -95,10 +96,11 @@ class PrimaryModelActor(CognitiveModule):
     SGI 2026: Specialized Primary Model Actor (Tier 3 Reasoning).
     Optimized for RAM-critical systems without a draft model.
     """
-    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", search_actor=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", search_actor=None, memory_manager=None):
         super().__init__(workspace, scheduler, model_registry)
         self.model_id = model_id
         self.search_actor = search_actor
+        self.memory_manager = memory_manager
         self.model = None
         self.tokenizer = None
         self.ngram_cache = NGramCache()
@@ -124,6 +126,9 @@ class PrimaryModelActor(CognitiveModule):
 
     def set_search_actor(self, search_actor):
         self.search_actor = search_actor
+
+    def set_memory_manager(self, memory_manager):
+        self.memory_manager = memory_manager
 
     def _load_model(self):
         print(f"[PrimaryModelActor] Loading {self.model_id} (Quantization: {self.precision})...")
@@ -239,6 +244,27 @@ class PrimaryModelActor(CognitiveModule):
                 # Basic proposal injection for N-gram speedup
                 prompt += " " + " ".join(proposals)
 
+        # SGI 2026: Simulate Paged KV Cache Block Management
+        if self.memory_manager:
+            request_id = f"req_{xxhash.xxh32(prompt.encode()).hexdigest()}"
+            print(f"[PrimaryModelActor] Paged KV Management for request '{request_id}'...")
+
+            # 1. Allocate blocks for prompt (simulated tokens)
+            sim_tokens = prompt.split()
+            self.memory_manager.receive.remote({
+                "type": "kv_cache_allocate",
+                "data": {"request_id": request_id, "tokens": sim_tokens}
+            })
+
+            # 2. Retrieve KV for inference (simulated)
+            self.memory_manager.receive.remote({
+                "type": "kv_cache_retrieve",
+                "data": {"request_id": request_id}
+            })
+
+            # 3. Schedule release (simulated)
+            # In real system, this happens after inference completes.
+
         # Standard Neural Inference (Fall-through)
         if self.model and self.tokenizer:
             device = next(self.model.parameters()).device
@@ -272,6 +298,9 @@ class ModelRegistry:
 
     def set_search_actor(self, search_actor):
         self.primary_actor.set_search_actor.remote(search_actor)
+
+    def set_memory_manager(self, memory_manager):
+        self.primary_actor.set_memory_manager.remote(memory_manager)
 
     def set_power_mode(self, reflex_only=False):
         self.primary_actor.set_power_mode.remote(reflex_only)

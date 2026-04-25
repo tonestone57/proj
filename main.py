@@ -174,8 +174,12 @@ def init_core_actors(workspace, scheduler, model_provider):
         ray.get(model_provider.set_search_actor.remote(actors['searcher']))
 
         actors['critic'] = InternalCritic.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-        actors['planner'] = Planner.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['memory_manager'] = MemoryManager.remote(workspace=workspace, scheduler=scheduler, graph_memory=actors['graph_memory'])
+
+        # SGI 2026: Late-binding of memory_manager to registry for KV Cache offloading
+        ray.get(model_provider.set_memory_manager.remote(actors['memory_manager']))
+
+        actors['planner'] = Planner.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['meta_manager'] = MetaManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['world_model'] = WorldModelManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['motivation'] = MotivationManager.remote(world_model=actors['world_model'], workspace=workspace, scheduler=scheduler, model_registry=model_provider)

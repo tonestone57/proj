@@ -45,6 +45,7 @@ class TestModelImprovements(unittest.TestCase):
 
     def test_symbolic_reflex_path(self):
         import ray
+        ray.init(ignore_reinit_error=True)
         from core.model_registry import PrimaryModelActor
         # Initialize without loading actual models for speed/memory
         registry = PrimaryModelActor.remote()
