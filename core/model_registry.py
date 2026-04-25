@@ -118,6 +118,11 @@ class ModelRegistryBase:
         print(f"[ModelRegistry] Initializing shared world model for {model_id}...")
         self._load_with_fallbacks(model_id, draft_model_id)
 
+    def set_search_actor(self, search_actor):
+        """SGI 2026: Late-binding of search actor for Tier 2 grounding."""
+        print(f"[ModelRegistry] 🔗 Search Actor registered for contextual grounding.")
+        self.search_actor = search_actor
+
     def _load_with_fallbacks(self, model_id, draft_model_id):
         # 1. Attempt IPEX-LLM (Direct Optimized Loading)
         if IPEX_AVAILABLE:
@@ -310,6 +315,9 @@ class ModelRegistryBase:
 
         # SGI 2026: Draft-based Reflex Path
         if mode == "reflex" or self.reflex_only:
+            # If search context is available, use it for grounded reflex
+            if search_context:
+                 return f"Reflex Result (Grounded): Actionable spec using Tier 2 context for {prompt[:20]}"
             return f"Reflex Result: Actionable spec for {prompt[:20]}"
 
         strategy = "Neural"

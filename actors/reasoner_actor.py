@@ -28,6 +28,12 @@ class ReasonerActor(CognitiveModule):
             elif message["type"] == "verification_request":
                 result = self.verify_logic(message["data"])
                 self.scheduler.submit.remote(handle, {"type": "verification_result", "data": result})
+            elif message["type"] == "simulation_obs":
+                # SGI 2026: Logic-based response to simulation state
+                print(f"[ReasonerActor] Simulation Update: {message['data']}")
+                # Proactively analyze threat levels or load from simulation
+                if message["data"].get("threat_level", 0) > 50:
+                    print("[ReasonerActor] ⚠️ High Threat detected in simulation. Recommending lockdown logic.")
         except Exception as e:
             print(f"[ReasonerActor] Error in receive: {e}")
 
