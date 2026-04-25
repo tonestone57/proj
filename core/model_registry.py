@@ -133,14 +133,22 @@ class DraftModelActor(CognitiveModule):
     def propose(self, prompt, length=10, use_ngram=True):
         """
         SGI 2026: Proposes tokens and puts them into Ray Object Store (Plasma).
+        Uses Hybrid N-Gram + Neural Drafting.
         """
         proposals = []
         if use_ngram:
             proposals = self.ngram_cache.propose(prompt, length=length)
 
-        if not proposals and self.model:
-            # Simulated neural draft inference
-            proposals = ["draft_token_" + str(i) for i in range(length)]
+        if not proposals and self.model and self.tokenizer:
+            # SGI 2026: Actual Neural Draft Inference
+            try:
+                device = next(self.model.parameters()).device
+                inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
+                outputs = self.model.generate(**inputs, max_new_tokens=length)
+                text = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                proposals = text.split()
+            except Exception as e:
+                print(f"[DraftModelActor] Neural draft failed: {e}")
 
         if not proposals:
             proposals = ["mock_draft_" + str(i) for i in range(length)]
@@ -313,13 +321,15 @@ class PrimaryModelActor(CognitiveModule):
 
                 print(f"[PrimaryModelActor] Plasma Verification: Batch-verified {len(proposals)} tokens. Accepted: {valid_count}.")
 
-                # Fallback to standard inference for the remaining tokens
-                remaining_tokens = max(1, max_new_tokens - valid_count)
-                new_prompt = prompt + " " + verified_text
-                new_inputs = self.tokenizer(new_prompt, return_tensors="pt").to(device)
-                outputs = self.model.generate(**new_inputs, max_new_tokens=remaining_tokens)
-                extra_text = self.tokenizer.decode(outputs[0][new_inputs.input_ids.shape[1]:], skip_special_tokens=True)
-                verified_text += " " + extra_text
+                # SGI 2026: Sequential Verification & Repair
+                # If discrepancies found, continue generation from the point of failure
+                if valid_count < len(proposals):
+                    remaining_tokens = max(1, max_new_tokens - valid_count)
+                    new_prompt = prompt + " " + verified_text
+                    new_inputs = self.tokenizer(new_prompt, return_tensors="pt").to(device)
+                    outputs = self.model.generate(**new_inputs, max_new_tokens=remaining_tokens)
+                    extra_text = self.tokenizer.decode(outputs[0][new_inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                    verified_text += " " + extra_text
             else:
                 verified_text = f"Apriel-1.6-15B-Thinker mock ({strategy}) for: {prompt[:30]}..."
 
