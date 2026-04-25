@@ -283,6 +283,9 @@ class ModelRegistryBase:
         return None
 
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=True, mode="reasoning"):
+        # SGI 2026: Initialize context variables early to avoid scoping errors
+        search_context = ""
+
         # --- 1. Symbolic Reasoning (Z3) ---
         z3_result = self.symbolic_reasoning_z3(prompt)
         if z3_result:
@@ -295,7 +298,6 @@ class ModelRegistryBase:
                 return f"<reflex>\n{response}\n</reflex>\n"
 
         # --- 3. Tier 2: Memory (Search/GraphRAG) ---
-        search_context = ""
         if self.search_actor and any(kw in prompt_lower for kw in ["how to", "what is", "docs", "example", "implement", "function"]):
              try:
                  if hasattr(self.search_actor.perform_search, "remote"):

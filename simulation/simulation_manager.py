@@ -49,8 +49,13 @@ class SimulationManager(CognitiveModule):
             self.send_result("simulation_result", result)
         elif message["type"] == "simulation_action":
             # SGI 2026: Mediation and Governance for asynchronous actions
-            action = message["data"]
-            agent = message.get("agent_id", "unknown")
+            data = message["data"]
+            if isinstance(data, dict):
+                action = data.get("action", data)
+                agent = data.get("agent_id", message.get("agent_id", "unknown"))
+            else:
+                action = data
+                agent = message.get("agent_id", "unknown")
 
             interaction = self.protocol.mediate(agent, "env", action)
             blocked = self.gov.apply(interaction)
