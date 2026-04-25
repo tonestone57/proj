@@ -2,9 +2,11 @@ import psutil
 import math
 import re
 import ray
+import time
 import xxhash
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB
+from memory.codecs.llm_zip import LLMZipCodec
 
 def calculate_information_density(words):
     if not words:
@@ -43,8 +45,9 @@ class MemoryManager(CognitiveModule):
             "quantiz": "Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers.",
             "thermal": "Health Note: Heartbeat interval must scale linearly with temp above 75C."
         }
-        # SGI 2026: Deep Archive (Simulated LLM-Zip / Disk)
+        # SGI 2026: Deep Archive (Live LLM-Zip Codec)
         self.deep_archive = {}
+        self.llm_zip = LLMZipCodec()
 
     def receive(self, message):
         if super().receive(message): return
@@ -184,15 +187,22 @@ class MemoryManager(CognitiveModule):
         return score
 
     def perform_neural_archiving(self, context):
-        print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip) to LanceDB...")
-        # SGI 2026: Use xxhash (xxh128) for high-velocity non-cryptographic neural fingerprints
+        """
+        SGI 2026: Performs Lossless Neural Archiving (LLM-Zip) using live Arithmetic Coding.
+        """
+        print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip)...")
+        if not isinstance(context, str): return {}
+
+        compressed = self.llm_zip.compress(context)
+        ratio = len(context) / len(compressed) if len(compressed) > 0 else 0
+
         h = xxhash.xxh128(context.encode()).hexdigest()
         return {
-            "compressed_neural_data": f"compressed_{h}",
-            "compression_ratio": "8.5x",
-            "codec": "Arithmetic LLM Coding",
-            "model_hash": "sha256_7f8e9d...",
-            "residual_buffer": "residual_data_0x123..."
+            "compressed_neural_data": compressed.hex(),
+            "compression_ratio": f"{ratio:.2f}x",
+            "codec": "Arithmetic Neural Coding (v1.0)",
+            "fingerprint": h,
+            "size_bytes": len(compressed)
         }
 
     def perform_turboquant_compression(self, vectors):
