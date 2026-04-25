@@ -328,8 +328,16 @@ class PrimaryModelActor(CognitiveModule):
             self.draft_actor.update_ngram.remote(verified_text)
             return thought_block + verified_text
 
-        # Standard Fallback if speculative decoding is off or failed
-        return f"Primary result (Standard) for: {prompt[:20]}"
+        # Standard Path if speculative decoding is off or failed
+        if self.model and self.tokenizer:
+            device = next(self.model.parameters()).device
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
+            outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
+            result = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+            thought_block = f"<thought>\nStrategy: Standard Neural Inference\n</thought>\n"
+            return thought_block + result
+
+        return f"Primary result (Standard Mock) for: {prompt[:20]}"
 
     def set_power_mode(self, reflex_only=False):
         self.reflex_only = reflex_only
