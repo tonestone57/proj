@@ -302,8 +302,22 @@ class PrimaryModelActor(CognitiveModule):
 
             result = " ".join(proposals)
             if self.model and self.tokenizer:
-                # Real verification logic...
-                pass
+                # SGI 2026: Fast Batch Verification of Plasma proposals
+                # Matches draft tokens against primary model log-probabilities
+                device = next(self.model.parameters()).device
+                inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
+                outputs = self.model.generate(**inputs, max_new_tokens=len(proposals))
+                primary_tokens = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).split()
+
+                verified_tokens = []
+                for d_tok, p_tok in zip(proposals, primary_tokens):
+                    if d_tok == p_tok:
+                        verified_tokens.append(d_tok)
+                    else:
+                        break # Halt at first discrepancy
+
+                print(f"[PrimaryModelActor] Plasma Verification: Accepted {len(verified_tokens)}/{len(proposals)} tokens.")
+                result = " ".join(verified_tokens)
             else:
                 result = f"Qwen3-8B (Reasoning) mock ({strategy}) for: {prompt[:30]}..."
 
