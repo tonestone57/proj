@@ -35,7 +35,7 @@ actors:
 
 # SECTION 3: Memory & Context Management
 memory_management:
-  active_context_limit: 32768       # Optimized for 16GB RAM
+  active_context_limit: 131072      # Optimized for 16GB RAM (128K)
   pruning_threshold_pct: 0.80
   summarization_depth: "recursive"
   compression:
