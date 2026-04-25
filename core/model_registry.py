@@ -118,6 +118,11 @@ class ModelRegistryBase:
         print(f"[ModelRegistry] Initializing shared world model for {model_id}...")
         self._load_with_fallbacks(model_id, draft_model_id)
 
+    def set_search_actor(self, search_actor):
+        """SGI 2026: Late-binding of search actor for Tier 2 grounding."""
+        print(f"[ModelRegistry] 🔗 Search Actor registered for contextual grounding.")
+        self.search_actor = search_actor
+
     def _load_with_fallbacks(self, model_id, draft_model_id):
         # 1. Attempt IPEX-LLM (Direct Optimized Loading)
         if IPEX_AVAILABLE:
@@ -278,6 +283,9 @@ class ModelRegistryBase:
         return None
 
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=True, mode="reasoning"):
+        # SGI 2026: Initialize context variables early to avoid scoping errors
+        search_context = ""
+
         # --- 1. Symbolic Reasoning (Z3) ---
         z3_result = self.symbolic_reasoning_z3(prompt)
         if z3_result:
@@ -290,7 +298,6 @@ class ModelRegistryBase:
                 return f"<reflex>\n{response}\n</reflex>\n"
 
         # --- 3. Tier 2: Memory (Search/GraphRAG) ---
-        search_context = ""
         if self.search_actor and any(kw in prompt_lower for kw in ["how to", "what is", "docs", "example", "implement", "function"]):
              try:
                  if hasattr(self.search_actor.perform_search, "remote"):
@@ -310,6 +317,9 @@ class ModelRegistryBase:
 
         # SGI 2026: Draft-based Reflex Path
         if mode == "reflex" or self.reflex_only:
+            # If search context is available, use it for grounded reflex
+            if search_context:
+                 return f"Reflex Result (Grounded): Actionable spec using Tier 2 context for {prompt[:20]}"
             return f"Reflex Result: Actionable spec for {prompt[:20]}"
 
         strategy = "Neural"

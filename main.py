@@ -171,15 +171,29 @@ async def cognitive_cycle():
     reasoner = ReasonerActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     coder = CodingActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     searcher = SearchActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider, graph_memory=graph_memory)
+    # SGI 2026: Late-binding of searcher to registry to allow Tier 2 grounding
+    ray.get(model_provider.set_search_actor.remote(searcher))
     critic = InternalCritic.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     planner = Planner.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     memory_manager = MemoryManager.remote(workspace=workspace, scheduler=scheduler, graph_memory=graph_memory)
     meta_manager = MetaManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    training_manager = TrainingManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
+    # world_model_manager and motivation_manager needed by other components
+    world_model_manager = WorldModelManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
+    training_manager = TrainingManager.remote(
+        workspace=workspace,
+        scheduler=scheduler,
+        model_registry=model_provider,
+        modules=[reasoner, coder, searcher],
+        world_model=world_model_manager,
+        motivation=motivation_manager
+    )
     social_reasoner = SocialReasoner.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     theory_of_mind = TheoryOfMind.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
-    # Initialize New Managers
+    # Initialize New Managers using keyword arguments to ensure correct assignment and passing missing handles
     safety_manager = SafetyManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     ethics_manager = EthicsManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     metacognition_manager = MetacognitionManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
@@ -187,8 +201,8 @@ async def cognitive_cycle():
     emotion_manager = EmotionManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     conflict_manager = ConflictManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     institutional_manager = InstitutionalManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    world_model_manager = WorldModelManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    consolidation_manager = ConsolidationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+
+    consolidation_manager = ConsolidationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider, world_model=world_model_manager)
     self_manager = SelfManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     blueteam_manager = BlueTeamManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     redteam_manager = RedTeamManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
@@ -203,10 +217,9 @@ async def cognitive_cycle():
     economic_manager = EconomicManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     negotiation_manager = NegotiationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     deployment_manager = DeploymentManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    orchestration_manager = OrchestrationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+    orchestration_manager = OrchestrationManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider, agents=[reasoner, coder, searcher])
     simulation_manager = SimulationManager.remote(agents=[reasoner, coder, searcher], workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     console_manager = ConsoleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-    motivation_manager = MotivationManager.remote(world_model=world_model_manager, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     purpleteam_manager = GovernanceIntegratedPurpleManager.remote(governance=governance, workspace=workspace, scheduler=scheduler, model_registry=model_provider)
 
     hub = SGIHub(workspace, scheduler, thermal_guard)

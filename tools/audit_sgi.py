@@ -25,7 +25,7 @@ def audit_directory(directory):
 
                             # Check receive method
                             for item in node.body:
-                                if isinstance(item, ast.FunctionDef) and item.name == "receive":
+                                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == "receive":
                                     has_receive = True
 
                             # Check ray decorator (simple check)

@@ -33,6 +33,15 @@ class CodingActorBase(CognitiveModule):
                 result["confidence"] = confidence
 
                 self.send_result("code_result", result)
+            elif message["type"] == "simulation_obs":
+                # SGI 2026: Code-based response to simulation state
+                obs = message["data"]
+                print(f"[CodingActor] Simulation Update: {obs}")
+                if obs.get("load", 0) > 70:
+                    self.send_result("simulation_action", {
+                        "agent_id": "CodingActor",
+                        "action": {"type": "resource_release", "amount": 20}
+                    })
         except Exception as e:
             print(f"[CodingActor] Error in receive: {e}")
 

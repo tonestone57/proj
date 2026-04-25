@@ -146,6 +146,15 @@ class SearchActorBase(CognitiveModule):
                     self.scheduler.submit(handle, {
                         "type": "search_result", "data": reranked_results, "actionable_spec": actionable_spec
                     })
+            elif message["type"] == "simulation_obs":
+                # SGI 2026: Search-based response to simulation state
+                obs = message["data"]
+                print(f"[SearchActor] Simulation Update: {obs}")
+                if obs.get("threat_level", 0) > 30:
+                    self.send_result("simulation_action", {
+                        "agent_id": "SearchActor",
+                        "action": {"type": "mitigation", "method": "info_gathering"}
+                    })
         except Exception as e:
             print(f"[SearchActor] Error in receive: {e}")
 
