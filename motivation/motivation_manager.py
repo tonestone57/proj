@@ -24,7 +24,7 @@ class MotivationManager(CognitiveModule):
         return self.reward_engine.compute(signals)
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         # Standard SGI 2026 message handling for MotivationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "motivation_evaluation":

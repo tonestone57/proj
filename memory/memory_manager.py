@@ -169,7 +169,7 @@ class MemoryManager(CognitiveModule):
         self.kv_cache_manager = KVCacheManager()
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
 
         if message["type"] == "trigger_sleep_cycle":
             tick = message.get("data", {}).get("tick", 0) if isinstance(message.get("data"), dict) else 0

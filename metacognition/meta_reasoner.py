@@ -8,7 +8,7 @@ class MetaReasoner(CognitiveModule):
         print(f"[MetaReasoner] Initialized with Shared Model Provider.")
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         if message["type"] == "evaluate_reasoning":
             result = self.evaluate_reasoning(message["data"])
             self.send_result("evaluation_result", result)

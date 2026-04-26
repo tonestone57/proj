@@ -4,7 +4,7 @@ from core.base import CognitiveModule
 @ray.remote
 class DiscourseModule(CognitiveModule):
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         if message["type"] == "utterance":
             pragmatic = self.analyze_pragmatics(message["text"])
             self.send_result("pragmatic_inference", pragmatic)

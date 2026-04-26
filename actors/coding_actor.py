@@ -14,7 +14,7 @@ class CodingActorBase(CognitiveModule):
 
     def receive(self, message):
         try:
-            if super().receive(message): return
+            if super().receive(message): return True
             if message["type"] == "code_execution":
                 code = message["data"]
                 persistent = message.get("persistent", False)

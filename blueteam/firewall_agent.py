@@ -40,7 +40,7 @@ class FirewallAgent(CognitiveModule):
         return {"blocked": False}
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         """Standard SGI message receiver."""
         if message["type"] == "add_firewall_rule":
             self.add_rule(message["data"]["pattern"], message["data"].get("action", "block"))

@@ -8,7 +8,7 @@ class SelfModel(CognitiveModule):
         self.state = {}
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         if message["type"] == "internal_update":
             self.update_state(message["data"])
 
