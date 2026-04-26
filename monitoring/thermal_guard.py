@@ -31,14 +31,15 @@ class ThermalGuard:
                     temp = temps['acpitz'][0].current
                 elif not temps:
                     # Fallback heuristic: assume temp correlates with load if sensors fail
-                    # Base idle temp ~38C, max load ~85C at 15W TDP
-                    temp = 38.0 + (load * 0.47)
+                    # SGI 2026: Refined heuristic for i7-8265U (15W TDP)
+                    # Base idle ~38C, linear ramp with exponential bias at high load
+                    temp = 38.0 + (load * 0.42) + (math.exp(load / 40.0) if load > 60 else 0)
             else:
                 # Fallback heuristic for platforms without sensors_temperatures
-                temp = 38.0 + (load * 0.47)
+                temp = 38.0 + (load * 0.42) + (math.exp(load / 40.0) if load > 60 else 0)
         except Exception:
             # Final fallback
-            temp = 38.0 + (load * 0.47)
+            temp = 38.0 + (load * 0.42) + (math.exp(load / 40.0) if load > 60 else 0)
 
         is_throttled = temp > self.threshold_temp or load > self.threshold_load
 

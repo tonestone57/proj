@@ -141,9 +141,13 @@ class KVCacheManager:
         full_kv = []
         for block_id in self.virtual_table[request_id]:
             self._ensure_block_in_ram(block_id)
-            full_kv.append(self.physical_blocks[block_id])
+            data = self.physical_blocks.get(block_id)
+            if data is not None:
+                full_kv.append(data)
+            else:
+                print(f"🚨 [KVCacheManager] Failed to retrieve data for block {block_id}")
 
-        return full_kv
+        return full_kv if full_kv else None
 
     def get_status(self):
         return {
@@ -264,15 +268,24 @@ class MemoryManager(CognitiveModule):
         # SGI 2026: GraphRAG Construction Phase
         if self.graph_memory:
             print("[MemoryManager] Updating Knowledge Graph from workspace...")
-            # In a real environment, we would iterate over all workspace files
-            # Here we simulate by analyzing a few core files
-            core_files = ["main.py", "actors/reasoner_actor.py", "core/model_registry.py"]
-            for f in core_files:
+            # SGI 2026: Dynamic file discovery for Knowledge Graph updates
+            python_files = []
+            for root, dirs, files in os.walk("."):
+                # Skip hidden directories and data directories
+                if "/." in root or "./data" in root or "__pycache__" in root:
+                    continue
+                for file in files:
+                    if file.endswith(".py"):
+                        python_files.append(os.path.join(root, file))
+
+            print(f"[MemoryManager] Discovered {len(python_files)} Python files for analysis.")
+            for f in python_files:
                 try:
                     with open(f, "r") as file:
                         content = file.read()
                         self.graph_memory.analyze_python_file.remote(f, content)
-                except Exception: pass
+                except Exception as e:
+                    print(f"🚨 [MemoryManager] Failed to analyze {f}: {e}")
 
         patterns = self.identify_recurring_patterns()
         if patterns:

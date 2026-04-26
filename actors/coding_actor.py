@@ -75,16 +75,25 @@ class CodingActorBase(CognitiveModule):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 func_name = node.name
                 is_recursive = False
+                # SGI 2026: Determine the name of 'self' (usually 'self' or 'cls')
+                self_names = {"self"}
+                if node.args.args:
+                    self_names.add(node.args.args[0].arg)
+
                 for subnode in ast.walk(node):
                     if isinstance(subnode, ast.Call):
                         # Matches direct recursion: func()
                         if isinstance(subnode.func, ast.Name) and subnode.func.id == func_name:
                             is_recursive = True
                             break
-                        # Matches method recursion: self.func()
+                        # Matches method recursion: self.func() or cls.func()
                         elif isinstance(subnode.func, ast.Attribute) and subnode.func.attr == func_name:
-                            # Refined check: Only flag as recursion if the attribute is called on 'self'
-                            if isinstance(subnode.func.value, ast.Name) and subnode.func.value.id == "self":
+                            if isinstance(subnode.func.value, ast.Name) and subnode.func.value.id in self_names:
+                                is_recursive = True
+                                break
+                        # Matches nested function calls (e.g. wrapper(func()))
+                        for arg in subnode.args:
+                            if isinstance(arg, ast.Name) and arg.id == func_name:
                                 is_recursive = True
                                 break
                 if is_recursive:
