@@ -29,15 +29,16 @@ class ThermalGuard:
                     temp = temps['cpu_thermal'][0].current
                 elif 'acpitz' in temps and temps['acpitz']:
                     temp = temps['acpitz'][0].current
-                elif not temps and load > 0:
+                elif not temps:
                     # Fallback heuristic: assume temp correlates with load if sensors fail
-                    temp = 40.0 + (load * 0.4)
+                    # Base idle temp ~38C, max load ~85C at 15W TDP
+                    temp = 38.0 + (load * 0.47)
             else:
                 # Fallback heuristic for platforms without sensors_temperatures
-                temp = 40.0 + (load * 0.4)
+                temp = 38.0 + (load * 0.47)
         except Exception:
             # Final fallback
-            temp = 40.0 + (load * 0.4)
+            temp = 38.0 + (load * 0.47)
 
         is_throttled = temp > self.threshold_temp or load > self.threshold_load
 

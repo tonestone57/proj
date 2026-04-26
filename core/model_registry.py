@@ -144,7 +144,8 @@ class PrimaryModelActor(CognitiveModule):
                 print(f"[PrimaryModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")
                 return
             except Exception as e:
-                print(f"[PrimaryModelActor] IPEX failed: {e}")
+                print(f"🚨 [PrimaryModelActor] IPEX failed for {self.model_id}: {e}")
+                self.send_result("model_load_error", {"model": self.model_id, "error": str(e), "fallback": "Mock"})
 
         print(f"[PrimaryModelActor] Falling back to Mock mode for {self.model_id}.")
 

@@ -11,7 +11,10 @@ class Curriculum:
 
     def update(self, performance_metrics):
         # SGI 2026: Dynamic curriculum scaling
-        avg_score = performance_metrics.get("average_score", 0)
+        if isinstance(performance_metrics, (int, float)):
+            avg_score = float(performance_metrics)
+        else:
+            avg_score = performance_metrics.get("average_score", 0) if performance_metrics else 0
 
         if avg_score > self.thresholds[self.level]:
             if self.level < len(self.thresholds) - 1:

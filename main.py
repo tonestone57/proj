@@ -195,7 +195,7 @@ def init_core_actors(workspace, scheduler, model_provider):
             workspace=workspace,
             scheduler=scheduler,
             model_registry=model_provider,
-            modules=[actors['reasoner'], actors['coder'], actors['searcher']],
+            modules={"reasoner": actors['reasoner'], "coder": actors['coder'], "searcher": actors['searcher']},
             world_model=actors['world_model'],
             motivation=actors['motivation']
         )
@@ -251,7 +251,7 @@ def register_tasks(hub, actors, managers):
     hub.register_autonomous_task(actors['memory_manager'], "trigger_sleep_cycle", None)
     hub.register_autonomous_task(actors['reasoner'], "query", "Autonomous mathematical discovery and logic synthesis")
     hub.register_autonomous_task(actors['searcher'], "search_request", "Latest SGI 2026 compression and RAG optimizations")
-    hub.register_autonomous_task(actors['coder'], "code_execution", "Refactor core actors for Minimum Description Length (MDL) efficiency")
+    hub.register_autonomous_task(actors['coder'], "code_execution", {"code": "Refactor core actors for Minimum Description Length (MDL) efficiency", "mode": "generate"})
     hub.register_autonomous_task(actors['training_manager'], "autonomous_training", None)
     hub.register_autonomous_task(actors['social_reasoner'], "user_interaction", "Analyzing social dynamics in the APW workspace")
     hub.register_autonomous_task(actors['theory_of_mind'], "infer_intention", "Apriel-Thinker")
