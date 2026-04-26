@@ -285,7 +285,8 @@ async def cognitive_cycle():
     thermal_guard = ThermalGuard.remote(threshold_temp=THERMAL_THRESHOLD_C)
 
     # Initialize Shared Model (Singleton)
-    model_id = "Apriel-1.6-15B-Thinker"
+    from core.config import SGI_SETTINGS
+    model_id = SGI_SETTINGS.inference.primary_model
     model_provider = ModelRegistry.remote(model_id=model_id)
 
     # Initialize Actors and Managers via helper functions
@@ -300,7 +301,8 @@ async def cognitive_cycle():
     register_tasks(hub, actors, managers)
 
     drives = DriveEngine()
-    thermal_pid = PIDController(setpoint=72.0)
+    # SGI 2026: Dynamic PID setpoint based on thermal threshold
+    thermal_pid = PIDController(setpoint=THERMAL_THRESHOLD_C - 6.0)
 
     print(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")
     print("Architecture: Asynchronous Predictive Workspace (APW)")
@@ -337,21 +339,21 @@ async def cognitive_cycle():
         })
 
         # Thermal-Aware Task Prioritization & Throttling
-        if temp < 65.0:
+        if temp < THERMAL_THRESHOLD_C - 13.0:
             print("[Hub] State: SPRINT. All threads at Max Frequency.")
             current_tick_interval = TICK_INTERVAL
             await model_provider.set_power_mode.remote(reflex_only=False)
-        elif temp <= 75.0:
+        elif temp <= THERMAL_THRESHOLD_C - 3.0:
             print(f"[Hub] State: REGULATED. PID Governor active.")
             current_tick_interval = TICK_INTERVAL + stutter_interval
             await model_provider.set_power_mode.remote(reflex_only=False)
         else:
-            print(f"🌡️ [Hub] State: REFLEX-ONLY. Critical Cooling Mode (>75C).")
+            print(f"🌡️ [Hub] State: REFLEX-ONLY. Critical Cooling Mode (>{THERMAL_THRESHOLD_C - 3.0}C).")
             await model_provider.set_power_mode.remote(reflex_only=True)
-            current_tick_interval = TICK_INTERVAL * (1.0 + (temp - 75.0) / 2.0)
+            current_tick_interval = TICK_INTERVAL * (1.0 + (temp - (THERMAL_THRESHOLD_C - 3.0)) / 2.0)
 
         # Execute tasks based on strategy
-        if temp > 75.0:
+        if temp > THERMAL_THRESHOLD_C - 3.0:
             print("[Hub] Critical Temp: Prioritizing Symbolic Reflex tasks.")
             await hub.safe_delegate(actors['reasoner'], "query", "math.factorial(5)")
         else:
