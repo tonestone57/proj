@@ -1,10 +1,11 @@
+import collections
+import gc
+import os
 import ray
 import re
-import xxhash
-import collections
-import torch
-import os
 import time
+import torch
+import xxhash
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from core.base import CognitiveModule
 from core.config import CORES_PRIMARY, CORES_REASONER
@@ -268,13 +269,23 @@ class PrimaryModelActor(CognitiveModule):
 
         # Standard Neural Inference (Fall-through)
         if self.model and self.tokenizer:
-            device = next(self.model.parameters()).device
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
-            outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
-            result = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-            thought_block = f"<thought>\nStrategy: Standard Neural Inference (Draft-less optimization)\n</thought>\n"
-            self.ngram_cache.update(result)
-            return thought_block + result
+            try:
+                device = next(self.model.parameters()).device
+                inputs = self.tokenizer(prompt, return_tensors="pt").to(device)
+                with torch.no_grad():
+                    outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
+                result = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                thought_block = f"<thought>\nStrategy: Standard Neural Inference (Draft-less optimization)\n</thought>\n"
+                self.ngram_cache.update(result)
+                return thought_block + result
+            except Exception as e:
+                print(f"🚨 [PrimaryModelActor] Neural Inference failed: {e}")
+                # Clear cache and collect garbage if it was an OOM
+                if "out of memory" in str(e).lower():
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    gc.collect()
+                return f"<error>\nNeural Inference failed: {e}. Falling back to mock.\n</error>\n" + f"Mock response for: {prompt[:30]}"
 
         result = f"Apriel-1.6-15B-Thinker mock (Draft-less) for: {prompt[:30]}..."
         thought_block = f"<thought>\nStrategy: Mock Neural Inference (Draft-less optimization)\n</thought>\n"

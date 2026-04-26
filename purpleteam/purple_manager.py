@@ -39,25 +39,32 @@ class PurpleManager(CognitiveModule):
             self.send_result("cycle_result", result)
 
 
-class GovernanceAwareRedAgent:
+class GovernanceAwareAgent:
+    """Base class for governance-aware agents to reduce redundancy."""
     def __init__(self, governance=None):
         self.gov = governance
 
+    def check_authorization(self, action_type, metadata=None):
+        if not self.gov:
+            return {"authorized": True}
+        action = {"type": action_type}
+        if metadata:
+            action.update(metadata)
+        return self.gov.authorize(action)
+
+class GovernanceAwareRedAgent(GovernanceAwareAgent):
     def attack(self, state):
-        action = {"type": "attack", "vector": "policy_evasion"}
-        if not self.gov.authorize(action)["authorized"]:
-            return {"attack": None, "blocked": True}
+        auth = self.check_authorization("attack", {"vector": "policy_evasion"})
+        if not auth["authorized"]:
+            return {"attack": None, "blocked": True, "reason": auth.get("reason")}
         return {"attack": "policy_evasion", "success": "weak_policy" in state}
 
-class GovernanceAwareBlueAgent:
-    def __init__(self, governance=None):
-        self.gov = governance
-
+class GovernanceAwareBlueAgent(GovernanceAwareAgent):
     def defend(self, attack):
-        action = {"type": "defense", "method": "block"}
-        if not self.gov.authorize(action)["authorized"]:
-            return {"response": None, "blocked": True}
-        return {"response": "block", "effective": attack["attack"] == "policy_evasion"}
+        auth = self.check_authorization("defense", {"method": "block"})
+        if not auth["authorized"]:
+            return {"response": None, "blocked": True, "reason": auth.get("reason")}
+        return {"response": "block", "effective": attack.get("attack") == "policy_evasion"}
 
 class GovernanceFusionOrchestrator:
     def cycle(self, red, blue, state):
