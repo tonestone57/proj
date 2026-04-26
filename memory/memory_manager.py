@@ -65,9 +65,11 @@ class KVCacheManager:
         block_ids = []
         for i in range(0, len(tokens), self.block_size):
             chunk = tokens[i : i + self.block_size]
-            # Content-addressed block ID for potential sharing (De-duplication)
+            # SGI 2026: Enhanced content-addressed block ID.
+            # Includes chunk index and total count to ensure sequence integrity even if chunks are identical.
             block_data = str(chunk)
-            block_id = f"pb_{xxhash.xxh32(block_data.encode()).hexdigest()}"
+            salt = f"{i}_{len(tokens)}"
+            block_id = f"pb_{xxhash.xxh32((block_data + salt).encode()).hexdigest()}"
 
             self._ensure_block_in_ram(block_id, block_data)
             block_ids.append(block_id)

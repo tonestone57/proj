@@ -16,18 +16,26 @@ class CodingActorBase(CognitiveModule):
         try:
             if super().receive(message): return True
             if message["type"] == "code_execution":
-                code = message["data"]
+                data = message["data"]
+                if isinstance(data, dict):
+                    code = data.get("code", "")
+                    mode = data.get("mode", message.get("mode", ""))
+                else:
+                    code = data
+                    mode = message.get("mode", "")
+
                 persistent = message.get("persistent", False)
                 confidence = self.calculate_confidence_score()
 
                 if confidence < 0.4:
+                    snippet = str(code)[:50]
                     self.scheduler.submit.remote(None, {
                         "type": "search_request",
-                        "data": f"Docs for: {code[:50]}",
+                        "data": f"Docs for: {snippet}",
                         "reason": "Low Confidence"
                     })
 
-                if self.model_registry and "generate" in message.get("mode", ""):
+                if self.model_registry and "generate" in mode:
                     result = self.generate_and_verify(code)
                 else:
                     result = self.execute_code(code, persistent=persistent)
