@@ -285,13 +285,18 @@ class PrimaryModelActor(CognitiveModule):
         self.reflex_only = reflex_only
 
 @ray.remote
-class ModelRegistry:
+class ModelRegistry(CognitiveModule):
     """
     SGI 2026: RAM-Optimized Unified Registry.
     Operates without a draft model to conserve memory on 16GB systems.
     """
-    def __init__(self, model_id="Apriel-1.6-15B-Thinker", draft_model_id=None):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None, model_id="Apriel-1.6-15B-Thinker", draft_model_id=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.primary_actor = PrimaryModelActor.remote(model_id=model_id)
+
+    def receive(self, message):
+        if super().receive(message): return True
+        return False
 
     def generate(self, prompt, **kwargs):
         return ray.get(self.primary_actor.generate.remote(prompt, **kwargs))
