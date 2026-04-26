@@ -1,5 +1,6 @@
 import ray
 import psutil
+import math
 
 @ray.remote
 class ThermalGuard:

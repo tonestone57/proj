@@ -136,7 +136,7 @@ class KVCacheManager:
 
     def get_kv_for_request(self, request_id):
         """Retrieves full KV sequence for a request by assembling virtual blocks."""
-        if request_id not in self.virtual_table: return None
+        if request_id not in self.virtual_table: return []
 
         full_kv = []
         for block_id in self.virtual_table[request_id]:
@@ -147,7 +147,7 @@ class KVCacheManager:
             else:
                 print(f"🚨 [KVCacheManager] Failed to retrieve data for block {block_id}")
 
-        return full_kv if full_kv else None
+        return full_kv
 
     def get_status(self):
         return {
