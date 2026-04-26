@@ -91,7 +91,7 @@ class CodingActorBase(CognitiveModule):
                             if isinstance(subnode.func.value, ast.Name) and subnode.func.value.id in self_names:
                                 is_recursive = True
                                 break
-                        # Matches nested function calls (e.g. wrapper(func()))
+                        # Matches function handle passed as argument (potential recursion)
                         for arg in subnode.args:
                             if isinstance(arg, ast.Name) and arg.id == func_name:
                                 is_recursive = True

@@ -14,7 +14,7 @@ class InternalCritic(CognitiveModule):
         if not code or len(code) < 10: issues.append("Too short or empty.")
 
         # SGI 2026: Advanced logical contradiction detection
-        # Matches patterns like True == False, 1 == 0, 5 != 5 with varying whitespace
+        # Matches patterns like True == False, 1 == 0, 1 != 1 with varying whitespace
         constant_contradictions = [
             r"\b(\d+)\s*==\s*(?!\1)\d+\b", # 1 == 2
             r"\b(\d+)\s*!=\s*\1\b",         # 1 != 1
