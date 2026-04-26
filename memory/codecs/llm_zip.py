@@ -69,15 +69,25 @@ class LLMZipCodec:
     def decompress(self, compressed_data):
         if not compressed_data: return ""
         try:
+            if b":::" not in compressed_data:
+                raise ValueError("Separator ':::' not found. Invalid Header.")
             header, payload = compressed_data.split(b":::", 1)
+
+            if len(header) < 6:
+                raise ValueError("Header too short. Invalid Header.")
+
             total, sym_len = struct.unpack(">IH", header[:6])
             symbols = list(header[6:6+sym_len])
             cum_freqs = []
             for i in range(sym_len + 1):
                 offset = 6 + sym_len + i*4
+                if offset + 4 > len(header):
+                    raise ValueError("Header truncated. Invalid Header.")
                 cum_freqs.append(struct.unpack(">I", header[offset:offset+4])[0])
         except Exception as e:
-            raise ValueError(f"Arithmetic Decompression Error: Invalid Header or bitstream: {e}")
+            if "Invalid Header" in str(e):
+                raise
+            raise ValueError(f"Arithmetic Decompression Error: Invalid Header: {e}")
 
         # Bitstream to bits
         bits = []
@@ -93,31 +103,37 @@ class LLMZipCodec:
         bit_idx = self.precision
         result = bytearray()
 
-        for _ in range(total):
-            rng = high - low + 1
-            count = ((value - low + 1) * total - 1) // rng
+        try:
+            for _ in range(total):
+                rng = high - low + 1
+                count = ((value - low + 1) * total - 1) // rng
 
-            # Find symbol
-            idx = 0
-            while cum_freqs[idx+1] <= count: idx += 1
-            result.append(symbols[idx])
+                # Find symbol
+                idx = 0
+                while cum_freqs[idx+1] <= count: idx += 1
+                result.append(symbols[idx])
 
-            high = low + (rng * cum_freqs[idx + 1] // total) - 1
-            low = low + (rng * cum_freqs[idx] // total)
+                high = low + (rng * cum_freqs[idx + 1] // total) - 1
+                low = low + (rng * cum_freqs[idx] // total)
 
-            while True:
-                if high < self.half_range: pass
-                elif low >= self.half_range:
-                    low -= self.half_range; high -= self.half_range; value -= self.half_range
-                elif low >= self.quarter_range and high < 3 * self.quarter_range:
-                    low -= self.quarter_range; high -= self.quarter_range; value -= self.quarter_range
-                else: break
-                low = (low << 1) & self.max_range
-                high = ((high << 1) | 1) & self.max_range
-                value = ((value << 1) | get_bit(bit_idx)) & self.max_range
-                bit_idx += 1
+                while True:
+                    if high < self.half_range: pass
+                    elif low >= self.half_range:
+                        low -= self.half_range; high -= self.half_range; value -= self.half_range
+                    elif low >= self.quarter_range and high < 3 * self.quarter_range:
+                        low -= self.quarter_range; high -= self.quarter_range; value -= self.quarter_range
+                    else: break
+                    low = (low << 1) & self.max_range
+                    high = ((high << 1) | 1) & self.max_range
+                    value = ((value << 1) | get_bit(bit_idx)) & self.max_range
+                    bit_idx += 1
+        except Exception as e:
+            raise ValueError(f"Arithmetic Decompression Error: Invalid Bitstream: {e}")
 
-        return result.decode()
+        try:
+            return result.decode()
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Arithmetic Decompression Error: Decoding failed: {e}")
 
 if __name__ == "__main__":
     codec = LLMZipCodec()

@@ -1,9 +1,16 @@
+import ray
 from core.base import CognitiveModule
 
-class SemanticMemory:
-    def __init__(self, model=None):
+@ray.remote
+class SemanticMemory(CognitiveModule):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.knowledge = {}
-        self.model = model
+        self.model = model_registry
+
+    def receive(self, message):
+        if super().receive(message): return
+        return False
 
     def store_fact(self, key, value):
         self.knowledge[key] = value

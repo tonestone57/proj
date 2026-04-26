@@ -144,8 +144,15 @@ class SGIHub:
             return False
 
     async def poll_scheduler(self, conflict_manager=None):
-        res_obj = await self.scheduler.next.remote()
-        if res_obj:
+        """
+        SGI 2026: Batch-poll the scheduler to reduce task latency.
+        Processes up to 5 results per heartbeat tick.
+        """
+        for _ in range(5):
+            res_obj = await self.scheduler.next.remote()
+            if not res_obj:
+                break
+
             priority, actor_handle, message = res_obj
             print(f"[Hub] Processing result from scheduler: {message['type']}")
 

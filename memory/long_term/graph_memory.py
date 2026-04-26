@@ -1,13 +1,15 @@
 import re
 import ray
+from core.base import CognitiveModule
 
 @ray.remote
-class KnowledgeGraph:
+class KnowledgeGraph(CognitiveModule):
     """
     GraphRAG implementation for connecting the dots across a project.
     Stores nodes (modules, classes, functions) and their relationships.
     """
-    def __init__(self):
+    def __init__(self, workspace=None, scheduler=None, model_registry=None):
+        super().__init__(workspace, scheduler, model_registry)
         self.nodes = {}  # id -> metadata
         self.edges = []  # list of (source, target, relationship_type)
 
