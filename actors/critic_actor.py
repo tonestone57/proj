@@ -1,4 +1,5 @@
 import ray
+import re
 from core.base import CognitiveModule
 
 @ray.remote
@@ -13,8 +14,29 @@ class InternalCritic(CognitiveModule):
         if not code or len(code) < 10: issues.append("Too short or empty.")
 
         # SGI 2026: Advanced logical contradiction detection
-        if "True == False" in code or "1 == 0" in code:
-            issues.append("Obvious logical contradiction detected.")
+        # Matches patterns like True == False, 1 == 0, 5 != 5 with varying whitespace
+        contradiction_patterns = [
+            r"True\s*==\s*False",
+            r"False\s*==\s*True",
+            r"1\s*==\s*0",
+            r"0\s*==\s*1",
+            r"(\w+)\s*!=\s*\1",   # x != x
+            r"(\w+)\s*==\s*(?!\1)\w+" # Basic inequality placeholder (too broad, stick to constants)
+        ]
+        # Better: specifically constant contradictions
+        constant_contradictions = [
+            r"\b(\d+)\s*==\s*(?!\1)\d+\b", # 1 == 2
+            r"\b(\d+)\s*!=\s*\1\b",         # 1 != 1
+            r"\bTrue\s*==\s*False\b",
+            r"\bFalse\s*==\s*True\b",
+            r"\bTrue\s*!=\s*True\b",
+            r"\bFalse\s*!=\s*False\b"
+        ]
+
+        for pattern in constant_contradictions:
+            if re.search(pattern, code):
+                issues.append(f"Obvious logical contradiction detected (Pattern: {pattern}).")
+                break
 
         if self.model_registry:
             # SGI 2026: Semantic code analysis via Shared Model Provider
