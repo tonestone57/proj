@@ -5,6 +5,7 @@ import collections
 import torch
 import os
 import time
+import gc
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from core.base import CognitiveModule
 from core.config import CORES_PRIMARY, CORES_REASONER
@@ -283,7 +284,6 @@ class PrimaryModelActor(CognitiveModule):
                 if "out of memory" in str(e).lower():
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
-                    import gc
                     gc.collect()
                 return f"<error>\nNeural Inference failed: {e}. Falling back to mock.\n</error>\n" + f"Mock response for: {prompt[:30]}"
 
