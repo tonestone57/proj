@@ -18,24 +18,20 @@ def test_task_dependency_enforcement_with_priority(clean_db):
     scheduler = PriorityScheduler(task_graph=tg)
 
     # Task A: no dependencies
-    scheduler.schedule({"name": "Task A"}, 1.0)
+    task_a_id = scheduler.schedule({"name": "Task A"}, 1.0)
 
     # Task B: depends on Task A, high priority (low number)
-    ready_tasks = tg.get_ready_tasks()
-    task_a_id = next(t.task_id for t in ready_tasks if t.payload["name"] == "Task A")
-
     scheduler.schedule({"name": "Task B"}, 0.5, dependencies=[task_a_id])
 
     # Task C: no dependencies, medium priority
     scheduler.schedule({"name": "Task C"}, 0.8)
 
-    # scheduler.next() should return Task A (it was ready first and has a priority, though C is 0.8)
-    # Actually Task A (1.0) vs Task C (0.8). C should be first if priority is min-heap.
+    # scheduler.next() should return Task C (0.8 < 1.0)
     task = scheduler.next()
-    assert task["name"] == "Task C" # 0.8 < 1.0
+    assert task["name"] == "Task C"
 
     task = scheduler.next()
-    assert task["name"] == "Task A" # 1.0
+    assert task["name"] == "Task A"
 
     # Complete Task A
     tg.update_task_status(task_a_id, TaskStatus.COMPLETED)
