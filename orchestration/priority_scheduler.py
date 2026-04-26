@@ -9,7 +9,7 @@ class PriorityScheduler:
 
     def schedule(self, task, base_priority, dependencies=None):
         # SGI 2026: Beads Integration. Add task to TaskGraph for dependency tracking.
-        task_id = self.task_graph.add_task(task, dependencies)
+        task_id = self.task_graph.add_task(task, dependencies, priority=base_priority)
 
         # Only add to active queue if it's ready
         if not dependencies:
@@ -26,8 +26,8 @@ class PriorityScheduler:
         for rt in ready_tasks:
             # Check if already in queue
             if not any(item[3] == rt.task_id for item in self.queue):
-                # Add to queue with high priority as it was just unblocked
-                heapq.heappush(self.queue, [1.0, self.counter, rt.payload, rt.task_id])
+                # Add to queue with preserved priority
+                heapq.heappush(self.queue, [rt.priority, self.counter, rt.payload, rt.task_id])
                 self.counter += 1
                 # Mark as pending so we don't pick it up again from get_ready_tasks
                 self.task_graph.update_task_status(rt.task_id, TaskStatus.PENDING)

@@ -14,12 +14,14 @@ class TaskStatus:
     BLOCKED = "blocked"
 
 class TaskNode:
-    def __init__(self, task_id: str, payload: Dict[str, Any], dependencies: List[str] = None, status: str = TaskStatus.PENDING, created_at: float = None):
+    def __init__(self, task_id: str, payload: Dict[str, Any], dependencies: List[str] = None,
+                 status: str = TaskStatus.PENDING, created_at: float = None, priority: float = 10.0):
         self.task_id = task_id
         self.payload = payload
         self.dependencies = dependencies or []
         self.status = status
         self.created_at = created_at or time.time()
+        self.priority = priority
 
     def to_dict(self):
         return {
@@ -27,7 +29,8 @@ class TaskNode:
             "payload": json.dumps(self.payload),
             "dependencies": json.dumps(self.dependencies),
             "status": self.status,
-            "created_at": self.created_at
+            "created_at": self.created_at,
+            "priority": self.priority
         }
 
     @classmethod
@@ -37,7 +40,8 @@ class TaskNode:
             payload=json.loads(data["payload"]),
             dependencies=json.loads(data["dependencies"]),
             status=data["status"],
-            created_at=data["created_at"]
+            created_at=data["created_at"],
+            priority=data.get("priority", 10.0)
         )
 
 class TaskGraph:
@@ -61,7 +65,8 @@ class TaskGraph:
                         "payload": json.dumps({"type": "init"}),
                         "dependencies": json.dumps([]),
                         "status": TaskStatus.COMPLETED,
-                        "created_at": time.time()
+                        "created_at": time.time(),
+                        "priority": 0.0
                     }
                 ])
             else:
@@ -70,10 +75,10 @@ class TaskGraph:
             # Handle potential race condition or existing table
             self.table = self.db.open_table(self.table_name)
 
-    def add_task(self, payload: Dict[str, Any], dependencies: List[str] = None) -> str:
+    def add_task(self, payload: Dict[str, Any], dependencies: List[str] = None, priority: float = 10.0) -> str:
         task_id = f"task_{uuid.uuid4().hex[:8]}"
         status = TaskStatus.READY if not dependencies else TaskStatus.BLOCKED
-        node = TaskNode(task_id, payload, dependencies, status)
+        node = TaskNode(task_id, payload, dependencies, status, priority=priority)
 
         self.table.add([node.to_dict()])
         return task_id
