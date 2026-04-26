@@ -64,7 +64,7 @@ class SearchActorBase(CognitiveModule):
 
     def receive(self, message):
         try:
-            if super().receive(message): return
+            if super().receive(message): return True
             if message["type"] == "search_request":
                 query = message["data"]
 
@@ -348,7 +348,10 @@ class SearchActorBase(CognitiveModule):
             if self.license_actor.is_forum(res_str):
                 sig_tokens = [t for t in set(item["tokens"]) if len(t) > 4]
                 verified = [t for t in sig_tokens if t in non_forum_tokens]
-                if (len(verified) / len(sig_tokens) if sig_tokens else 1.0) < 0.3:
+                # SGI 2026: If only forum tokens exist, allow them with a penalty but don't zero out
+                if not non_forum_tokens:
+                    score *= self.SCORING_WEIGHTS["forum_penalty"]
+                elif (len(verified) / len(sig_tokens) if sig_tokens else 1.0) < 0.3:
                     score = 0.0
                 else:
                     score *= self.SCORING_WEIGHTS["forum_penalty"]

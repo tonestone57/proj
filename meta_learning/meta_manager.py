@@ -32,7 +32,7 @@ class MetaManager(CognitiveModule):
         return self.policy.update(new_strategy)
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         # Standard SGI 2026 message handling for MetaManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "active_inference_trigger":

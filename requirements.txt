@@ -12,7 +12,7 @@ torchaudio
 ipex-llm
 pydantic
 xxhash
-numpy
+numpy>=1.25.0
 pandas
 transformers
 fastapi

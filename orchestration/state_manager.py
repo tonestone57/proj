@@ -15,7 +15,7 @@ class StateManager(CognitiveModule):
         return self.shared_state.get(key)
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "ping":

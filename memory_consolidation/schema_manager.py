@@ -39,7 +39,7 @@ class SchemaManager(CognitiveModule):
         return list(self.schemas.keys())
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         """Standard SGI message receiver."""
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "update_schema":
