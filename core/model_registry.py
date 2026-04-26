@@ -1,11 +1,11 @@
+import collections
+import gc
+import os
 import ray
 import re
-import xxhash
-import collections
-import torch
-import os
 import time
-import gc
+import torch
+import xxhash
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from core.base import CognitiveModule
 from core.config import CORES_PRIMARY, CORES_REASONER

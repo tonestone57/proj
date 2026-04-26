@@ -1,9 +1,9 @@
-import sys
-import os
-import io
-import re
 import contextlib
+import io
+import os
 import ray
+import re
+import sys
 from core.base import CognitiveModule
 from core.config import CORES_CODING
 
@@ -91,7 +91,7 @@ class CodingActorBase(CognitiveModule):
                             if isinstance(subnode.func.value, ast.Name) and subnode.func.value.id in self_names:
                                 is_recursive = True
                                 break
-                        # Matches function handle passed as argument (potential recursion)
+                        # Matches function handle passed as argument
                         for arg in subnode.args:
                             if isinstance(arg, ast.Name) and arg.id == func_name:
                                 is_recursive = True
