@@ -38,7 +38,7 @@ class ThermalGuard:
                 temp = 38.0 + (load * 0.47)
         except Exception:
             # Final fallback
-            temp = 40.0 + (load * 0.4)
+            temp = 38.0 + (load * 0.47)
 
         is_throttled = temp > self.threshold_temp or load > self.threshold_load
 

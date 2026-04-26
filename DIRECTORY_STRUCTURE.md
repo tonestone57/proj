@@ -10,7 +10,7 @@ Mapping of the Synthetic General Intelligence (SGI) architecture, documenting fi
 | actors/critic_actor.py | Functional component implementing InternalCritic with core focus on critique_code, receive. | Ray Actor (Distributed) |
 | actors/planner.py | Functional component implementing Planner with core focus on receive, create_plan. | Ray Actor (Distributed) |
 | actors/reasoner_actor.py | Distributed Ray actor specialized in reasoner tasks, implementing autonomous receive, reason logic. | Ray Actor (Distributed) |
-| actors/search_actor.py | Distributed Ray actor specialized in license tasks, implementing autonomous is_compliant logic. | Ray Actor (Distributed) |
+| actors/search_actor.py | Distributed Ray actor specialized in technical search and RAG, implementing Matryoshka-Tiered Retrieval and SIMD-optimized reranking. | Ray Actor (Distributed) |
 | actors/self_model.py | Functional component implementing SelfModel with core focus on receive, update_state. | Cognitive Module (Integrated) |
 | actors/vision.py | Functional component implementing VisionModule with core focus on receive, process_image. | Cognitive Module (Integrated) |
 
@@ -83,7 +83,7 @@ Mapping of the Synthetic General Intelligence (SGI) architecture, documenting fi
 | core/controller.py | Functional component implementing DPSController with core focus on monitor_heartbeat, reload_config. | Logic Component |
 | core/drives.py | Computational engine implementing drive algorithms and state transformations for the core module. | Logic Component |
 | core/heartbeat.py | Functional component implementing CognitiveHeartbeat with core focus on heartbeat_tick, run. | Logic Component |
-| core/model_registry.py | Functional component implementing ModelRegistry with core focus on generate, get_model_info. | Ray Actor (Distributed) |
+| core/model_registry.py | Distributed Ray actor providing a RAM-optimized singleton for Tier 3 models, implementing Speculative Lookahead and Paged KV management. | Ray Actor (Distributed) |
 | core/scheduler.py | Functional component implementing Scheduler with core focus on submit, next. | Ray Actor (Distributed) |
 | core/workspace.py | Functional component implementing GlobalWorkspace with core focus on register, broadcast. | Ray Actor (Distributed) |
 

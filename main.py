@@ -195,7 +195,7 @@ def init_core_actors(workspace, scheduler, model_provider):
             workspace=workspace,
             scheduler=scheduler,
             model_registry=model_provider,
-            modules=[actors['reasoner'], actors['coder'], actors['searcher']],
+            modules={"reasoner": actors['reasoner'], "coder": actors['coder'], "searcher": actors['searcher']},
             world_model=actors['world_model'],
             motivation=actors['motivation']
         )

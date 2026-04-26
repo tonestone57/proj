@@ -7,7 +7,7 @@ import os
 import xxhash
 import collections
 from core.base import CognitiveModule
-from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB
+from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB, TICK_INTERVAL
 from memory.codecs.llm_zip import LLMZipCodec
 
 def calculate_information_density(words):
@@ -111,7 +111,11 @@ class KVCacheManager:
         if not path or not os.path.exists(path): return None
         with open(path, "rb") as f:
             comp = f.read()
-        return self.codec.decompress(comp)
+        try:
+            return self.codec.decompress(comp)
+        except ValueError as e:
+            print(f"🚨 [KVCacheManager] Decompression failed for block {block_id}: {e}")
+            return None
 
     def release_request(self, request_id):
         """Releases blocks associated with a request, potentially freeing memory."""
@@ -233,11 +237,21 @@ class MemoryManager(CognitiveModule):
         # SGI 2026: Weight Saliency Pruning
         # Move Wisdom Cache entries not accessed in > 250 cycles to Deep Archive (LLM-Zip)
         stale_keys = []
+        now = time.time()
+        # Use a real-time threshold if ticks aren't reliable
+        stale_threshold = 250 * TICK_INTERVAL
+
         for key in list(self.active_wisdom_cache.keys()):
             val = self.active_wisdom_cache[key]
-            last_tick = self.wisdom_cache_metadata.get(val, 0)
-            if current_tick - last_tick > 250:
-                stale_keys.append(key)
+            last_access = self.wisdom_cache_metadata.get(val, 0)
+
+            # last_access might be a tick or a timestamp.
+            if last_access > 1e9: # Likely a timestamp
+                if now - last_access > stale_threshold:
+                    stale_keys.append(key)
+            else: # Likely a tick
+                if current_tick - last_access > 250:
+                    stale_keys.append(key)
 
         for key in stale_keys:
             val = self.active_wisdom_cache[key]
@@ -488,11 +502,12 @@ class MemoryManager(CognitiveModule):
         """
         print(f"[MemoryManager] Searching Wisdom Cache for: {context_query[:30]}...")
         relevant_traces = []
+        now = time.time()
         for key, val in self.active_wisdom_cache.items():
             if key.lower() in str(context_query).lower():
                 relevant_traces.append(val)
                 # SGI 2026: Update access cycle for saliency tracking
-                self.wisdom_cache_metadata[val] = current_tick
+                self.wisdom_cache_metadata[val] = now
 
         return relevant_traces if relevant_traces else ["(No relevant traces found)"]
 
