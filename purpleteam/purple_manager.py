@@ -31,7 +31,7 @@ class PurpleManager(CognitiveModule):
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         # Standard SGI 2026 message handling for PurpleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "cycle_trigger":
@@ -111,7 +111,7 @@ class GovernanceIntegratedPurpleManager(CognitiveModule):
         return {"fusion": fusion, "breach": breach, "score": score, "state": state}
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         # Standard SGI 2026 message handling for GovernanceIntegratedPurpleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "cycle_trigger":

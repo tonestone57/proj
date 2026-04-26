@@ -64,7 +64,7 @@ class SearchActorBase(CognitiveModule):
 
     def receive(self, message):
         try:
-            if super().receive(message): return
+            if super().receive(message): return True
             if message["type"] == "search_request":
                 query = message["data"]
 

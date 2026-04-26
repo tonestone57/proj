@@ -41,7 +41,7 @@ class SimulationManager(CognitiveModule):
         return {"events_processed": len(events), "agents_notified": len(self.agents or [])}
 
     async def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         # Standard SGI 2026 message handling for SimulationManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "simulation_step":

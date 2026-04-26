@@ -46,7 +46,7 @@ class ConsoleManager(CognitiveModule):
             self.audit.record({"action_id": action_id, "decision": "rejected"})
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         # Standard SGI 2026 message handling for ConsoleManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
         if message["type"] == "review_request":

@@ -119,7 +119,7 @@ class PrimaryModelActor(CognitiveModule):
         self._load_model()
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         if message["type"] == "generate_request":
             result = self.generate(message["data"].get("prompt"), **message["data"].get("kwargs", {}))
             self.send_result("generate_response", {"result": result})

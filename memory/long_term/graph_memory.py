@@ -13,6 +13,10 @@ class KnowledgeGraph(CognitiveModule):
         self.nodes = {}  # id -> metadata
         self.edges = []  # list of (source, target, relationship_type)
 
+    def receive(self, message):
+        if super().receive(message): return True
+        return False
+
     def add_node(self, node_id, metadata=None):
         if node_id not in self.nodes:
             self.nodes[node_id] = metadata or {}

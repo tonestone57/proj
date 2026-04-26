@@ -9,7 +9,7 @@ class SemanticMemory(CognitiveModule):
         self.model = model_registry
 
     def receive(self, message):
-        if super().receive(message): return
+        if super().receive(message): return True
         return False
 
     def store_fact(self, key, value):
