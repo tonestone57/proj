@@ -15,15 +15,6 @@ class InternalCritic(CognitiveModule):
 
         # SGI 2026: Advanced logical contradiction detection
         # Matches patterns like True == False, 1 == 0, 5 != 5 with varying whitespace
-        contradiction_patterns = [
-            r"True\s*==\s*False",
-            r"False\s*==\s*True",
-            r"1\s*==\s*0",
-            r"0\s*==\s*1",
-            r"(\w+)\s*!=\s*\1",   # x != x
-            r"(\w+)\s*==\s*(?!\1)\w+" # Basic inequality placeholder (too broad, stick to constants)
-        ]
-        # Better: specifically constant contradictions
         constant_contradictions = [
             r"\b(\d+)\s*==\s*(?!\1)\d+\b", # 1 == 2
             r"\b(\d+)\s*!=\s*\1\b",         # 1 != 1
