@@ -271,8 +271,10 @@ class MemoryManager(CognitiveModule):
             # SGI 2026: Dynamic file discovery for Knowledge Graph updates
             python_files = []
             for root, dirs, files in os.walk("."):
-                # Skip hidden directories and data directories
-                if "/." in root or "./data" in root or "__pycache__" in root:
+                # Skip hidden directories, data directories, and pycache
+                path_parts = root.split(os.sep)
+                if any(part.startswith('.') for part in path_parts if part and part != '.') or \
+                   'data' in path_parts or '__pycache__' in path_parts:
                     continue
                 for file in files:
                     if file.endswith(".py"):

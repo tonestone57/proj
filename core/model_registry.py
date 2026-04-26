@@ -281,8 +281,8 @@ class PrimaryModelActor(CognitiveModule):
                 print(f"🚨 [PrimaryModelActor] Neural Inference failed: {e}")
                 # Clear cache and collect garbage if it was an OOM
                 if "out of memory" in str(e).lower():
-                    import torch
-                    torch.cuda.empty_cache()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
                     import gc
                     gc.collect()
                 return f"<error>\nNeural Inference failed: {e}. Falling back to mock.\n</error>\n" + f"Mock response for: {prompt[:30]}"
