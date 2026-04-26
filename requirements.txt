@@ -21,3 +21,5 @@ datasets
 vllm
 openai
 pebble
+lancedb
+pyarrow
