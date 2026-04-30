@@ -172,6 +172,8 @@ class MemoryManager(CognitiveModule):
             "quantiz": "Optimization Note: sym_int8 per-channel scaling improves accuracy for outliers.",
             "thermal": "Health Note: Heartbeat interval must scale linearly with temp above 75C."
         }
+        # SGI 2026: Skill Bank (Persistent Episodic Memory)
+        self.skill_bank = {} # Task fingerprint -> {implementation, score, CoT}
         # SGI 2026: Deep Archive (Live LLM-Zip Codec)
         self.deep_archive = {}
         self.llm_zip = LLMZipCodec()
@@ -220,6 +222,8 @@ class MemoryManager(CognitiveModule):
         elif message["type"] == "kv_cache_status":
             status = self.kv_cache_manager.get_status()
             self.send_result("kv_cache_status_response", status)
+        elif message["type"] == "skill_candidate":
+            self.condense_and_store_skill(message["data"])
 
     def archive_search_results(self, query, results):
         """
@@ -331,6 +335,41 @@ class MemoryManager(CognitiveModule):
             kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
             self.KnowledgeDistillation_Loop(kb_entry)
 
+    def condense_and_store_skill(self, skill_data):
+        """
+        SGI 2026: Skill Condensation.
+        Compresses successful Chain-of-Thought implementation into a Reusable Skill.
+        """
+        task = skill_data.get("task")
+        implementation = skill_data.get("implementation")
+        score = skill_data.get("score", 0.0)
+
+        print(f"[MemoryManager] Condensing skill for task: {task[:30]}... (Score: {score:.2f})")
+
+        # SGI 2026: MDL-based skill condensation
+        # Remove comments and whitespace to get the functional core
+        functional_core = re.sub(r"#.*", "", implementation)
+        functional_core = re.sub(r"\n\s*\n", "\n", functional_core).strip()
+
+        # Fingerprint the task to avoid duplicates
+        task_fingerprint = xxhash.xxh64(task.lower().strip()).hexdigest()
+
+        skill_entry = {
+            "task": task,
+            "core": functional_core,
+            "score": score,
+            "timestamp": time.time()
+        }
+
+        self.skill_bank[task_fingerprint] = skill_entry
+
+        # Also add to Wisdom Cache for general RAG retrieval
+        wisdom_key = f"SKILL_{task_fingerprint[:8]}"
+        self.active_wisdom_cache[wisdom_key] = f"Learned Skill for '{task[:50]}': {functional_core[:200]}..."
+        self.wisdom_cache_metadata[self.active_wisdom_cache[wisdom_key]] = time.time()
+
+        print(f"[MemoryManager] Skill stored. Total skills in bank: {len(self.skill_bank)}")
+
     def KnowledgeDistillation_Loop(self, entry):
         print("[MemoryManager] Running Knowledge Distillation Loop...")
         # SGI 2026: Reasoning Trace Extraction
@@ -339,7 +378,8 @@ class MemoryManager(CognitiveModule):
             reasoning_trace = entry.split("<thought>")[1].split("</thought>")[0].strip()
             print(f"[MemoryManager] Extracted Reasoning Trace (Wisdom Cache): {len(reasoning_trace)} chars")
 
-        distilled = entry.replace("\n\n", " ").replace("This entry was automatically generated", "Generated")
+        # Handle different wording from previous edits if necessary
+        distilled = entry.replace("\n\n", " ").replace("This entry was generated", "Generated").replace("This entry was automatically generated", "Generated")
         # Store reasoning trace in LanceDB (simulated)
         if reasoning_trace:
             print("[MemoryManager] Archiving Reasoning Trace to Wisdom Cache in LanceDB...")
@@ -542,13 +582,26 @@ class MemoryManager(CognitiveModule):
     def retrieve_wisdom_traces(self, context_query, current_tick=0):
         """
         SGI 2026: Wisdom Cache Retrieval.
-        Returns reasoning traces from active memory related to the query.
+        Returns reasoning traces and learned skills from active memory related to the query.
         """
         print(f"[MemoryManager] Searching Wisdom Cache for: {context_query[:30]}...")
         relevant_traces = []
         now = time.time()
+
+        query_words = set(re.findall(r"\w+", str(context_query).lower()))
+
         for key, val in self.active_wisdom_cache.items():
-            if key.lower() in str(context_query).lower():
+            # Check if any query word appears in the key or the start of the value
+            key_lower = key.lower()
+            val_lower = val.lower()
+
+            match = False
+            if any(word in key_lower for word in query_words if len(word) > 3):
+                match = True
+            elif any(word in val_lower[:200] for word in query_words if len(word) > 3):
+                match = True
+
+            if match:
                 relevant_traces.append(val)
                 # SGI 2026: Update access cycle for saliency tracking
                 self.wisdom_cache_metadata[val] = now

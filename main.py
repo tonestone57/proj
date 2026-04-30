@@ -42,6 +42,7 @@ from institutional_ai.institutional_manager import InstitutionalManager
 from world_model.manager import WorldModelManager
 from memory_consolidation.consolidation_manager import ConsolidationManager
 from self_model.self_manager import SelfManager
+from self_model.playbook_manager import PlaybookManager
 from blueteam.blueteam_manager import BlueTeamManager
 from redteam.redteam_manager import RedTeamManager
 from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
@@ -165,6 +166,25 @@ class SGIHub:
                     "context": "scheduler_conflict"
                 })
 
+            # SGI 2026: RLAIF Feedback Loop
+            if message["type"] == "critique_result":
+                # If we have a preferred vs rejected candidate (simulated by score)
+                # In a real system, we'd compare two generated versions
+                score = message.get("score", 0)
+                code = message.get("code", "")
+                if score > 0.8:
+                    # Positive feedback
+                    self.workspace.broadcast.remote({
+                        "type": "ai_feedback",
+                        "data": {"preferred": code, "rejected": "None", "context": "critique_loop"}
+                    })
+                elif score < 0.4:
+                    # Negative feedback
+                    self.workspace.broadcast.remote({
+                        "type": "ai_feedback",
+                        "data": {"preferred": "Previous Implementation", "rejected": code, "context": "critique_loop"}
+                    })
+
             self.workspace.broadcast.remote(message)
 
 def init_core_actors(workspace, scheduler, model_provider):
@@ -173,14 +193,13 @@ def init_core_actors(workspace, scheduler, model_provider):
     actors = {}
     try:
         actors['reasoner'] = ReasonerActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
-        actors['coder'] = CodingActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+        actors['critic'] = InternalCritic.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+        actors['coder'] = CodingActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider, critic=actors['critic'])
         actors['graph_memory'] = KnowledgeGraph.remote()
         actors['searcher'] = SearchActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider, graph_memory=actors['graph_memory'])
 
         # SGI 2026: Late-binding of searcher to registry to allow Tier 2 grounding
         ray.get(model_provider.set_search_actor.remote(actors['searcher']))
-
-        actors['critic'] = InternalCritic.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['memory_manager'] = MemoryManager.remote(workspace=workspace, scheduler=scheduler, graph_memory=actors['graph_memory'])
 
         # SGI 2026: Late-binding of memory_manager to registry for KV Cache offloading
@@ -201,6 +220,7 @@ def init_core_actors(workspace, scheduler, model_provider):
         )
         actors['social_reasoner'] = SocialReasoner.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['theory_of_mind'] = TheoryOfMind.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
+        actors['playbook_manager'] = PlaybookManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     except Exception as e:
         print(f"🚨 [Hub] Core Actor Initialization Failed: {e}")
         raise
@@ -256,6 +276,7 @@ def register_tasks(hub, actors, managers):
     hub.register_autonomous_task(actors['social_reasoner'], "user_interaction", "Analyzing social dynamics in the APW workspace")
     hub.register_autonomous_task(actors['theory_of_mind'], "infer_intention", "Apriel-Thinker")
     hub.register_autonomous_task(actors['world_model'], "prediction_request", {"actions": ["continue_optimization", "sleep_cycle"]})
+    hub.register_autonomous_task(actors['playbook_manager'], "get_playbook", None)
 
     # Subsystem Managers
     hub.register_autonomous_task(managers['metacognition'], "introspection_request", {"internal_state": {}, "reasoning_trace": "Autonomous optimization", "decision": "Continue"})
@@ -379,6 +400,10 @@ async def cognitive_cycle():
                     if "timestamp" in payload: payload["timestamp"] = time.time()
 
                 await hub.safe_delegate(actor_h, t_type, payload)
+
+        # SGI 2026: Proactive Active Inference for Self-Improvement
+        if tick % 5 == 0:
+            await hub.safe_delegate(actors['meta_manager'], "active_inference_trigger", None)
 
         await hub.poll_scheduler(conflict_manager=managers['conflict'])
         await asyncio.sleep(current_tick_interval)

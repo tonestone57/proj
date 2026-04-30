@@ -8,13 +8,23 @@ class InternalCritic(CognitiveModule):
         super().__init__(workspace, scheduler, model_registry)
         print(f"[InternalCritic] Initialized with Shared Model Provider.")
 
-    def critique_code(self, code):
+    def critique_code(self, code, context=None):
+        """
+        SGI 2026 Reflector/Judge logic.
+        Performs detailed critique and assigns a quality score.
+        """
         print(f"[InternalCritic] Critiquing code snippet...")
         issues = []
-        if not code or len(code) < 10: issues.append("Too short or empty.")
+        score = 1.0
+
+        if not code:
+            return ["Empty code."], 0.0
+
+        if len(code) < 10:
+            issues.append("Code is too short to be functional.")
+            score -= 0.3
 
         # SGI 2026: Advanced logical contradiction detection
-        # Matches patterns like True == False, 1 == 0, 1 != 1 with varying whitespace
         constant_contradictions = [
             r"\b(\d+)\s*==\s*(?!\1)\d+\b", # 1 == 2
             r"\b(\d+)\s*!=\s*\1\b",         # 1 != 1
@@ -27,24 +37,54 @@ class InternalCritic(CognitiveModule):
         for pattern in constant_contradictions:
             if re.search(pattern, code):
                 issues.append(f"Obvious logical contradiction detected (Pattern: {pattern}).")
+                score -= 0.5
                 break
 
-        if self.model_registry:
-            # SGI 2026: Semantic code analysis via Shared Model Provider
-            prompt = f"Perform a deep security and logic review for this code: {code}"
-            # result = ray.get(self.model_registry.generate.remote(prompt))
-            if "pass" in code: issues.append("Warning: Empty 'pass' block detected semantically.")
+        # SGI 2026: Best practice checks
+        if "except:" in code:
+            issues.append("Bare except block detected. Recommend catching specific exceptions.")
+            score -= 0.1
 
-        return issues
+        if "eval(" in code:
+            issues.append("Security risk: Use of 'eval()' detected.")
+            score -= 0.2
+
+        if self.model_registry:
+            # SGI 2026: Semantic code analysis via Shared Model Provider (Tier 3 Reflector)
+            prompt = f"Act as a Senior AI Architect. Perform a deep logic, security, and MDL efficiency review for this code:\n{code}"
+            if context:
+                prompt += f"\nContext: {context}"
+
+            try:
+                # We simulate a deep critique
+                llm_critique = ray.get(self.model_registry.generate.remote(prompt))
+                if "<thought>" in llm_critique:
+                    llm_critique = re.sub(r"<thought>.*?</thought>\s*", "", llm_critique, flags=re.DOTALL)
+
+                # Heuristic scoring based on LLM response length and keywords
+                if "error" in llm_critique.lower() or "bug" in llm_critique.lower():
+                    score -= 0.2
+                if "optimize" in llm_critique.lower():
+                    issues.append(f"Optimization suggested: {llm_critique[:100]}...")
+            except Exception as e:
+                print(f"[InternalCritic] LLM critique failed: {e}")
+
+        # Ensure score stays in [0, 1]
+        score = max(0.0, min(1.0, score))
+
+        return issues, score
 
     def receive(self, message):
         if super().receive(message): return True
         if message["type"] == "critique_request":
-            code = message["data"]
-            issues = self.critique_code(code)
+            data = message["data"]
+            code = data.get("code") if isinstance(data, dict) else data
+            context = data.get("context") if isinstance(data, dict) else None
+
+            issues, score = self.critique_code(code, context=context)
 
             # SGI 2026: Set contradiction flag if serious issues are found
-            contradiction_suspected = any("contradiction" in i.lower() for i in issues)
+            contradiction_suspected = score < 0.5 or any("contradiction" in i.lower() for i in issues)
 
             try: handle = ray.get_runtime_context().current_actor
             except Exception: handle = None
@@ -52,5 +92,7 @@ class InternalCritic(CognitiveModule):
             self.scheduler.submit.remote(handle, {
                 "type": "critique_result",
                 "issues": issues,
-                "contradiction_suspected": contradiction_suspected
+                "score": score,
+                "contradiction_suspected": contradiction_suspected,
+                "code": code
             })
