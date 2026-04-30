@@ -2,7 +2,6 @@ ray
 psutil
 pyyaml
 z3-solver
-lancedb
 tree-sitter
 pytest
 pytest-asyncio
