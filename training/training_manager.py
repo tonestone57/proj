@@ -32,7 +32,15 @@ class TrainingManager(CognitiveModule):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for TrainingManager
         print(f"[{self.__class__.__name__}] Received message: {message['type']}")
-        if message["type"] == "autonomous_training":
+        if message["type"] == "ai_feedback":
+            # SGI 2026 RLAIF: Receive ranked feedback from Reflector
+            feedback = message["data"]
+            self.rl.dpo_update(
+                preferred_action=feedback["preferred"],
+                rejected_action=feedback["rejected"],
+                context=feedback["context"]
+            )
+        elif message["type"] == "autonomous_training":
             print("[TrainingManager] Starting autonomous training step...")
             # Simulate background training data and states
             data = "Background system logs and experience traces"

@@ -8,14 +8,21 @@ from core.base import CognitiveModule
 from core.config import CORES_CODING
 
 class CodingActorBase(CognitiveModule):
-    def __init__(self, workspace, scheduler, model_registry=None):
+    def __init__(self, workspace, scheduler, model_registry=None, critic=None):
         super().__init__(workspace, scheduler, model_registry)
+        self.critic = critic
         print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
+
+    def set_critic(self, critic):
+        self.critic = critic
+        print("[CodingActor] Reflector (InternalCritic) integrated.")
 
     def receive(self, message):
         try:
             if super().receive(message): return True
-            if message["type"] == "code_execution":
+            if message["type"] == "set_critic":
+                self.set_critic(message["data"])
+            elif message["type"] == "code_execution":
                 data = message["data"]
                 if isinstance(data, dict):
                     code = data.get("code", "")
@@ -163,12 +170,11 @@ class CodingActorBase(CognitiveModule):
     def generate_and_verify(self, code):
         """
         SGI 2026: Generates code, creates a Pytest suite, and self-corrects if tests fail.
+        Upgraded to use InternalCritic (Reflector) for AI Feedback.
         """
         print(f"[CodingActor] Generating code and autonomous test suite...")
         generated_code = ray.get(self.model_registry.generate.remote(f"Code for: {code}"))
 
-        # In a mock environment, generate() returns strings.
-        # We ensure they are valid-ish Python for the sandbox test.
         if "LLM-Generated" in generated_code or "Mock response" in generated_code:
             generated_code = "def sample_func(): return True"
 
@@ -178,22 +184,55 @@ class CodingActorBase(CognitiveModule):
             test_suite = "def test_sample(): from solution import sample_func; assert sample_func() == True"
 
         # 2. Verification Loop
-        print(f"[CodingActor] Executing autonomous tests in sandbox...")
+        print(f"[CodingActor] Entering Reflector Loop...")
         test_passed = False
         retry_count = 0
-        last_error = ""
+        last_critique = ""
+        score = 0.0
 
-        while not test_passed and retry_count < 2:
-            result = self.execute_in_sandbox(generated_code, test_suite)
-            if result["status"] == "success":
-                print(f"✅ [CodingActor] Verification successful. Tests passed.")
+        while not test_passed and retry_count < 3:
+            # Stage A: Execution Sandbox
+            exec_result = self.execute_in_sandbox(generated_code, test_suite)
+
+            # Stage B: AI Reflector (InternalCritic)
+            critique_issues = []
+            score = 1.0
+            if self.critic:
+                try:
+                    critique_issues, score = ray.get(self.critic.critique_code.remote(generated_code, context=code))
+                    print(f"[CodingActor] Reflector Score: {score:.2f}")
+                except Exception as e:
+                    print(f"[CodingActor] Reflector call failed: {e}")
+
+            if exec_result["status"] == "success" and score > 0.8:
+                print(f"✅ [CodingActor] Verification successful. Score={score:.2f}")
                 test_passed = True
+                # Record as a potential "Skill" if it was high quality
+                if score > 0.9:
+                    self.send_result("skill_candidate", {
+                        "task": code,
+                        "implementation": generated_code,
+                        "score": score
+                    })
             else:
-                last_error = result.get("error", "Unknown error")
-                print(f"❌ [CodingActor] Test failure detected: {last_error[:50]}...")
-                print(f"[CodingActor] Initiating self-correction (Attempt {retry_count + 1})...")
-                generated_code = ray.get(self.model_registry.generate.remote(f"Fix this code: {generated_code}\nError: {last_error}"))
-                # Ensure it remains runnable
+                exec_error = exec_result.get("error", "")
+                critique_str = "\n".join(critique_issues)
+                last_critique = f"Test Errors: {exec_error}\nReflector Issues: {critique_str}"
+
+                # SGI 2026 ACE: Report failure to PlaybookManager if it persists
+                if retry_count == 2:
+                    self.send_result("failure_report", {
+                        "task": code,
+                        "implementation": generated_code,
+                        "critique": last_critique
+                    })
+
+                print(f"❌ [CodingActor] Refinement needed (Attempt {retry_count + 1})...")
+                refine_prompt = (
+                    f"The previous implementation failed. Fix it based on this feedback:\n"
+                    f"{last_critique}\n\nOriginal Task: {code}\nPrevious Code:\n{generated_code}"
+                )
+                generated_code = ray.get(self.model_registry.generate.remote(refine_prompt))
                 if "LLM-Generated" in generated_code or "Mock response" in generated_code:
                     generated_code = "def sample_func(): return True"
                 retry_count += 1
@@ -202,7 +241,8 @@ class CodingActorBase(CognitiveModule):
             "status": "success" if test_passed else "failed_verification",
             "output": generated_code,
             "verified": test_passed,
-            "error": last_error if not test_passed else None
+            "last_critique": last_critique if not test_passed else None,
+            "score": score
         }
 
     def execute_in_sandbox(self, code, test_suite):
