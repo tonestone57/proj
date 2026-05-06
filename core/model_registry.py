@@ -1,5 +1,6 @@
 import collections
 import gc
+import logging
 import os
 import ray
 import re
@@ -9,6 +10,10 @@ import xxhash
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from core.base import CognitiveModule
 from core.config import CORES_PRIMARY, CORES_REASONER
+
+# Standard SGI 2026 Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("ModelRegistry")
 
 try:
     from ipex_llm.transformers import AutoModelForCausalLM as IpexModel
@@ -132,7 +137,7 @@ class PrimaryModelActor(CognitiveModule):
         self.memory_manager = memory_manager
 
     def _load_model(self):
-        print(f"[PrimaryModelActor] Loading {self.model_id} (Quantization: {self.precision})...")
+        logger.info(f"Loading {self.model_id} (Quantization: {self.precision})...")
         if IPEX_AVAILABLE:
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True)
@@ -142,13 +147,13 @@ class PrimaryModelActor(CognitiveModule):
                     load_in_low_bit=self.precision,
                     trust_remote_code=True
                 )
-                print(f"[PrimaryModelActor] Success: Loaded {self.model_id} via IPEX-LLM.")
+                logger.info(f"Success: Loaded {self.model_id} via IPEX-LLM.")
                 return
             except Exception as e:
-                print(f"🚨 [PrimaryModelActor] IPEX failed for {self.model_id}: {e}")
+                logger.error(f"IPEX failed for {self.model_id}: {e}")
                 self.send_result("model_load_error", {"model": self.model_id, "error": str(e), "fallback": "Mock"})
 
-        print(f"[PrimaryModelActor] Falling back to Mock mode for {self.model_id}.")
+        logger.warning(f"Falling back to Mock mode for {self.model_id}.")
 
     def _sympy_to_z3(self, sympy_expr, z3_vars):
         import sympy
@@ -217,9 +222,9 @@ class PrimaryModelActor(CognitiveModule):
                     res_str = ", ".join([f"{v} = {m[v]}" for v in z3_vars.values()])
                     return f"<reflex>\nZ3 Solved: {res_str}\n</reflex>\n"
             except z3.Z3Exception as ze:
-                print(f"🚨 [PrimaryModelActor] Z3 Internal Error: {ze}")
+                logger.error(f"Z3 Internal Error: {ze}")
             except Exception as e:
-                print(f"🚨 [PrimaryModelActor] Symbolic reasoning failed: {e}")
+                logger.error(f"Symbolic reasoning failed: {e}")
         return None
 
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=False, mode="reasoning"):
@@ -229,7 +234,7 @@ class PrimaryModelActor(CognitiveModule):
         mem = psutil.virtual_memory()
         available_mb = mem.available / (1024 * 1024)
         if available_mb < LOW_MEMORY_THRESHOLD_MB:
-            print(f"🚨 [PrimaryModelActor] Critical memory pressure: {available_mb:.2f}MB available. Aborting deep reasoning.")
+            logger.error(f"Critical memory pressure: {available_mb:.2f}MB available. Aborting deep reasoning.")
             return f"<error>\nCritical memory pressure ({available_mb:.2f}MB available). Deep reasoning aborted to prevent system crash.\n</error>\n"
 
         search_context = ""
@@ -256,14 +261,14 @@ class PrimaryModelActor(CognitiveModule):
         if use_speculative_decoding:
             proposals = self.ngram_cache.propose(prompt, length=10)
             if proposals:
-                print(f"[PrimaryModelActor] N-Gram Speculation: Found {len(proposals)} proposals.")
+                logger.debug(f"N-Gram Speculation: Found {len(proposals)} proposals.")
                 # Basic proposal injection for N-gram speedup
                 prompt += " " + " ".join(proposals)
 
         # SGI 2026: Simulate Paged KV Cache Block Management
         if self.memory_manager:
             request_id = f"req_{xxhash.xxh32(prompt.encode()).hexdigest()}"
-            print(f"[PrimaryModelActor] Paged KV Management for request '{request_id}'...")
+            logger.info(f"Paged KV Management for request '{request_id}'...")
 
             # 1. Allocate blocks for prompt (simulated tokens)
             sim_tokens = prompt.split()
@@ -293,7 +298,7 @@ class PrimaryModelActor(CognitiveModule):
                 self.ngram_cache.update(result)
                 return thought_block + result
             except Exception as e:
-                print(f"🚨 [PrimaryModelActor] Neural Inference failed: {e}")
+                logger.error(f"Neural Inference failed: {e}")
                 # Clear cache and collect garbage if it was an OOM
                 if "out of memory" in str(e).lower():
                     if torch.cuda.is_available():

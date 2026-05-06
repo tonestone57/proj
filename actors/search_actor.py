@@ -1,3 +1,4 @@
+import logging
 import re
 import math
 import collections
@@ -7,11 +8,15 @@ import numpy as np
 from core.base import CognitiveModule
 from core.config import CORES_SEARCH
 
+# Standard SGI 2026 Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("SearchActor")
+
 # SGI 2026: Runtime version check for numpy (bitwise_count requires 1.25.0+)
 if hasattr(np, "version") and hasattr(np.version, "version"):
     np_v = [int(x) for x in np.version.version.split('.')[:2]]
     if np_v[0] < 1 or (np_v[0] == 1 and np_v[1] < 25):
-        print(f"⚠️ [SearchActor] Warning: Numpy version {np.version.version} is < 1.25.0. bitwise_count fallback will be used.")
+        logger.warning(f"Numpy version {np.version.version} is < 1.25.0. bitwise_count fallback will be used.")
 
 class LicenseActor:
     def __init__(self):
@@ -66,7 +71,7 @@ class SearchActorBase(CognitiveModule):
         self.knowledge_graph = graph_memory
         self.memory_manager = memory_manager
         self.synonym_cache = {} # SGI 2026: Local synonym cache for performance
-        print(f"[SearchActor] Initialized with Shared Model Provider.")
+        logger.info("Initialized with Shared Model Provider.")
 
     def receive(self, message):
         try:
@@ -77,7 +82,7 @@ class SearchActorBase(CognitiveModule):
                 # SGI 2026: GraphRAG context enhancement
                 graph_context = ""
                 if self.knowledge_graph and any(kw in query.lower() for kw in ["code", "function", "class", "module", "dependency", "import"]):
-                    print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
+                    logger.info(f"GraphRAG: Querying Knowledge Graph for '{query}'...")
                     # SGI 2026: Enhanced node extraction for complex patterns and multi-file dependencies
                     # Matches: snake_case, CamelCase, file_path.py, Class.method, module.submodule
                     node_patterns = [
@@ -162,7 +167,7 @@ class SearchActorBase(CognitiveModule):
             elif message["type"] == "simulation_obs":
                 # SGI 2026: Search-based response to simulation state
                 obs = message["data"]
-                print(f"[SearchActor] Simulation Update: {obs}")
+                logger.debug(f"Simulation Update: {obs}")
                 if obs.get("threat_level", 0) > 30:
                     self.send_result("simulation_action", {
                         "agent_id": "SearchActor",
@@ -191,7 +196,7 @@ class SearchActorBase(CognitiveModule):
         Uses a multi-stage heuristic pipeline to prioritize authoritative technical content.
         Optimized for i7-8265U using token-frequency and length normalization.
         """
-        print(f"[SearchActor] Reranking {len(results)} results using SGI Optimized Reranker...")
+        logger.info(f"Reranking {len(results)} results using SGI Optimized Reranker...")
         if not results:
             return []
 
@@ -369,7 +374,7 @@ class SearchActorBase(CognitiveModule):
         reranked = [res for score, res in final_results if score >= 0.1]
 
         if final_results:
-            print(f"[SearchActor] Reranking complete. Top score: {final_results[0][0]:.4f}")
+            logger.debug(f"Reranking complete. Top score: {final_results[0][0]:.4f}")
         return reranked
 
     def distill_results(self, results):
@@ -378,7 +383,7 @@ class SearchActorBase(CognitiveModule):
         distilled = ""
         if self.model_registry:
             # SGI 2026: Reasoning-Aware RAG. Retrieve wisdom traces from knowledge base.
-            print("[SearchActor] Retrieving Reasoning Traces from Wisdom Cache via MemoryManager...")
+            logger.info("Retrieving Reasoning Traces from Wisdom Cache via MemoryManager...")
 
             wisdom_traces = []
             if self.memory_manager:
@@ -471,12 +476,12 @@ class SearchActorBase(CognitiveModule):
         Stage 1: 128-dim scan for speed (SIMD-optimized).
         Stage 2: 768-dim re-rank for accuracy.
         """
-        print(f"[SearchActor] Matryoshka-Tiered Retrieval + BQ initiated for: '{query}'")
+        logger.info(f"Matryoshka-Tiered Retrieval + BQ initiated for: '{query}'")
         query_vec = self.embed(query)
         query_coarse_bq = self.binary_quantize(query_vec[:128])
 
         # Stage 1: Coarse Scan (SIMD Optimized)
-        print(f"[SearchActor] Stage 1: Scanning 128-dim BQ indices (SIMD/AVX2 optimized)...")
+        logger.debug("Stage 1: Scanning 128-dim BQ indices (SIMD/AVX2 optimized)...")
         candidates = []
         batch_size = 4
         pool_size = 200
@@ -512,7 +517,7 @@ class SearchActorBase(CognitiveModule):
         top_candidates = candidates[:top_k_coarse]
 
         # Stage 2: Fine Re-rank (768-dim)
-        print(f"[SearchActor] Stage 2: Re-ranking top {top_k_coarse} candidates using full 768-dim vectors...")
+        logger.debug(f"Stage 2: Re-ranking top {top_k_coarse} candidates using full 768-dim vectors...")
         fine_results = []
         for cand in top_candidates:
             # Full 768-dim cosine similarity (simulated)

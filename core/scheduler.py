@@ -1,15 +1,28 @@
 import ray
 import heapq
+import logging
 from memory.task_graph import TaskGraph, TaskStatus
+
+# Standard SGI 2026 Logging Configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("Scheduler")
 
 @ray.remote
 class Scheduler:
+    """
+    SGI 2026: Distributed Ray-based Scheduler.
+    Integrates persistent TaskGraph for dependency tracking and implements O(1) aging.
+
+    Note: self.task_modules stores ephemeral Ray ActorHandles.
+    On scheduler restart, persistent tasks in TaskGraph may lose their target module handles.
+    Future recovery should utilize a global ActorRegistry to re-bind handles by name/type.
+    """
     def __init__(self, task_graph_db_path: str = "./data/sgi_beads_db"):
         self.queue = [] # Min-priority queue: [effective_priority, counter, module, message, task_id]
         self._counter = 0
         self.task_graph = TaskGraph(db_path=task_graph_db_path)
-        # SGI 2026: O(1) Aging Optimization.
-        self.aging_offset = 0.0
+        # SGI 2026: O(1) Aging Optimization using integer offset to prevent float drift.
+        self.aging_offset = 0
         # Map task_id to module because Ray handles aren't JSON serializable for TaskGraph persistence
         self.task_modules = {}
         # O(1) set for tracking IDs currently in the queue
@@ -48,14 +61,16 @@ class Scheduler:
             # Check if already in queue (O(1) lookup)
             if rt.task_id not in self.queued_task_ids:
                 module = self.task_modules.get(rt.task_id)
-                # SGI 2026: Allow module to be None for non-actor tasks or if handled by main loop
+                if module is None:
+                    logger.warning(f"No handle found for task {rt.task_id}. Re-binding may be required.")
+
                 self._push_to_queue(module, rt.payload, rt.priority, rt.task_id)
 
         if not self.queue:
             return None
 
-        # SGI 2026: O(1) Aging.
-        self.aging_offset += 0.1
+        # SGI 2026: O(1) Aging. Increment offset to age all existing tasks.
+        self.aging_offset += 1
 
         eff_priority, count, module, message, task_id = heapq.heappop(self.queue)
         self.queued_task_ids.remove(task_id)
