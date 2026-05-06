@@ -3,9 +3,8 @@ import heapq
 import logging
 from memory.task_graph import TaskGraph, TaskStatus
 
-# Standard SGI 2026 Logging Configuration
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("Scheduler")
+# SGI 2026: Distributed Ray-based Scheduler
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class Scheduler:

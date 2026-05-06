@@ -12,8 +12,7 @@ from core.base import CognitiveModule
 from core.config import CORES_PRIMARY, CORES_REASONER
 
 # Standard SGI 2026 Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("ModelRegistry")
+logger = logging.getLogger(__name__)
 
 try:
     from ipex_llm.transformers import AutoModelForCausalLM as IpexModel

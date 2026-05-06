@@ -1,5 +1,9 @@
+import logging
 import ray
 from core.config import WORKSPACE_HISTORY_LIMIT
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class GlobalWorkspace:
@@ -23,7 +27,7 @@ class GlobalWorkspace:
             try:
                 module.receive.remote(message)
             except Exception as e:
-                print(f"[GlobalWorkspace] Error broadcasting to module: {e}")
+                logger.error(f"Error broadcasting to module: {e}")
 
     def get_current_state(self):
         return {

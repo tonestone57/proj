@@ -9,8 +9,7 @@ from core.base import CognitiveModule
 from core.config import CORES_CODING
 
 # Standard SGI 2026 Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("CodingActor")
+logger = logging.getLogger(__name__)
 
 class CodingActorBase(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None, critic=None):

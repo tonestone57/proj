@@ -9,8 +9,7 @@ from core.base import CognitiveModule
 from core.config import CORES_SEARCH
 
 # Standard SGI 2026 Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("SearchActor")
+logger = logging.getLogger(__name__)
 
 # SGI 2026: Runtime version check for numpy (bitwise_count requires 1.25.0+)
 if hasattr(np, "version") and hasattr(np.version, "version"):
@@ -461,10 +460,20 @@ class SearchActorBase(CognitiveModule):
             match1 = np.bitwise_count(np.bitwise_not(xor1))
             match2 = np.bitwise_count(np.bitwise_not(xor2))
         else:
-            # Fallback for older numpy versions
-            def popcount(x):
-                return bin(x).count('1')
-            vpopcount = np.vectorize(popcount)
+            # SGI 2026: Efficient bit-manipulation fallback for older numpy versions
+            # Implementation: SWAR (SIMD within a register) algorithm for 64-bit popcount.
+            # Performance note: This is significantly faster than string-based bin().count('1').
+            def popcount_64(x):
+                x = x - ((x >> np.uint64(1)) & np.uint64(0x5555555555555555))
+                x = (x & np.uint64(0x3333333333333333)) + ((x >> np.uint64(2)) & np.uint64(0x3333333333333333))
+                x = (x + (x >> np.uint64(4))) & np.uint64(0x0F0F0F0F0F0F0F0F)
+                x = x + (x >> np.uint64(8))
+                x = x + (x >> np.uint64(16))
+                x = x + (x >> np.uint64(32))
+                return x & np.uint64(0x000000000000007F)
+
+            vpopcount = np.vectorize(popcount_64)
+            # Similarity is 128 - popcount(xor)
             match1 = 64 - vpopcount(xor1)
             match2 = 64 - vpopcount(xor2)
 

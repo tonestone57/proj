@@ -12,8 +12,7 @@ from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_
 from memory.codecs.llm_zip import LLMZipCodec
 
 # Standard SGI 2026 Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("MemoryManager")
+logger = logging.getLogger(__name__)
 
 def calculate_information_density(words):
     if not words:
