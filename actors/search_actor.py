@@ -7,6 +7,12 @@ import numpy as np
 from core.base import CognitiveModule
 from core.config import CORES_SEARCH
 
+# SGI 2026: Runtime version check for numpy (bitwise_count requires 1.25.0+)
+if hasattr(np, "version") and hasattr(np.version, "version"):
+    np_v = [int(x) for x in np.version.version.split('.')[:2]]
+    if np_v[0] < 1 or (np_v[0] == 1 and np_v[1] < 25):
+        print(f"⚠️ [SearchActor] Warning: Numpy version {np.version.version} is < 1.25.0. bitwise_count fallback will be used.")
+
 class LicenseActor:
     def __init__(self):
         self.prohibited_patterns = [
@@ -430,21 +436,32 @@ class SearchActorBase(CognitiveModule):
         Performs the 128-dim coarse scan across 4 vectors simultaneously using AVX2-style numpy operations.
         candidates_packed_batch shape: (4, 2) - 4 vectors, each with two uint64 elements.
         """
+        # SGI 2026: Ensure uint64 for bitwise operations
+        q0 = np.uint64(query_packed[0])
+        q1 = np.uint64(query_packed[1])
+
         # Simulated AVX2 256-bit registers (4 x 64-bit uint64)
         # Register 1: bits 0-63 for all 4 candidates
         # Register 2: bits 64-127 for all 4 candidates
-        reg1 = candidates_packed_batch[:, 0]
-        reg2 = candidates_packed_batch[:, 1]
+        reg1 = candidates_packed_batch[:, 0].astype(np.uint64)
+        reg2 = candidates_packed_batch[:, 1].astype(np.uint64)
 
         # XOR with query bits (broadcast)
-        xor1 = np.bitwise_xor(reg1, query_packed[0])
-        xor2 = np.bitwise_xor(reg2, query_packed[1])
+        xor1 = np.bitwise_xor(reg1, q0)
+        xor2 = np.bitwise_xor(reg2, q1)
 
         # Bitwise count (popcount) of matches
-        # Hamming distance is popcount(v1 ^ v2). Similarity is 128 - popcount(v1 ^ v2).
-        # However, it's faster to just use bitwise NOT XOR for direct match counting.
-        match1 = np.bitwise_count(np.bitwise_not(xor1))
-        match2 = np.bitwise_count(np.bitwise_not(xor2))
+        # bitwise_count requires numpy >= 1.25.0
+        if hasattr(np, "bitwise_count"):
+            match1 = np.bitwise_count(np.bitwise_not(xor1))
+            match2 = np.bitwise_count(np.bitwise_not(xor2))
+        else:
+            # Fallback for older numpy versions
+            def popcount(x):
+                return bin(x).count('1')
+            vpopcount = np.vectorize(popcount)
+            match1 = 64 - vpopcount(xor1)
+            match2 = 64 - vpopcount(xor2)
 
         return (match1 + match2).astype(int)
 

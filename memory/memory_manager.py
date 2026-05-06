@@ -146,7 +146,10 @@ class KVCacheManager:
                 full_kv.append(data)
             else:
                 print(f"🚨 [KVCacheManager] Failed to retrieve data for block {block_id}")
+                raise RuntimeError(f"KV Cache Block Corruption: Missing data for {block_id}")
 
+        if not full_kv:
+             return None
         return full_kv
 
     def get_status(self):

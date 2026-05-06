@@ -335,19 +335,22 @@ except ImportError:
                     resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
                     # Set 15s CPU time limit
                     resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
-                except Exception as e:
+                except Exception:
                     pass # resource limits may not be supported on all platforms
 
             try:
                 # SGI 2026: Resource limits for the subprocess
                 cmd = [sys.executable, script_path]
 
+                # SGI 2026: Cross-platform safety. start_new_session is more thread-safe than preexec_fn
+                # on systems where preexec_fn can cause deadlocks.
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    preexec_fn=set_limits if os.name != 'nt' else None
+                    preexec_fn=set_limits if os.name != 'nt' else None,
+                    start_new_session=(os.name != 'nt')
                 )
                 if result.returncode == 0:
                     return {"status": "success", "output": result.stdout}

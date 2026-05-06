@@ -13,7 +13,7 @@ class HardwareLimits(BaseModel):
     ray_reserved_threads: int = 4
     max_threads: int = Field(4, le=8)
     thermal_threshold_celsius: float = 78.0
-    low_memory_warning_mb: int = 2000
+    low_memory_warning_mb: int = 1200
     shared_gpu_memory: bool = True
 
 class ActorConfig(BaseModel):

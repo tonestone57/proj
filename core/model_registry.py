@@ -181,10 +181,15 @@ class PrimaryModelActor(CognitiveModule):
         from sympy import parse_expr
 
         prompt_lower = prompt.lower()
-        if "solve" in prompt_lower and "=" in prompt_lower:
+        if ("solve" in prompt_lower or "calculate" in prompt_lower) and "=" in prompt_lower:
             try:
-                expr_str = prompt_lower.replace("solve", "").strip()
+                # SGI 2026: Improved regex for equation extraction
+                match = re.search(r'(?:solve|calculate)\s*(.*=.*)', prompt_lower)
+                if not match: return None
+                expr_str = match.group(1).strip()
+
                 expr_str = expr_str.replace("^", "**")
+                # Split by commas or semicolons for systems of equations
                 equations_str = re.split(r"[,;]", expr_str)
                 all_symbols = set()
                 parsed_eqs = []
@@ -196,16 +201,25 @@ class PrimaryModelActor(CognitiveModule):
                     all_symbols.update(lhs.free_symbols)
                     all_symbols.update(rhs.free_symbols)
                     parsed_eqs.append((lhs, rhs))
+
                 if not parsed_eqs: return None
+
                 z3_vars = {str(s): z3.Real(str(s)) for s in all_symbols}
                 s = z3.Solver()
+                # SGI 2026: Set timeout for formal verification
+                s.set("timeout", 5000)
+
                 for lhs, rhs in parsed_eqs:
                     s.add(self._sympy_to_z3(lhs, z3_vars) == self._sympy_to_z3(rhs, z3_vars))
+
                 if s.check() == z3.sat:
                     m = s.model()
                     res_str = ", ".join([f"{v} = {m[v]}" for v in z3_vars.values()])
                     return f"<reflex>\nZ3 Solved: {res_str}\n</reflex>\n"
-            except Exception: pass
+            except z3.Z3Exception as ze:
+                print(f"🚨 [PrimaryModelActor] Z3 Internal Error: {ze}")
+            except Exception as e:
+                print(f"🚨 [PrimaryModelActor] Symbolic reasoning failed: {e}")
         return None
 
     def generate(self, prompt, max_new_tokens=128, use_speculative_decoding=False, mode="reasoning"):

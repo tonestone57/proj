@@ -30,6 +30,7 @@ from training.training_manager import TrainingManager
 
 # New standardized managers
 from economics.resource_model import Task
+from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
 from safety_ethics.safety_manager import SafetyManager
 from safety_ethics.ethics_manager import EthicsManager
 from safety_ethics.oversight_agent import OversightAgent
@@ -45,7 +46,6 @@ from self_model.self_manager import SelfManager
 from self_model.playbook_manager import PlaybookManager
 from blueteam.blueteam_manager import BlueTeamManager
 from redteam.redteam_manager import RedTeamManager
-from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
 from incident_response.incident_manager import IncidentManager
 from monitoring.monitoring_manager import MonitoringManager
 from economics.economic_manager import EconomicManager
