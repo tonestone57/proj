@@ -154,8 +154,8 @@ class SGIHub:
             if not res_obj:
                 break
 
-            priority, actor_handle, message = res_obj
-            print(f"[Hub] Processing result from scheduler: {message['type']}")
+            priority, actor_handle, message, task_id = res_obj
+            print(f"[Hub] Processing result from scheduler: {message['type']} (Task: {task_id})")
 
             # SGI 2026: Conflict Detection & Resolution
             if conflict_manager and message.get("contradiction_suspected"):
@@ -186,6 +186,8 @@ class SGIHub:
                     })
 
             self.workspace.broadcast.remote(message)
+            # Close the TaskGraph loop
+            self.scheduler.complete_task.remote(task_id)
 
 def init_core_actors(workspace, scheduler, model_provider):
     """Initializes the core reasoning and memory actors."""

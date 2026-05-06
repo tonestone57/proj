@@ -63,7 +63,7 @@ class Scheduler:
         # Mark as running in task graph
         self.task_graph.update_task_status(task_id, TaskStatus.RUNNING)
 
-        return (eff_priority - self.aging_offset, module, message)
+        return (eff_priority - self.aging_offset, module, message, task_id)
 
     def complete_task(self, task_id):
         """Marks a task as completed and cleanup modules."""

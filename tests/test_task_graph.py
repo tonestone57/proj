@@ -35,13 +35,13 @@ def test_task_dependency_enforcement_with_priority(clean_db, ray_init):
     # scheduler.next() should return Task C (0.8 < 1.0)
     res = ray.get(scheduler.next.remote())
     assert res is not None
-    priority, module, task = res
+    priority, module, task, tid = res
     assert task["name"] == "Task C"
 
     # Next should be Task A (1.0)
     res = ray.get(scheduler.next.remote())
     assert res is not None
-    priority, module, task = res
+    priority, module, task, tid = res
     assert task["name"] == "Task A"
 
     # scheduler.next() should be None as Task B is blocked
@@ -54,7 +54,7 @@ def test_task_dependency_enforcement_with_priority(clean_db, ray_init):
     # Now Task B should be ready and returned
     res = ray.get(scheduler.next.remote())
     assert res is not None
-    priority, module, task = res
+    priority, module, task, tid = res
     assert task["name"] == "Task B"
 
 def test_persistence_with_priority(clean_db):
