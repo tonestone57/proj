@@ -288,9 +288,21 @@ class CodingActorBase(CognitiveModule):
         import subprocess
         import tempfile
 
-        # Prepend standard SGI 2026 imports
+        # Prepend standard SGI 2026 imports and resource limits
         imports = """
+import os
+import resource
 import math
+
+# SGI 2026: Resource limits applied within the script for safety
+try:
+    # Set 1GB memory limit (Address Space)
+    limit_bytes = 1024 * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
+    # Set 15s CPU time limit
+    resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
+except Exception:
+    pass
 import collections
 import heapq
 import bisect
@@ -326,30 +338,18 @@ except ImportError:
             with open(script_path, "w") as f:
                 f.write(full_code)
 
-            # Helper to set limits in child process
-            def set_limits():
-                try:
-                    import resource
-                    # Set 1GB memory limit (Address Space)
-                    limit_bytes = 1024 * 1024 * 1024
-                    resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
-                    # Set 15s CPU time limit
-                    resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
-                except Exception:
-                    pass # resource limits may not be supported on all platforms
-
             try:
-                # SGI 2026: Resource limits for the subprocess
+                # SGI 2026: Subprocess execution
                 cmd = [sys.executable, script_path]
 
-                # SGI 2026: Cross-platform safety. start_new_session is more thread-safe than preexec_fn
-                # on systems where preexec_fn can cause deadlocks.
+                # SGI 2026: Cross-platform safety. start_new_session is used for process group isolation.
+                # Removed preexec_fn to avoid potential deadlocks in multi-threaded environments.
+                # Resource limits are now handled within the script itself.
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    preexec_fn=set_limits if os.name != 'nt' else None,
                     start_new_session=(os.name != 'nt')
                 )
                 if result.returncode == 0:

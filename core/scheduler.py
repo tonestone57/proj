@@ -12,6 +12,8 @@ class Scheduler:
         self.aging_offset = 0.0
         # Map task_id to module because Ray handles aren't JSON serializable for TaskGraph persistence
         self.task_modules = {}
+        # O(1) set for tracking IDs currently in the queue
+        self.queued_task_ids = set()
 
     def submit(self, module, message, priority=1.0, dependencies=None):
         # SGI 2026: Beads Integration. Add task to TaskGraph for dependency tracking.
@@ -20,14 +22,19 @@ class Scheduler:
 
         # Only add to active queue if it's ready
         if not dependencies:
-            # SGI 2026: Lower numerical value = Higher priority.
-            # Apply aging offset: new tasks enter "behind" older tasks that have aged.
-            effective_priority = priority + self.aging_offset
-            heapq.heappush(self.queue, [effective_priority, self._counter, module, message, task_id])
-            self._counter += 1
-            self.task_graph.update_task_status(task_id, TaskStatus.PENDING)
+            self._push_to_queue(module, message, priority, task_id)
 
         return task_id
+
+    def _push_to_queue(self, module, message, priority, task_id):
+        # SGI 2026: Lower numerical value = Higher priority.
+        # Apply aging offset: new tasks enter "behind" older tasks that have aged.
+        effective_priority = priority + self.aging_offset
+        heapq.heappush(self.queue, [effective_priority, self._counter, module, message, task_id])
+        self.queued_task_ids.add(task_id)
+        self._counter += 1
+        # Use ready status for the queue to distinguish from blocked
+        self.task_graph.update_task_status(task_id, TaskStatus.PENDING)
 
     def next(self):
         """
@@ -37,20 +44,12 @@ class Scheduler:
         # SGI 2026: Check TaskGraph for newly ready tasks
         ready_tasks = self.task_graph.get_ready_tasks()
 
-        # Optimization: Use a set for O(1) lookup of task IDs currently in queue
-        current_queued_ids = {item[4] for item in self.queue}
-
         for rt in ready_tasks:
-            # Check if already in queue
-            if rt.task_id not in current_queued_ids:
+            # Check if already in queue (O(1) lookup)
+            if rt.task_id not in self.queued_task_ids:
                 module = self.task_modules.get(rt.task_id)
-                message = rt.payload
-
-                # Apply current aging offset to maintain relative priority
-                effective_priority = rt.priority + self.aging_offset
-                heapq.heappush(self.queue, [effective_priority, self._counter, module, message, rt.task_id])
-                self._counter += 1
-                self.task_graph.update_task_status(rt.task_id, TaskStatus.PENDING)
+                # SGI 2026: Allow module to be None for non-actor tasks or if handled by main loop
+                self._push_to_queue(module, rt.payload, rt.priority, rt.task_id)
 
         if not self.queue:
             return None
@@ -59,11 +58,11 @@ class Scheduler:
         self.aging_offset += 0.1
 
         eff_priority, count, module, message, task_id = heapq.heappop(self.queue)
+        self.queued_task_ids.remove(task_id)
 
         # Mark as running in task graph
         self.task_graph.update_task_status(task_id, TaskStatus.RUNNING)
 
-        # Return original priority (approximated from effective) or message priority
         return (eff_priority - self.aging_offset, module, message)
 
     def complete_task(self, task_id):
