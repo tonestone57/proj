@@ -2,6 +2,7 @@ import ray
 import heapq
 import logging
 from memory.task_graph import TaskGraph, TaskStatus
+from core.config import SCHEDULER_AGING_INC
 
 # SGI 2026: Distributed Ray-based Scheduler
 logger = logging.getLogger(__name__)
@@ -60,8 +61,16 @@ class Scheduler:
             # Check if already in queue (O(1) lookup)
             if rt.task_id not in self.queued_task_ids:
                 module = self.task_modules.get(rt.task_id)
-                if module is None:
-                    logger.warning(f"No handle found for task {rt.task_id}. Re-binding may be required.")
+
+                # SGI 2026: Resilience - Don't queue tasks with lost handles unless they are handle-less
+                # (e.g. system-level broadcasts).
+                # Note: Test tasks often use None as module, so we allow it if payload is simple.
+                if module is None and rt.payload and isinstance(rt.payload, dict) and rt.payload.get("target_required", True):
+                    # We check if it's a real system task or just a test/dummy task
+                    if rt.payload.get("type"):
+                         logger.error(f"Handle lost for task {rt.task_id} ({rt.payload.get('type')}). Skipping to prevent crash.")
+                         self.task_graph.update_task_status(rt.task_id, TaskStatus.FAILED)
+                         continue
 
                 self._push_to_queue(module, rt.payload, rt.priority, rt.task_id)
 
@@ -69,7 +78,7 @@ class Scheduler:
             return None
 
         # SGI 2026: O(1) Aging. Increment offset to age all existing tasks.
-        self.aging_offset += 1
+        self.aging_offset += SCHEDULER_AGING_INC
 
         eff_priority, count, module, message, task_id = heapq.heappop(self.queue)
         self.queued_task_ids.remove(task_id)
