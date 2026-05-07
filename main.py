@@ -1,8 +1,17 @@
 import ray
 import time
 import asyncio
+import logging
 import os
 import psutil
+
+# Standard SGI 2026 Logging Configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 # Core components
 from core.workspace import GlobalWorkspace
@@ -30,6 +39,7 @@ from training.training_manager import TrainingManager
 
 # New standardized managers
 from economics.resource_model import Task
+from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
 from safety_ethics.safety_manager import SafetyManager
 from safety_ethics.ethics_manager import EthicsManager
 from safety_ethics.oversight_agent import OversightAgent
@@ -45,7 +55,6 @@ from self_model.self_manager import SelfManager
 from self_model.playbook_manager import PlaybookManager
 from blueteam.blueteam_manager import BlueTeamManager
 from redteam.redteam_manager import RedTeamManager
-from purpleteam.purple_manager import GovernanceIntegratedPurpleManager
 from incident_response.incident_manager import IncidentManager
 from monitoring.monitoring_manager import MonitoringManager
 from economics.economic_manager import EconomicManager
@@ -84,33 +93,33 @@ class SGIHub:
     def check_ram_guard(self):
         """
         Proactive RAM Guard to prevent swap lag and system crash.
-        Threshold: 2000MB (Configured for 16GB system).
+        Threshold: 1200MB (Configured for 16GB system).
         """
         mem = psutil.virtual_memory()
         available_mb = mem.available / (1024 * 1024)
         if available_mb < LOW_MEMORY_THRESHOLD_MB:
-            print(f"🚨 [RAM Guard] Critical memory pressure: {available_mb:.2f}MB available. Pausing ingestion.")
+            logger.error(f"Critical memory pressure: {available_mb:.2f}MB available. Pausing ingestion.")
             return False
         return True
 
     async def safe_delegate(self, actor_handle, task_type, payload):
         if not isinstance(payload, (dict, str)) and payload is not None:
-            print(f"🚨 [Hub] Invalid payload type: {type(payload)}. Expected dict or str.")
+            logger.error(f"Invalid payload type: {type(payload)}. Expected dict or str.")
             return False
 
         if not self.check_ram_guard():
             return False
 
         if await self.thermal_guard.check_health.remote():
-            print(f"[Hub] System is healthy. Delegating {task_type}...")
+            logger.info(f"System is healthy. Delegating {task_type}...")
             try:
                 actor_handle.receive.remote({"type": task_type, "data": payload})
                 return True
             except Exception as e:
-                print(f"🚨 [Hub] Failed to delegate {task_type}: {e}")
+                logger.error(f"Failed to delegate {task_type}: {e}")
                 return False
         else:
-            print("🚨 Thermal Guard Active: CPU cooling down...")
+            logger.warning("Thermal Guard Active: CPU cooling down...")
             return False
 
     def get_hub_health(self):
@@ -128,7 +137,7 @@ class SGIHub:
         """
         SGI 2026: Triggers a global configuration reload across all modules.
         """
-        print("[Hub] 🔄 Initiating Autonomous Hot-Reload...")
+        logger.info("Initiating Autonomous Hot-Reload...")
         try:
             # 1. Hub reloads its own reference
             import importlib
@@ -138,10 +147,10 @@ class SGIHub:
             # 2. Broadcast reload signal to all modules
             self.workspace.broadcast.remote({"type": "config_update", "data": {}})
 
-            print(f"[Hub] Global configuration reloaded. New thermal threshold: {config.THERMAL_THRESHOLD_C}°C")
+            logger.info(f"Global configuration reloaded. New thermal threshold: {config.THERMAL_THRESHOLD_C}°C")
             return True
         except Exception as e:
-            print(f"[Hub] Hot-reload failed: {e}")
+            logger.error(f"Hot-reload failed: {e}")
             return False
 
     async def poll_scheduler(self, conflict_manager=None):
@@ -154,8 +163,8 @@ class SGIHub:
             if not res_obj:
                 break
 
-            priority, actor_handle, message = res_obj
-            print(f"[Hub] Processing result from scheduler: {message['type']}")
+            priority, actor_handle, message, task_id = res_obj
+            logger.info(f"Processing result from scheduler: {message['type']} (Task: {task_id})")
 
             # SGI 2026: Conflict Detection & Resolution
             if conflict_manager and message.get("contradiction_suspected"):
@@ -186,10 +195,12 @@ class SGIHub:
                     })
 
             self.workspace.broadcast.remote(message)
+            # Close the TaskGraph loop
+            self.scheduler.complete_task.remote(task_id)
 
 def init_core_actors(workspace, scheduler, model_provider):
     """Initializes the core reasoning and memory actors."""
-    print("[Hub] Initializing Core Actors...")
+    logger.info("Initializing Core Actors...")
     actors = {}
     try:
         actors['reasoner'] = ReasonerActor.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
@@ -222,13 +233,13 @@ def init_core_actors(workspace, scheduler, model_provider):
         actors['theory_of_mind'] = TheoryOfMind.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         actors['playbook_manager'] = PlaybookManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     except Exception as e:
-        print(f"🚨 [Hub] Core Actor Initialization Failed: {e}")
+        logger.error(f"Core Actor Initialization Failed: {e}")
         raise
     return actors
 
 def init_subsystem_managers(workspace, scheduler, model_provider, core_actors):
     """Initializes high-level subsystem managers."""
-    print("[Hub] Initializing Subsystem Managers...")
+    logger.info("Initializing Subsystem Managers...")
     managers = {}
     try:
         managers['safety'] = SafetyManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
@@ -259,13 +270,13 @@ def init_subsystem_managers(workspace, scheduler, model_provider, core_actors):
         managers['console'] = ConsoleManager.remote(workspace=workspace, scheduler=scheduler, model_registry=model_provider)
         managers['purpleteam'] = GovernanceIntegratedPurpleManager.remote(governance=managers['governance'], workspace=workspace, scheduler=scheduler, model_registry=model_provider)
     except Exception as e:
-        print(f"🚨 [Hub] Subsystem Manager Initialization Failed: {e}")
+        logger.error(f"Subsystem Manager Initialization Failed: {e}")
         raise
     return managers
 
 def register_tasks(hub, actors, managers):
     """Registers autonomous rotation tasks with the Hub."""
-    print("[Hub] Registering Autonomous Tasks...")
+    logger.info("Registering Autonomous Tasks...")
     # Core Actors
     hub.register_autonomous_task(actors['meta_manager'], "active_inference_trigger", None)
     hub.register_autonomous_task(actors['memory_manager'], "trigger_sleep_cycle", None)
@@ -315,7 +326,7 @@ async def cognitive_cycle():
         actors = init_core_actors(workspace, scheduler, model_provider)
         managers = init_subsystem_managers(workspace, scheduler, model_provider, actors)
     except Exception as e:
-        print(f"🚨 [Hub] System Initialization Failed: {e}")
+        logger.error(f"System Initialization Failed: {e}")
         return
 
     hub = SGIHub(workspace, scheduler, thermal_guard)
@@ -325,29 +336,29 @@ async def cognitive_cycle():
     # SGI 2026: Dynamic PID setpoint based on thermal threshold
     thermal_pid = PIDController(setpoint=THERMAL_THRESHOLD_C - 6.0)
 
-    print(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")
-    print("Architecture: Asynchronous Predictive Workspace (APW)")
-    print(f"[Hub] RAM Status: {psutil.virtual_memory().available / (1024**3):.2f}GB / 16GB available.")
+    logger.info(f"--- {SYSTEM_NAME} Initialized for Intel i7-8265U ---")
+    logger.info("Architecture: Asynchronous Predictive Workspace (APW)")
+    logger.info(f"RAM Status: {psutil.virtual_memory().available / (1024**3):.2f}GB / 16GB available.")
 
     # The Heartbeat Loop
     current_tick_interval = TICK_INTERVAL
     tick = 0
     while True:
         tick += 1
-        print(f"\n--- Heartbeat Tick {tick} ---")
+        logger.info(f"--- Heartbeat Tick {tick} ---")
         health = await thermal_guard.get_thermal_state.remote()
         temp = health['temp']
-        print(f"[Hub] Thermal State: Load={health['load']}%, Temp={temp}C, Throttled={health['is_throttled']}")
+        logger.info(f"Thermal State: Load={health['load']}%, Temp={temp}C, Throttled={health['is_throttled']}")
 
         stutter_interval = thermal_pid.update(temp)
         if stutter_interval > 0:
-            print(f"🌡️ [Hub] PID Governor: Injecting {stutter_interval:.3f}s micro-stuttering.")
+            logger.warning(f"PID Governor: Injecting {stutter_interval:.3f}s micro-stuttering.")
 
         state = await workspace.get_current_state.remote()
         # Merge health into state for unified monitoring
         state['health'] = health
         entropy = drives.evaluate_state(state)
-        print(f"[Hub] System Entropy: {entropy:.4f}")
+        logger.info(f"System Entropy: {entropy:.4f}")
 
         # SGI 2026: Intrinsic Motivation Evaluation
         actors['motivation'].receive.remote({
@@ -361,21 +372,21 @@ async def cognitive_cycle():
 
         # Thermal-Aware Task Prioritization & Throttling
         if temp < THERMAL_THRESHOLD_C - 13.0:
-            print("[Hub] State: SPRINT. All threads at Max Frequency.")
+            logger.info("State: SPRINT. All threads at Max Frequency.")
             current_tick_interval = TICK_INTERVAL
             await model_provider.set_power_mode.remote(reflex_only=False)
         elif temp <= THERMAL_THRESHOLD_C - 3.0:
-            print(f"[Hub] State: REGULATED. PID Governor active.")
+            logger.info("State: REGULATED. PID Governor active.")
             current_tick_interval = TICK_INTERVAL + stutter_interval
             await model_provider.set_power_mode.remote(reflex_only=False)
         else:
-            print(f"🌡️ [Hub] State: REFLEX-ONLY. Critical Cooling Mode (>{THERMAL_THRESHOLD_C - 3.0}C).")
+            logger.warning(f"State: REFLEX-ONLY. Critical Cooling Mode (>{THERMAL_THRESHOLD_C - 3.0}C).")
             await model_provider.set_power_mode.remote(reflex_only=True)
             current_tick_interval = TICK_INTERVAL * (1.0 + (temp - (THERMAL_THRESHOLD_C - 3.0)) / 2.0)
 
         # Execute tasks based on strategy
         if temp > THERMAL_THRESHOLD_C - 3.0:
-            print("[Hub] Critical Temp: Prioritizing Symbolic Reflex tasks.")
+            logger.info("Critical Temp: Prioritizing Symbolic Reflex tasks.")
             await hub.safe_delegate(actors['reasoner'], "query", "math.factorial(5)")
         else:
             if entropy > 0.7:
@@ -384,7 +395,7 @@ async def cognitive_cycle():
                 else:
                     await hub.safe_delegate(actors['coder'], "code_execution", "print('Proactive self-test')")
             elif entropy < THRESHOLD_CONSOLIDATE:
-                print(f"[Hub] Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
+                logger.info(f"Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
 
                 if tick % 10 == 0:
                     hub.hot_reload_system()

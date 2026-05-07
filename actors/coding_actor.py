@@ -1,5 +1,6 @@
 import contextlib
 import io
+import logging
 import os
 import ray
 import re
@@ -7,15 +8,18 @@ import sys
 from core.base import CognitiveModule
 from core.config import CORES_CODING
 
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
+
 class CodingActorBase(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None, critic=None):
         super().__init__(workspace, scheduler, model_registry)
         self.critic = critic
-        print(f"[CodingActor] Initialized. Using Shared Model Provider for coding tasks...")
+        logger.info("Initialized. Using Shared Model Provider for coding tasks...")
 
     def set_critic(self, critic):
         self.critic = critic
-        print("[CodingActor] Reflector (InternalCritic) integrated.")
+        logger.info("Reflector (InternalCritic) integrated.")
 
     def receive(self, message):
         try:
@@ -52,14 +56,14 @@ class CodingActorBase(CognitiveModule):
             elif message["type"] == "simulation_obs":
                 # SGI 2026: Code-based response to simulation state
                 obs = message["data"]
-                print(f"[CodingActor] Simulation Update: {obs}")
+                logger.debug(f"Simulation Update: {obs}")
                 if obs.get("load", 0) > 70:
                     self.send_result("simulation_action", {
                         "agent_id": "CodingActor",
                         "action": {"type": "resource_release", "amount": 20}
                     })
         except Exception as e:
-            print(f"[CodingActor] Error in receive: {e}")
+            logger.error(f"Error in receive: {e}")
 
     def calculate_confidence_score(self):
         from core.drives import calculate_entropy
@@ -119,7 +123,7 @@ class CodingActorBase(CognitiveModule):
         if not recursive_funcs:
             return code
 
-        print(f"[CodingActor] Iterative Transformation: Refactoring {recursive_funcs}...")
+        logger.info(f"Iterative Transformation: Refactoring {recursive_funcs}...")
 
         # SGI 2026 Strategy: We use the Reasoning Brain (Tier 3) to perform the rewrite
         # while keeping the Symbolic logic intact.
@@ -150,12 +154,12 @@ class CodingActorBase(CognitiveModule):
                     transformed = transformed.split("```")[1].strip()
                 return transformed
             except Exception as e:
-                print(f"[CodingActor] Refactoring failed: {e}")
+                logger.error(f"Refactoring failed: {e}")
                 return code
         return code
 
     def DigitalTwin_Branching(self, branch_name):
-        print(f"[CodingActor] Creating speculative branch: {branch_name}")
+        logger.info(f"Creating speculative branch: {branch_name}")
         return f"vm_branch_{branch_name}_0xdeadbeef"
 
     def execute_code(self, code, persistent=False):
@@ -172,7 +176,7 @@ class CodingActorBase(CognitiveModule):
         SGI 2026: Generates code, creates a Pytest suite, and self-corrects if tests fail.
         Upgraded to use InternalCritic (Reflector) for AI Feedback.
         """
-        print(f"[CodingActor] Generating code and autonomous test suite...")
+        logger.info("Generating code and autonomous test suite...")
         generated_code = ray.get(self.model_registry.generate.remote(f"Code for: {code}"))
 
         if "LLM-Generated" in generated_code or "Mock response" in generated_code:
@@ -184,7 +188,7 @@ class CodingActorBase(CognitiveModule):
             test_suite = "def test_sample(): from solution import sample_func; assert sample_func() == True"
 
         # 2. Verification Loop
-        print(f"[CodingActor] Entering Reflector Loop...")
+        logger.info("Entering Reflector Loop...")
         test_passed = False
         retry_count = 0
         last_critique = ""
@@ -200,12 +204,12 @@ class CodingActorBase(CognitiveModule):
             if self.critic:
                 try:
                     critique_issues, score = ray.get(self.critic.critique_code.remote(generated_code, context=code))
-                    print(f"[CodingActor] Reflector Score: {score:.2f}")
+                    logger.info(f"Reflector Score: {score:.2f}")
                 except Exception as e:
-                    print(f"[CodingActor] Reflector call failed: {e}")
+                    logger.error(f"Reflector call failed: {e}")
 
             if exec_result["status"] == "success" and score > 0.8:
-                print(f"✅ [CodingActor] Verification successful. Score={score:.2f}")
+                logger.info(f"Verification successful. Score={score:.2f}")
                 test_passed = True
                 # Record as a potential "Skill" if it was high quality
                 if score > 0.9:
@@ -227,7 +231,7 @@ class CodingActorBase(CognitiveModule):
                         "critique": last_critique
                     })
 
-                print(f"❌ [CodingActor] Refinement needed (Attempt {retry_count + 1})...")
+                logger.warning(f"Refinement needed (Attempt {retry_count + 1})...")
                 refine_prompt = (
                     f"The previous implementation failed. Fix it based on this feedback:\n"
                     f"{last_critique}\n\nOriginal Task: {code}\nPrevious Code:\n{generated_code}"
@@ -288,9 +292,21 @@ class CodingActorBase(CognitiveModule):
         import subprocess
         import tempfile
 
-        # Prepend standard SGI 2026 imports
+        # Prepend standard SGI 2026 imports and resource limits
         imports = """
+import os
+import resource
 import math
+
+# SGI 2026: Resource limits applied within the script for safety
+try:
+    # Set 1GB memory limit (Address Space)
+    limit_bytes = 1024 * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
+    # Set 15s CPU time limit
+    resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
+except Exception:
+    pass
 import collections
 import heapq
 import bisect
@@ -326,28 +342,19 @@ except ImportError:
             with open(script_path, "w") as f:
                 f.write(full_code)
 
-            # Helper to set limits in child process
-            def set_limits():
-                try:
-                    import resource
-                    # Set 1GB memory limit (Address Space)
-                    limit_bytes = 1024 * 1024 * 1024
-                    resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
-                    # Set 15s CPU time limit
-                    resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
-                except Exception as e:
-                    pass # resource limits may not be supported on all platforms
-
             try:
-                # SGI 2026: Resource limits for the subprocess
+                # SGI 2026: Subprocess execution
                 cmd = [sys.executable, script_path]
 
+                # SGI 2026: Cross-platform safety. start_new_session is used for process group isolation.
+                # Removed preexec_fn to avoid potential deadlocks in multi-threaded environments.
+                # Resource limits are now handled within the script itself.
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    preexec_fn=set_limits if os.name != 'nt' else None
+                    start_new_session=(os.name != 'nt')
                 )
                 if result.returncode == 0:
                     return {"status": "success", "output": result.stdout}

@@ -1,3 +1,4 @@
+import logging
 import re
 import math
 import collections
@@ -6,6 +7,15 @@ import hashlib
 import numpy as np
 from core.base import CognitiveModule
 from core.config import CORES_SEARCH
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
+
+# SGI 2026: Runtime version check for numpy (bitwise_count requires 1.25.0+)
+if hasattr(np, "version") and hasattr(np.version, "version"):
+    np_v = [int(x) for x in np.version.version.split('.')[:2]]
+    if np_v[0] < 1 or (np_v[0] == 1 and np_v[1] < 25):
+        logger.warning(f"Numpy version {np.version.version} is < 1.25.0. bitwise_count fallback will be used.")
 
 class LicenseActor:
     def __init__(self):
@@ -60,7 +70,7 @@ class SearchActorBase(CognitiveModule):
         self.knowledge_graph = graph_memory
         self.memory_manager = memory_manager
         self.synonym_cache = {} # SGI 2026: Local synonym cache for performance
-        print(f"[SearchActor] Initialized with Shared Model Provider.")
+        logger.info("Initialized with Shared Model Provider.")
 
     def receive(self, message):
         try:
@@ -71,7 +81,7 @@ class SearchActorBase(CognitiveModule):
                 # SGI 2026: GraphRAG context enhancement
                 graph_context = ""
                 if self.knowledge_graph and any(kw in query.lower() for kw in ["code", "function", "class", "module", "dependency", "import"]):
-                    print(f"[SearchActor] GraphRAG: Querying Knowledge Graph for '{query}'...")
+                    logger.info(f"GraphRAG: Querying Knowledge Graph for '{query}'...")
                     # SGI 2026: Enhanced node extraction for complex patterns and multi-file dependencies
                     # Matches: snake_case, CamelCase, file_path.py, Class.method, module.submodule
                     node_patterns = [
@@ -156,7 +166,7 @@ class SearchActorBase(CognitiveModule):
             elif message["type"] == "simulation_obs":
                 # SGI 2026: Search-based response to simulation state
                 obs = message["data"]
-                print(f"[SearchActor] Simulation Update: {obs}")
+                logger.debug(f"Simulation Update: {obs}")
                 if obs.get("threat_level", 0) > 30:
                     self.send_result("simulation_action", {
                         "agent_id": "SearchActor",
@@ -185,7 +195,7 @@ class SearchActorBase(CognitiveModule):
         Uses a multi-stage heuristic pipeline to prioritize authoritative technical content.
         Optimized for i7-8265U using token-frequency and length normalization.
         """
-        print(f"[SearchActor] Reranking {len(results)} results using SGI Optimized Reranker...")
+        logger.info(f"Reranking {len(results)} results using SGI Optimized Reranker...")
         if not results:
             return []
 
@@ -363,7 +373,7 @@ class SearchActorBase(CognitiveModule):
         reranked = [res for score, res in final_results if score >= 0.1]
 
         if final_results:
-            print(f"[SearchActor] Reranking complete. Top score: {final_results[0][0]:.4f}")
+            logger.debug(f"Reranking complete. Top score: {final_results[0][0]:.4f}")
         return reranked
 
     def distill_results(self, results):
@@ -372,7 +382,7 @@ class SearchActorBase(CognitiveModule):
         distilled = ""
         if self.model_registry:
             # SGI 2026: Reasoning-Aware RAG. Retrieve wisdom traces from knowledge base.
-            print("[SearchActor] Retrieving Reasoning Traces from Wisdom Cache via MemoryManager...")
+            logger.info("Retrieving Reasoning Traces from Wisdom Cache via MemoryManager...")
 
             wisdom_traces = []
             if self.memory_manager:
@@ -430,21 +440,42 @@ class SearchActorBase(CognitiveModule):
         Performs the 128-dim coarse scan across 4 vectors simultaneously using AVX2-style numpy operations.
         candidates_packed_batch shape: (4, 2) - 4 vectors, each with two uint64 elements.
         """
+        # SGI 2026: Ensure uint64 for bitwise operations
+        q0 = np.uint64(query_packed[0])
+        q1 = np.uint64(query_packed[1])
+
         # Simulated AVX2 256-bit registers (4 x 64-bit uint64)
         # Register 1: bits 0-63 for all 4 candidates
         # Register 2: bits 64-127 for all 4 candidates
-        reg1 = candidates_packed_batch[:, 0]
-        reg2 = candidates_packed_batch[:, 1]
+        reg1 = candidates_packed_batch[:, 0].astype(np.uint64)
+        reg2 = candidates_packed_batch[:, 1].astype(np.uint64)
 
         # XOR with query bits (broadcast)
-        xor1 = np.bitwise_xor(reg1, query_packed[0])
-        xor2 = np.bitwise_xor(reg2, query_packed[1])
+        xor1 = np.bitwise_xor(reg1, q0)
+        xor2 = np.bitwise_xor(reg2, q1)
 
         # Bitwise count (popcount) of matches
-        # Hamming distance is popcount(v1 ^ v2). Similarity is 128 - popcount(v1 ^ v2).
-        # However, it's faster to just use bitwise NOT XOR for direct match counting.
-        match1 = np.bitwise_count(np.bitwise_not(xor1))
-        match2 = np.bitwise_count(np.bitwise_not(xor2))
+        # bitwise_count requires numpy >= 1.25.0
+        if hasattr(np, "bitwise_count"):
+            match1 = np.bitwise_count(np.bitwise_not(xor1))
+            match2 = np.bitwise_count(np.bitwise_not(xor2))
+        else:
+            # SGI 2026: Efficient bit-manipulation fallback for older numpy versions
+            # Implementation: SWAR (SIMD within a register) algorithm for 64-bit popcount.
+            # Performance note: This is significantly faster than string-based bin().count('1').
+            def popcount_64(x):
+                x = x - ((x >> np.uint64(1)) & np.uint64(0x5555555555555555))
+                x = (x & np.uint64(0x3333333333333333)) + ((x >> np.uint64(2)) & np.uint64(0x3333333333333333))
+                x = (x + (x >> np.uint64(4))) & np.uint64(0x0F0F0F0F0F0F0F0F)
+                x = x + (x >> np.uint64(8))
+                x = x + (x >> np.uint64(16))
+                x = x + (x >> np.uint64(32))
+                return x & np.uint64(0x000000000000007F)
+
+            vpopcount = np.vectorize(popcount_64)
+            # Similarity is 128 - popcount(xor)
+            match1 = 64 - vpopcount(xor1)
+            match2 = 64 - vpopcount(xor2)
 
         return (match1 + match2).astype(int)
 
@@ -454,12 +485,12 @@ class SearchActorBase(CognitiveModule):
         Stage 1: 128-dim scan for speed (SIMD-optimized).
         Stage 2: 768-dim re-rank for accuracy.
         """
-        print(f"[SearchActor] Matryoshka-Tiered Retrieval + BQ initiated for: '{query}'")
+        logger.info(f"Matryoshka-Tiered Retrieval + BQ initiated for: '{query}'")
         query_vec = self.embed(query)
         query_coarse_bq = self.binary_quantize(query_vec[:128])
 
         # Stage 1: Coarse Scan (SIMD Optimized)
-        print(f"[SearchActor] Stage 1: Scanning 128-dim BQ indices (SIMD/AVX2 optimized)...")
+        logger.debug("Stage 1: Scanning 128-dim BQ indices (SIMD/AVX2 optimized)...")
         candidates = []
         batch_size = 4
         pool_size = 200
@@ -495,7 +526,7 @@ class SearchActorBase(CognitiveModule):
         top_candidates = candidates[:top_k_coarse]
 
         # Stage 2: Fine Re-rank (768-dim)
-        print(f"[SearchActor] Stage 2: Re-ranking top {top_k_coarse} candidates using full 768-dim vectors...")
+        logger.debug(f"Stage 2: Re-ranking top {top_k_coarse} candidates using full 768-dim vectors...")
         fine_results = []
         for cand in top_candidates:
             # Full 768-dim cosine similarity (simulated)

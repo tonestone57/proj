@@ -47,7 +47,7 @@ class TestSGIIntegration(unittest.TestCase):
         for _ in range(30):
             res = ray.get(scheduler.next.remote())
             if res:
-                priority, actor, message = res
+                priority, actor, message, tid = res
                 if message["type"] == "search_result":
                     found = True
                     # Verification: Ensure no GPL content leaked through

@@ -13,7 +13,7 @@ class HardwareLimits(BaseModel):
     ray_reserved_threads: int = 4
     max_threads: int = Field(4, le=8)
     thermal_threshold_celsius: float = 78.0
-    low_memory_warning_mb: int = 2000
+    low_memory_warning_mb: int = 1200
     shared_gpu_memory: bool = True
 
 class ActorConfig(BaseModel):
@@ -53,6 +53,7 @@ class DriveEngineConfig(BaseModel):
     threshold_replan: float = 2.0
     threshold_consolidate: float = 0.5
     active_inference_cycle_ticks: int = 5
+    scheduler_aging_increment: int = 1
 
 class InferenceConfig(BaseModel):
     primary_model: str
@@ -107,6 +108,7 @@ THRESHOLD_CONSOLIDATE = SGI_SETTINGS.drive_engine.threshold_consolidate
 
 # Heartbeat settings
 TICK_INTERVAL = SGI_SETTINGS.drive_engine.heartbeat_interval_seconds
+SCHEDULER_AGING_INC = SGI_SETTINGS.drive_engine.scheduler_aging_increment
 
 # Context management
 CONTEXT_SALIENCY_FLOOR = 0.5

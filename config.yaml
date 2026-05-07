@@ -62,6 +62,7 @@ drive_engine:
   threshold_replan: 2.0
   threshold_consolidate: 0.5
   active_inference_cycle_ticks: 5   # Interval for log-based self-patching
+  scheduler_aging_increment: 1     # SGI 2026: Priority boost per scheduler tick
 
 # SECTION 5: Reasoning & Inference Hybrid
 inference:

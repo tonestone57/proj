@@ -1,4 +1,8 @@
+import logging
 import ray
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class CognitiveModule:
     def __init__(self, workspace, scheduler, model_registry=None):
@@ -21,7 +25,7 @@ class CognitiveModule:
                     else:
                         reg_func(self)
             except Exception as e:
-                print(f"[CognitiveModule] Warning: Could not register with workspace: {e}")
+                logger.warning(f"Could not register with workspace: {e}")
 
     def send_result(self, result_type, data):
         """Standard SGI helper to submit results back to the scheduler."""
@@ -34,7 +38,7 @@ class CognitiveModule:
 
     def reload_config(self):
         """SGI 2026: Autonomous configuration reload logic."""
-        print(f"[{self.__class__.__name__}] 🔄 Reloading configuration...")
+        logger.info(f"[{self.__class__.__name__}] 🔄 Reloading configuration...")
 
     def receive(self, message):
         if message["type"] == "ping":

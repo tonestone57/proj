@@ -1,4 +1,5 @@
 import collections
+import logging
 import math
 import os
 import psutil
@@ -9,6 +10,9 @@ import xxhash
 from core.base import CognitiveModule
 from core.config import CONTEXT_SALIENCY_FLOOR, MAX_LIMIT, LOW_MEMORY_THRESHOLD_MB, TICK_INTERVAL
 from memory.codecs.llm_zip import LLMZipCodec
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 def calculate_information_density(words):
     if not words:
@@ -61,7 +65,7 @@ class KVCacheManager:
         """
         SGI 2026: Paged Allocation. Splits token sequence into non-contiguous physical blocks.
         """
-        print(f"[KVCacheManager] Paged Allocation for request '{request_id}' ({len(tokens)} tokens).")
+        logger.info(f"Paged Allocation for request '{request_id}' ({len(tokens)} tokens).")
         block_ids = []
         for i in range(0, len(tokens), self.block_size):
             chunk = tokens[i : i + self.block_size]
@@ -85,7 +89,7 @@ class KVCacheManager:
             return
 
         if block_id in self.offload_registry:
-            print(f"[KVCacheManager] Paging: Reloading block '{block_id}' from disk offload.")
+            logger.info(f"Paging: Reloading block '{block_id}' from disk offload.")
             data = self._load_from_disk(block_id)
 
         # Evict if full
@@ -99,7 +103,7 @@ class KVCacheManager:
 
     def _offload_to_disk(self, block_id, data):
         """Compresses and offloads a physical block to disk."""
-        print(f"[KVCacheManager] LRU Eviction: Offloading block '{block_id}' to storage.")
+        logger.info(f"LRU Eviction: Offloading block '{block_id}' to storage.")
         compressed = self.codec.compress(str(data))
         path = os.path.join(self.storage_path, f"{block_id}.bin")
         with open(path, "wb") as f:
@@ -114,7 +118,7 @@ class KVCacheManager:
         try:
             return self.codec.decompress(comp)
         except ValueError as e:
-            print(f"🚨 [KVCacheManager] Decompression failed for block {block_id}: {e}")
+            logger.error(f"Decompression failed for block {block_id}: {e}")
             return None
 
     def release_request(self, request_id):
@@ -145,8 +149,11 @@ class KVCacheManager:
             if data is not None:
                 full_kv.append(data)
             else:
-                print(f"🚨 [KVCacheManager] Failed to retrieve data for block {block_id}")
+                logger.error(f"Failed to retrieve data for block {block_id}")
+                raise RuntimeError(f"KV Cache Block Corruption: Missing data for {block_id}")
 
+        if not full_kv:
+             return None
         return full_kv
 
     def get_status(self):
@@ -229,7 +236,7 @@ class MemoryManager(CognitiveModule):
         """
         SGI 2026: Persists search results to the Wisdom Cache (LanceDB).
         """
-        print(f"[MemoryManager] Archiving search results for: {query[:30]}...")
+        logger.info(f"Archiving search results for: {query[:30]}...")
         if not query or not results: return
 
         # In a real system, this would write to LanceDB.
@@ -240,7 +247,7 @@ class MemoryManager(CognitiveModule):
         self.wisdom_cache_metadata[summary] = time.time()
 
     def trigger_sleep_cycle(self, current_tick=0):
-        print(f"[MemoryManager] Starting Sleep Cycle (Tick {current_tick})...")
+        logger.info(f"Starting Sleep Cycle (Tick {current_tick})...")
 
         # SGI 2026: Weight Saliency Pruning
         # Move Wisdom Cache entries not accessed in > 250 cycles to Deep Archive (LLM-Zip)
@@ -263,7 +270,7 @@ class MemoryManager(CognitiveModule):
 
         for key in stale_keys:
             val = self.active_wisdom_cache[key]
-            print(f"[MemoryManager] Saliency Pruning: Moving stale entry '{key}' to LLM-Zip deep archive.")
+            logger.info(f"Saliency Pruning: Moving stale entry '{key}' to LLM-Zip deep archive.")
             self.deep_archive[key] = self.perform_neural_archiving(val)
             del self.active_wisdom_cache[key]
             if val in self.wisdom_cache_metadata:
@@ -271,7 +278,7 @@ class MemoryManager(CognitiveModule):
 
         # SGI 2026: GraphRAG Construction Phase
         if self.graph_memory:
-            print("[MemoryManager] Updating Knowledge Graph from workspace...")
+            logger.info("Updating Knowledge Graph from workspace...")
             # SGI 2026: Dynamic file discovery for Knowledge Graph updates
             python_files = []
             for root, dirs, files in os.walk("."):
@@ -284,24 +291,24 @@ class MemoryManager(CognitiveModule):
                     if file.endswith(".py"):
                         python_files.append(os.path.join(root, file))
 
-            print(f"[MemoryManager] Discovered {len(python_files)} Python files for analysis.")
+            logger.info(f"Discovered {len(python_files)} Python files for analysis.")
             for f in python_files:
                 try:
                     with open(f, "r") as file:
                         content = file.read()
                         self.graph_memory.analyze_python_file.remote(f, content)
                 except Exception as e:
-                    print(f"🚨 [MemoryManager] Failed to analyze {f}: {e}")
+                    logger.error(f"Failed to analyze {f}: {e}")
 
         patterns = self.identify_recurring_patterns()
         if patterns:
             self.synthesize_knowledge(patterns)
         self.perform_synaptic_pruning()
         self.check_ram_guard()
-        print("[MemoryManager] Sleep Cycle complete.")
+        logger.info("Sleep Cycle complete.")
 
     def identify_recurring_patterns(self):
-        print("[MemoryManager] Reviewing Scratchpad and Active Context for patterns...")
+        logger.info("Reviewing Scratchpad and Active Context for patterns...")
         if self.workspace is None:
             return []
         state = ray.get(self.workspace.get_current_state.remote())
@@ -313,7 +320,7 @@ class MemoryManager(CognitiveModule):
         return patterns
 
     def perform_synaptic_pruning(self):
-        print("[MemoryManager] Performing Synaptic Pruning...")
+        logger.info("Performing Synaptic Pruning...")
         if self.workspace is None:
             return
         state = ray.get(self.workspace.get_current_state.remote())
@@ -326,11 +333,11 @@ class MemoryManager(CognitiveModule):
                 preserved_history.append(msg)
             else:
                 pruned_count += 1
-        print(f"[MemoryManager] Pruned {pruned_count} low-saliency memories.")
-        print("[MemoryManager] Archiving remaining raw logs to long-term storage (LanceDB) using Zstd-19.")
+        logger.info(f"Pruned {pruned_count} low-saliency memories.")
+        logger.info("Archiving remaining raw logs to long-term storage (LanceDB) using Zstd-19.")
 
     def synthesize_knowledge(self, patterns):
-        print(f"[MemoryManager] Synthesizing new Knowledge Base entries for patterns: {patterns}")
+        logger.info(f"Synthesizing new Knowledge Base entries for patterns: {patterns}")
         for pattern in patterns:
             kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
             self.KnowledgeDistillation_Loop(kb_entry)
@@ -344,7 +351,7 @@ class MemoryManager(CognitiveModule):
         implementation = skill_data.get("implementation")
         score = skill_data.get("score", 0.0)
 
-        print(f"[MemoryManager] Condensing skill for task: {task[:30]}... (Score: {score:.2f})")
+        logger.info(f"Condensing skill for task: {task[:30]}... (Score: {score:.2f})")
 
         # SGI 2026: MDL-based skill condensation
         # Remove comments and whitespace to get the functional core
@@ -368,26 +375,26 @@ class MemoryManager(CognitiveModule):
         self.active_wisdom_cache[wisdom_key] = f"Learned Skill for '{task[:50]}': {functional_core[:200]}..."
         self.wisdom_cache_metadata[self.active_wisdom_cache[wisdom_key]] = time.time()
 
-        print(f"[MemoryManager] Skill stored. Total skills in bank: {len(self.skill_bank)}")
+        logger.info(f"Skill stored. Total skills in bank: {len(self.skill_bank)}")
 
     def KnowledgeDistillation_Loop(self, entry):
-        print("[MemoryManager] Running Knowledge Distillation Loop...")
+        logger.info("Running Knowledge Distillation Loop...")
         # SGI 2026: Reasoning Trace Extraction
         reasoning_trace = ""
         if "<thought>" in entry and "</thought>" in entry:
             reasoning_trace = entry.split("<thought>")[1].split("</thought>")[0].strip()
-            print(f"[MemoryManager] Extracted Reasoning Trace (Wisdom Cache): {len(reasoning_trace)} chars")
+            logger.info(f"Extracted Reasoning Trace (Wisdom Cache): {len(reasoning_trace)} chars")
 
         # Handle different wording from previous edits if necessary
         distilled = entry.replace("\n\n", " ").replace("This entry was generated", "Generated").replace("This entry was automatically generated", "Generated")
         # Store reasoning trace in LanceDB (simulated)
         if reasoning_trace:
-            print("[MemoryManager] Archiving Reasoning Trace to Wisdom Cache in LanceDB...")
+            logger.info("Archiving Reasoning Trace to Wisdom Cache in LanceDB...")
 
         self.calculate_MDL_metric(entry, distilled)
 
     def calculate_structural_importance_score(self, context):
-        print("[MemoryManager] Calculating Structural Importance Score ($I_{struct}$) using CPG...")
+        logger.info("Calculating Structural Importance Score ($I_{struct}$) using CPG...")
         important_patterns = [r"def\s+", r"class\s+", r"if\s+", r"while\s+", r"return\s+", r"virtual\s+"]
         score = sum(1 for pattern in important_patterns if re.search(pattern, context))
         return score
@@ -396,7 +403,7 @@ class MemoryManager(CognitiveModule):
         """
         SGI 2026: Performs Lossless Neural Archiving (LLM-Zip) using live Arithmetic Coding.
         """
-        print("[MemoryManager] Performing Lossless Neural Archiving (LLM-Zip)...")
+        logger.info("Performing Lossless Neural Archiving (LLM-Zip)...")
         if not isinstance(context, str): return {}
 
         compressed = self.llm_zip.compress(context)
@@ -412,8 +419,8 @@ class MemoryManager(CognitiveModule):
         }
 
     def perform_turboquant_compression(self, vectors):
-        print("[MemoryManager] Performing TurboQuant Compression (PolarQuant + QJL)...")
-        print("[MemoryManager] Applying PolarQuant rotation and QJL error-correction for Q8 + BQ / INT8 stability...")
+        logger.info("Performing TurboQuant Compression (PolarQuant + QJL)...")
+        logger.info("Applying PolarQuant rotation and QJL error-correction for Q8 + BQ / INT8 stability...")
         return "quantized_vectors_0xabc"
 
     def perform_polarquant_rotation(self, vectors):
@@ -421,7 +428,7 @@ class MemoryManager(CognitiveModule):
         SGI 2026: PolarQuant Rotation (TurboQuant Stage 1).
         Rotates data vectors for high-quality compression by spreading information.
         """
-        print("[MemoryManager] Applying PolarQuant rotation to stabilize vector distribution...")
+        logger.info("Applying PolarQuant rotation to stabilize vector distribution...")
         # Simulated rotation matrix operation
         return "rotated_vectors_pq"
 
@@ -430,7 +437,7 @@ class MemoryManager(CognitiveModule):
         SGI 2026: QJL (Quantized Johnson-Lindenstrauss) Error Correction (TurboQuant Stage 2).
         Eliminates residual errors from aggressive quantization.
         """
-        print("[MemoryManager] Applying QJL error-correction to eliminate residual noise...")
+        logger.info("Applying QJL error-correction to eliminate residual noise...")
         return "error_corrected_quantized_data"
 
     def perform_turboquant_kv_compression(self, kv_cache):
@@ -438,7 +445,7 @@ class MemoryManager(CognitiveModule):
         SGI 2026: TurboQuant-Inspired KV Cache Compression.
         Achieves 3-bit/4-bit compression with 0% accuracy loss via PolarQuant + QJL.
         """
-        print("[MemoryManager] Initiating TurboQuant KV Compression pipeline...")
+        logger.info("Initiating TurboQuant KV Compression pipeline...")
         rotated = self.perform_polarquant_rotation(kv_cache)
         # Simulate 3-bit quantization
         quantized = f"3bit_quantized({rotated})"
@@ -457,11 +464,11 @@ class MemoryManager(CognitiveModule):
         Upgraded to TurboQuant pipeline for 3-bit/4-bit efficiency.
         """
         # If hardware supports high-acceleration (i7-8265U AVX2 target)
-        print("[MemoryManager] Upgrading KV Compression to TurboQuant for AVX2 efficiency...")
+        logger.info("Upgrading KV Compression to TurboQuant for AVX2 efficiency...")
         return self.perform_turboquant_kv_compression(kv_cache)
 
     def perform_reasoning_compression(self, logic_chain):
-        print("[MemoryManager] Compressing Reasoning Engine to INT8...")
+        logger.info("Compressing Reasoning Engine to INT8...")
         return "int8_logic_chain"
 
     def perform_per_channel_scaling(self, channel_vector):
@@ -472,11 +479,11 @@ class MemoryManager(CognitiveModule):
             return [0] * len(channel_vector)
         scale = max_val / 127.0
         quantized = [round(x / scale) for x in channel_vector]
-        print(f"[MemoryManager] Per-Channel Scaling applied. Scale: {scale:.4f}")
+        logger.info(f"Per-Channel Scaling applied. Scale: {scale:.4f}")
         return quantized
 
     def perform_ast_serialization(self, code):
-        print("[MemoryManager] Performing Tree-sitter AST Serialization...")
+        logger.info("Performing Tree-sitter AST Serialization...")
         if not code or not isinstance(code, str):
             return "empty_ast"
         lines = code.splitlines()
@@ -492,11 +499,11 @@ class MemoryManager(CognitiveModule):
                 if "=" in line:
                     ops.append("OP_ASSIGN")
         serialized_ast = "->".join(ops) if ops else "OP_GENERIC_NODE"
-        print(f"[MemoryManager] Serialized AST size: {len(serialized_ast)} bytes")
+        logger.info(f"Serialized AST size: {len(serialized_ast)} bytes")
         return serialized_ast
 
     def AST_Aware_Chunking(self, code):
-        print("[MemoryManager] Performing AST-Aware Chunking...")
+        logger.info("Performing AST-Aware Chunking...")
         chunks, current_chunk = [], []
         for line in code.splitlines():
             if (line.startswith("def ") or line.startswith("class ")) and current_chunk:
@@ -512,7 +519,7 @@ class MemoryManager(CognitiveModule):
         SGI 2026: Semantic Hashing (CodeComp).
         Replaces repeated functions with a 128-bit xxhash (xxh128) pointing to Shared Memory Bus.
         """
-        print("[MemoryManager] Performing Semantic Hashing (CodeComp)...")
+        logger.info("Performing Semantic Hashing (CodeComp)...")
         if not isinstance(context, str):
             return context
 
@@ -533,7 +540,7 @@ class MemoryManager(CognitiveModule):
                     hash_ptr = f"[HASH:{h}]"
                     new_chunks.append(hash_ptr)
                     savings += (len(chunk) - len(hash_ptr))
-                    print(f"[MemoryManager] Duplicate found. Replaced with hash {h[:8]}... (Saved {len(chunk) - len(hash_ptr)} chars)")
+                    logger.debug(f"Duplicate found. Replaced with hash {h[:8]}... (Saved {len(chunk) - len(hash_ptr)} chars)")
                 else:
                     self.semantic_hash_registry[h] = chunk
                     new_chunks.append(chunk)
@@ -542,13 +549,13 @@ class MemoryManager(CognitiveModule):
 
         result = "\n".join(new_chunks)
         if savings > 0:
-            print(f"[MemoryManager] Semantic Hashing complete. Total Memory Savings: {savings} chars.")
+            logger.info(f"Semantic Hashing complete. Total Memory Savings: {savings} chars.")
         return result
 
     def calculate_MDL_metric(self, data, compressed_data):
         raw_size, compressed_size = len(str(data)), len(str(compressed_data))
         mdl_score = compressed_size / raw_size if raw_size > 0 else 1.0
-        print(f"[MemoryManager] MDL Score: {mdl_score:.4f} (Raw: {raw_size}, Compressed: {compressed_size})")
+        logger.info(f"MDL Score: {mdl_score:.4f} (Raw: {raw_size}, Compressed: {compressed_size})")
         return mdl_score
 
     def perform_structural_distillation(self, context):
@@ -556,7 +563,7 @@ class MemoryManager(CognitiveModule):
         SGI 2026: Performs Structural Distillation (CodeComp).
         Combines comment removal with Semantic Hashing for maximum efficiency.
         """
-        print("[MemoryManager] Performing Structural Distillation (CodeComp)...")
+        logger.info("Performing Structural Distillation (CodeComp)...")
         # Step 1: Remove comments
         distilled = re.sub(r"#.*", "", context)
         # Step 2: Apply Semantic Hashing
@@ -566,7 +573,7 @@ class MemoryManager(CognitiveModule):
         mem = psutil.virtual_memory()
         available_mb = mem.available / (1024 * 1024)
         if available_mb < LOW_MEMORY_THRESHOLD_MB:
-            print(f"🚨 [RAM Guard] Low memory: {available_mb:.2f}MB available. Pausing.")
+            logger.warning(f"Critical memory pressure: {available_mb:.2f}MB available. Pausing ingestion.")
             return False
         return True
 
@@ -584,7 +591,7 @@ class MemoryManager(CognitiveModule):
         SGI 2026: Wisdom Cache Retrieval.
         Returns reasoning traces and learned skills from active memory related to the query.
         """
-        print(f"[MemoryManager] Searching Wisdom Cache for: {context_query[:30]}...")
+        logger.info(f"Searching Wisdom Cache for: {context_query[:30]}...")
         relevant_traces = []
         now = time.time()
 

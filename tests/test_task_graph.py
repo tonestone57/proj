@@ -1,8 +1,15 @@
 import pytest
 import os
 import shutil
+import ray
 from memory.task_graph import TaskGraph, TaskStatus
-from orchestration.priority_scheduler import PriorityScheduler
+from core.scheduler import Scheduler
+
+@pytest.fixture(scope="module")
+def ray_init():
+    ray.init(ignore_reinit_error=True, num_cpus=2)
+    yield
+    ray.shutdown()
 
 @pytest.fixture
 def clean_db():
@@ -13,31 +20,41 @@ def clean_db():
     if os.path.exists(db_path):
         shutil.rmtree(db_path)
 
-def test_task_dependency_enforcement_with_priority(clean_db):
-    tg = TaskGraph(db_path=clean_db)
-    scheduler = PriorityScheduler(task_graph=tg)
+def test_task_dependency_enforcement_with_priority(clean_db, ray_init):
+    scheduler = Scheduler.remote(task_graph_db_path=clean_db)
 
-    # Task A: no dependencies
-    task_a_id = scheduler.schedule({"name": "Task A"}, 1.0)
+    # Task A: no dependencies, priority 1.0
+    task_a_id = ray.get(scheduler.submit.remote(None, {"name": "Task A"}, 1.0))
 
-    # Task B: depends on Task A, high priority (low number)
-    scheduler.schedule({"name": "Task B"}, 0.5, dependencies=[task_a_id])
+    # Task B: depends on Task A, high priority (0.5)
+    ray.get(scheduler.submit.remote(None, {"name": "Task B"}, 0.5, dependencies=[task_a_id]))
 
-    # Task C: no dependencies, medium priority
-    scheduler.schedule({"name": "Task C"}, 0.8)
+    # Task C: no dependencies, medium priority (0.8)
+    ray.get(scheduler.submit.remote(None, {"name": "Task C"}, 0.8))
 
     # scheduler.next() should return Task C (0.8 < 1.0)
-    task = scheduler.next()
+    res = ray.get(scheduler.next.remote())
+    assert res is not None
+    priority, module, task, tid = res
     assert task["name"] == "Task C"
 
-    task = scheduler.next()
+    # Next should be Task A (1.0)
+    res = ray.get(scheduler.next.remote())
+    assert res is not None
+    priority, module, task, tid = res
     assert task["name"] == "Task A"
 
-    # Complete Task A
-    tg.update_task_status(task_a_id, TaskStatus.COMPLETED)
+    # scheduler.next() should be None as Task B is blocked
+    res = ray.get(scheduler.next.remote())
+    assert res is None
 
-    # Now Task B should be ready with priority 0.5
-    task = scheduler.next()
+    # Complete Task A
+    ray.get(scheduler.complete_task.remote(task_a_id))
+
+    # Now Task B should be ready and returned
+    res = ray.get(scheduler.next.remote())
+    assert res is not None
+    priority, module, task, tid = res
     assert task["name"] == "Task B"
 
 def test_persistence_with_priority(clean_db):
