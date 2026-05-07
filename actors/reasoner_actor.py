@@ -44,7 +44,7 @@ class ReasonerActor(CognitiveModule):
                         "action": {"type": "mitigation", "method": "logical_isolation"}
                     })
         except Exception as e:
-            logger.info(f"Error in receive: {e}")
+            logger.error(f"Error in receive: {e}")
 
     def reason(self, query):
         """

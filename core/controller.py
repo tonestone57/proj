@@ -1,6 +1,9 @@
 import logging
 import time
 
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
+
 class DPSController:
     def __init__(self, workspace, scheduler, router, priority_engine, attention_gate):
         self.workspace = workspace
@@ -71,29 +74,4 @@ class DPSController:
 from core.message_bus.router import TaskRouter
 from core.message_bus.priority_engine import PriorityEngine
 from safety_ethics.attention_gate import AttentionGate
-from core.controller import DPSController
 
-# Standard SGI 2026 Logging
-logger = logging.getLogger(__name__)
-
-def main():
-    workspace = GlobalWorkspace()
-    scheduler = Scheduler()
-
-    # Module registry
-    modules = {
-        "vision": VisionModule(workspace, scheduler),
-        "symbolic_reasoner": SymbolicReasoner(workspace, scheduler),
-        "planner": Planner(workspace, scheduler),
-        "self_model": SelfModel(workspace, scheduler)
-    }
-
-    # DPS components
-    router = TaskRouter(modules)
-    priority_engine = PriorityEngine()
-    attention_gate = AttentionGate()
-    dps = DPSController(workspace, scheduler, router, priority_engine, attention_gate)
-
-    # Autonomous loop
-    loop = AutonomousLoop(workspace, scheduler, dps)
-    loop.run()

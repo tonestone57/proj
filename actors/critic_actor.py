@@ -10,14 +10,14 @@ logger = logging.getLogger(__name__)
 class InternalCritic(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        logger.info(f"Initialized with Shared Model Provider.")
+        logger.error(f"Initialized with Shared Model Provider.")
 
     def critique_code(self, code, context=None):
         """
         SGI 2026 Reflector/Judge logic.
         Performs detailed critique and assigns a quality score.
         """
-        logger.info(f"Critiquing code snippet...")
+        logger.error(f"Critiquing code snippet...")
         issues = []
         score = 1.0
 
@@ -71,7 +71,7 @@ class InternalCritic(CognitiveModule):
                 if "optimize" in llm_critique.lower():
                     issues.append(f"Optimization suggested: {llm_critique[:100]}...")
             except Exception as e:
-                logger.info(f"LLM critique failed: {e}")
+                logger.error(f"LLM critique failed: {e}")
 
         # Ensure score stays in [0, 1]
         score = max(0.0, min(1.0, score))
