@@ -511,7 +511,7 @@ class MemoryManager(CognitiveModule):
                 current_chunk = []
             current_chunk.append(line)
         if current_chunk: chunks.append("\n".join(current_chunk))
-        print(f"[MemoryManager] Created {len(chunks)} structural chunks.")
+        logger.info(f"Created {len(chunks)} structural chunks.")
         return chunks
 
     def perform_semantic_hashing(self, context):

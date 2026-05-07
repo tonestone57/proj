@@ -1,5 +1,9 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class SchemaManager(CognitiveModule):
@@ -41,7 +45,7 @@ class SchemaManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         """Standard SGI message receiver."""
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "update_schema":
             self.update_schema(message["data"]["episode"])
         elif message["type"] == "apply_schema":

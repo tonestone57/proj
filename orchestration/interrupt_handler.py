@@ -1,3 +1,7 @@
+import logging
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class InterruptHandler:
     def __init__(self, threshold=0.8):
@@ -12,7 +16,7 @@ class InterruptHandler:
 
         # Immediate interrupt if hard flag is set or priority is critical
         if is_hard_interrupt or priority >= self.critical_threshold:
-            print(f"[InterruptHandler] Preempting current task: {event.get('type')}")
+            logger.info(f"Preempting current task: {event.get('type')}")
             return True
 
         return False

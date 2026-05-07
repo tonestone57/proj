@@ -1,4 +1,8 @@
+import logging
 import time
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class AttentionGate:
     def __init__(self, ethics_manager=None):
@@ -32,12 +36,12 @@ class AttentionGate:
                 safety_score = 1.0
 
             if safety_score < 0.5:
-                print(f"ATTENTION VETO: Message {message.get('type')} blocked. Safety score: {safety_score}")
+                logger.info(f"ATTENTION VETO: Message {message.get('type')} blocked. Safety score: {safety_score}")
                 return False
 
             # Additional veto for specific prohibited patterns (e.g., GPL)
             if "gpl" in str(message.get("data", "")).lower():
-                 print(f"ATTENTION VETO: GPL content detected in {message.get('type')}. Veto triggered.")
+                 logger.info(f"ATTENTION VETO: GPL content detected in {message.get('type')}. Veto triggered.")
                  return False
 
         return True
@@ -63,7 +67,7 @@ class AttentionGate:
         Dynamically adjusts the attention threshold based on cognitive load.
         """
         load = self.calculate_cognitive_load()
-        print(f"[AttentionGate] Cognitive load: {load:.4f}. Adjusting threshold.")
+        logger.info(f"Cognitive load: {load:.4f}. Adjusting threshold.")
 
         # Heuristic: threshold increases with load to filter more signals
         self.threshold = 0.1 + (load * 0.5)
@@ -74,7 +78,7 @@ class AttentionGate:
         Special amplification for critical or emergency signals.
         """
         if priority > 0.9 or message.get("urgency") == "high":
-            print(f"[AttentionGate] Amplifying CRITICAL signal: {message['type']}")
+            logger.info(f"Amplifying CRITICAL signal: {message['type']}")
             message["strength"] = 1.0
             message["critical"] = True
         else:

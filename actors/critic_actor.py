@@ -1,19 +1,23 @@
+import logging
 import ray
 import re
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class InternalCritic(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        print(f"[InternalCritic] Initialized with Shared Model Provider.")
+        logger.info(f"Initialized with Shared Model Provider.")
 
     def critique_code(self, code, context=None):
         """
         SGI 2026 Reflector/Judge logic.
         Performs detailed critique and assigns a quality score.
         """
-        print(f"[InternalCritic] Critiquing code snippet...")
+        logger.info(f"Critiquing code snippet...")
         issues = []
         score = 1.0
 
@@ -67,7 +71,7 @@ class InternalCritic(CognitiveModule):
                 if "optimize" in llm_critique.lower():
                     issues.append(f"Optimization suggested: {llm_critique[:100]}...")
             except Exception as e:
-                print(f"[InternalCritic] LLM critique failed: {e}")
+                logger.info(f"LLM critique failed: {e}")
 
         # Ensure score stays in [0, 1]
         score = max(0.0, min(1.0, score))

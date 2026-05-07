@@ -1,5 +1,9 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class SemanticMemory(CognitiveModule):
@@ -23,7 +27,7 @@ class SemanticMemory(CognitiveModule):
         Implementation of LLM-Arithmetic Coding for Deep Archive.
         Stores token probabilities predicted by the LLM for massive compression ratios.
         """
-        print("[SemanticMemory] Running LLM-Arithmetic Coding (LLM-Zip)...")
+        logger.info("Running LLM-Arithmetic Coding (LLM-Zip)...")
 
         # SGI 2026 Standard: LLM-Arithmetic Coding
         # If self.model is available, we would ideally use it to get log-probabilities.

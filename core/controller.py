@@ -1,3 +1,4 @@
+import logging
 import time
 
 class DPSController:
@@ -19,18 +20,18 @@ class DPSController:
         """
         Simulates runtime threshold updates.
         """
-        print("[DPSController] Hot-reloading system configuration...")
+        logger.info("Hot-reloading system configuration...")
         # Simulate loading from core.config
         from core import config
         import importlib
         importlib.reload(config)
-        print(f"[DPSController] Config reloaded. TICK_INTERVAL: {config.TICK_INTERVAL}")
+        logger.info(f"Config reloaded. TICK_INTERVAL: {config.TICK_INTERVAL}")
 
     def handle_lifecycle_event(self, event_type, module_name):
         """
         Monitors spawn, kill, and restart signals for actors.
         """
-        print(f"[DPSController] Lifecycle event [{event_type}] for {module_name}")
+        logger.info(f"Lifecycle event [{event_type}] for {module_name}")
         if event_type == "kill":
             if module_name in self.module_pulses:
                 del self.module_pulses[module_name]
@@ -42,7 +43,7 @@ class DPSController:
         from core.drives import calculate_entropy
         state = self.workspace.get_current_state()
         entropy = calculate_entropy(state)
-        print(f"[DPSController] System Health (Inverse Entropy): {max(0, 5.0 - entropy):.2f}/5.0")
+        logger.info(f"System Health (Inverse Entropy): {max(0, 5.0 - entropy):.2f}/5.0")
         return entropy
 
     def process(self, message):
@@ -71,6 +72,9 @@ from core.message_bus.router import TaskRouter
 from core.message_bus.priority_engine import PriorityEngine
 from safety_ethics.attention_gate import AttentionGate
 from core.controller import DPSController
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 def main():
     workspace = GlobalWorkspace()

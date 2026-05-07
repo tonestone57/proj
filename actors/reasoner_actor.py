@@ -1,14 +1,18 @@
+import logging
 import math
 import re
 import ray
 from core.base import CognitiveModule
 from core.config import CORES_REASONER
 
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
+
 @ray.remote(num_cpus=CORES_REASONER)
 class ReasonerActor(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        print(f"[ReasonerActor] Initialized. Using Shared Model Provider for reasoning tasks...")
+        logger.info(f"Initialized. Using Shared Model Provider for reasoning tasks...")
 
     def receive(self, message):
         try:
@@ -31,32 +35,61 @@ class ReasonerActor(CognitiveModule):
             elif message["type"] == "simulation_obs":
                 # SGI 2026: Logic-based response to simulation state
                 obs = message["data"]
-                print(f"[ReasonerActor] Simulation Update: {obs}")
+                logger.info(f"Simulation Update: {obs}")
                 # Proactively analyze threat levels or load from simulation
                 if obs.get("threat_level", 0) > 50:
-                    print("[ReasonerActor] ⚠️ High Threat detected in simulation. Recommending lockdown logic.")
+                    logger.info("⚠️ High Threat detected in simulation. Recommending lockdown logic.")
                     self.send_result("simulation_action", {
                         "agent_id": "ReasonerActor",
                         "action": {"type": "mitigation", "method": "logical_isolation"}
                     })
         except Exception as e:
-            print(f"[ReasonerActor] Error in receive: {e}")
+            logger.info(f"Error in receive: {e}")
 
     def reason(self, query):
+        """
+        SGI 2026: Safe symbolic reasoning using SymPy.
+        Replaces unsafe eval() with strictly controlled expression parsing.
+        """
         if not isinstance(query, str): return "Error: Query must be a string."
-        processed_query = re.sub(r'\band\b', 'and', query, flags=re.IGNORECASE)
-        processed_query = re.sub(r'\bor\b', 'or', processed_query, flags=re.IGNORECASE)
-        processed_query = re.sub(r'\bnot\b', 'not', processed_query, flags=re.IGNORECASE)
+
+        import sympy
+        from sympy import sympify, SympifyError
+
+        # SGI 2026: Pre-process query for SymPy compatibility
+        # Replace pythonic logical operators and boolean literals
+        processed_query = re.sub(r'\band\b', '&', query, flags=re.IGNORECASE)
+        processed_query = re.sub(r'\bor\b', '|', processed_query, flags=re.IGNORECASE)
+        processed_query = re.sub(r'\bnot\b', '~', processed_query, flags=re.IGNORECASE)
         processed_query = re.sub(r'\btrue\b', 'True', processed_query, flags=re.IGNORECASE)
         processed_query = re.sub(r'\bfalse\b', 'False', processed_query, flags=re.IGNORECASE)
-        safe_dict = {"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow, "math": math, "True": True, "False": False}
-        for name in dir(math):
-            if not name.startswith("__"): safe_dict[name] = getattr(math, name)
-        try: return eval(processed_query, {"__builtins__": {}}, safe_dict)
-        except Exception as e: return f"Error evaluating query: {e}"
+
+        # Basic sanitization: block potential attribute access or dangerous calls
+        if "__" in processed_query or "import" in processed_query:
+            return "Error: Dangerous patterns detected in query."
+
+        try:
+            # strictly limit what can be executed by checking against allowed symbols
+            # SymPy's sympify is generally safer than eval, but we still apply caution.
+            expr = sympify(processed_query, evaluate=True)
+
+            # If it's a constant or simple expression, evaluate it to a float
+            if hasattr(expr, 'evalf'):
+                result = expr.evalf()
+                try:
+                    return float(result)
+                except (TypeError, ValueError):
+                    return str(result)
+            return str(expr)
+        except (SympifyError, TypeError, ValueError) as e:
+            logger.error(f"Symbolic reasoning failed for query '{query}': {e}")
+            return f"Error evaluating query: {e}"
+        except Exception as e:
+            logger.error(f"Unexpected error in symbolic reasoning: {e}")
+            return f"Error: Internal reasoning failure."
 
     def verify_logic(self, code, mission_critical=False):
-        print(f"[ReasonerActor] Verifying logic...")
+        logger.info(f"Verifying logic...")
         try:
             import z3
             s = z3.Solver()

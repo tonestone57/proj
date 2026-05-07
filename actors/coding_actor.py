@@ -152,7 +152,16 @@ class CodingActorBase(CognitiveModule):
                     transformed = transformed.split("```python")[1].split("```")[0].strip()
                 elif "```" in transformed:
                     transformed = transformed.split("```")[1].strip()
-                return transformed
+
+                # SGI 2026: Validation - Ensure the transformed code is valid Python
+                import ast
+                try:
+                    ast.parse(transformed)
+                    return transformed
+                except SyntaxError:
+                    logger.warning(f"Refined code has syntax errors. Falling back to original.")
+                    return code
+
             except Exception as e:
                 logger.error(f"Refactoring failed: {e}")
                 return code

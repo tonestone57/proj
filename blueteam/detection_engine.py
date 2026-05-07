@@ -1,8 +1,12 @@
+import logging
 import ray
 from core.base import CognitiveModule
 
 import re
 import math
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class DetectionEngine(CognitiveModule):
@@ -30,13 +34,13 @@ class DetectionEngine(CognitiveModule):
         # 1. Signature-based detection
         for sig in self.signatures:
             if re.search(sig, traffic_str):
-                print(f"[DetectionEngine] 🚨 Signature Match: {sig}")
+                logger.info(f"🚨 Signature Match: {sig}")
                 return {"alert": True, "type": "signature_match", "signature": sig, "severity": "high"}
 
         # 2. Advanced Anomaly-based detection (Entropy-based)
         entropy = self._calculate_traffic_entropy(traffic_str)
         if entropy > 5.0 or "suspicious" in traffic_str:
-            print(f"[DetectionEngine] ⚠️ Anomaly Detected (Entropy: {entropy:.2f})")
+            logger.info(f"⚠️ Anomaly Detected (Entropy: {entropy:.2f})")
             return {"alert": True, "type": "anomaly_heuristic", "entropy": entropy, "severity": "medium"}
 
         # 3. Frequency-based detection

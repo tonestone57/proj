@@ -1,5 +1,9 @@
+import logging
 from core.base import CognitiveModule
 import ray
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 @ray.remote
 class DeploymentManager(CognitiveModule):
     def __init__(self, env=None, registry=None, version_manager=None, policy_loader=None, workspace=None, scheduler=None, model_registry=None):
@@ -17,7 +21,7 @@ class DeploymentManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         """Standard SGI message receiver."""
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "deployment_request":
             result = self.deploy(message['data']['agent_id'], message['data']['agent'], message['data']['metadata'], message['data']['version'])
             self.send_result("deployment_result", result)

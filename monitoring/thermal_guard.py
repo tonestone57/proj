@@ -1,13 +1,17 @@
+import logging
 import math
 import psutil
 import ray
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class ThermalGuard:
     def __init__(self, threshold_temp=78.0, threshold_load=95.0):
         self.threshold_temp = threshold_temp
         self.threshold_load = threshold_load
-        print(f"[ThermalGuard] Initialized. Thresholds: {threshold_temp}C, {threshold_load}% Load")
+        logger.info(f"Initialized. Thresholds: {threshold_temp}C, {threshold_load}% Load")
 
     def get_thermal_state(self):
         """
@@ -57,6 +61,6 @@ class ThermalGuard:
         """
         state = self.get_thermal_state()
         if state["is_throttled"]:
-            print(f"⚠️ [ThermalGuard] System Alert! Temp: {state['temp']}C, Load: {state['load']}%")
+            logger.info(f"⚠️ [ThermalGuard] System Alert! Temp: {state['temp']}C, Load: {state['load']}%")
             return False
         return True

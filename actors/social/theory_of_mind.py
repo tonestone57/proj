@@ -1,12 +1,16 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class TheoryOfMind(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
         self.agent_models = {}
-        print(f"[TheoryOfMind] Initialized with Shared Model Provider.")
+        logger.info(f"Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if super().receive(message): return True
@@ -39,7 +43,7 @@ class TheoryOfMind(CognitiveModule):
         self.agent_models[agent]["history"].append(data)
 
     def infer_intention(self, agent):
-        print(f"[TheoryOfMind] Inferring intention for agent: {agent}")
+        logger.info(f"Inferring intention for agent: {agent}")
         if self.model_registry:
             # SGI 2026: Complex intention inference via Shared Model Provider
             prompt = f"Analyze agent history for {agent} and infer their current goal and mental state."

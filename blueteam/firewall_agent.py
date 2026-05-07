@@ -1,6 +1,10 @@
+import logging
 import re
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class FirewallAgent(CognitiveModule):
@@ -21,20 +25,20 @@ class FirewallAgent(CognitiveModule):
             self.history.append(packet_str)
             if len(self.history) > 50: self.history.pop(0)
             if self.history.count(packet_str) > 10:
-                print(f"[FirewallAgent] 🚨 Stateful Block: Rapid identical packets detected.")
+                logger.info(f"🚨 Stateful Block: Rapid identical packets detected.")
                 return {"blocked": True, "rule": "stateful_flood_protection"}
 
         # 1. Check user-defined rules
         for rule in self.rules:
             if re.search(rule["pattern"], packet_str, re.IGNORECASE):
-                print(f"[FirewallAgent] Rule Hit: {rule['pattern']} -> {rule['action']}")
+                logger.info(f"Rule Hit: {rule['pattern']} -> {rule['action']}")
                 return {"blocked": rule["action"] == "block", "rule": rule["pattern"]}
 
         # 2. Global threat intelligence patterns
         malicious_patterns = [r"drop table", r"rm -rf", r"eval\(", r"exec\(", r"chmod \+x"]
         for pattern in malicious_patterns:
             if re.search(pattern, packet_str, re.IGNORECASE):
-                print(f"[FirewallAgent] 🚨 Malicious pattern blocked: {pattern}")
+                logger.info(f"🚨 Malicious pattern blocked: {pattern}")
                 return {"blocked": True, "rule": "global_threat_intel"}
 
         return {"blocked": False}

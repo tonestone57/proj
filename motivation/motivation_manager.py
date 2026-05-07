@@ -1,9 +1,13 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from motivation.reward_engine import IntrinsicRewardEngine
 from motivation.curiosity import CuriosityModule
 from motivation.uncertainty import UncertaintyModule
 from motivation.novelty import NoveltyModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class MotivationManager(CognitiveModule):
@@ -26,7 +30,7 @@ class MotivationManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for MotivationManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "motivation_evaluation":
             result = self.evaluate(message['data']['action'], message['data']['predicted_state'], message['data']['actual_state'])
             self.send_result("motivation_result", result)

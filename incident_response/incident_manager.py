@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from incident_response.incident_classifier import IncidentClassifier
@@ -7,6 +8,9 @@ from incident_response.containment_engine import ContainmentEngine
 from incident_response.eradication_engine import EradicationEngine
 from incident_response.recovery_engine import RecoveryEngine
 from incident_response.audit_logger import AuditLogger
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class IncidentManager(CognitiveModule):
@@ -43,7 +47,7 @@ class IncidentManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for IncidentManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "incident_handle":
             result = self.handle(message['data']['agent'], message['data']['action'], message['data']['state'], message['data']['context'])
             self.send_result("incident_result", result)

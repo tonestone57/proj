@@ -1,5 +1,9 @@
+import logging
 import collections
 import struct
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class LLMZipCodec:
     """
@@ -140,6 +144,6 @@ if __name__ == "__main__":
     test_str = "SGI 2026 Neural Archiving test string."
     comp = codec.compress(test_str)
     decomp = codec.decompress(comp)
-    print(f"Original: {test_str}")
-    print(f"Decompressed: {decomp}")
-    print(f"Match: {test_str == decomp}")
+    logger.info(f"Original: {test_str}")
+    logger.info(f"Decompressed: {decomp}")
+    logger.info(f"Match: {test_str == decomp}")

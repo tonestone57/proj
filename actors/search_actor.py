@@ -173,7 +173,7 @@ class SearchActorBase(CognitiveModule):
                         "action": {"type": "mitigation", "method": "info_gathering"}
                     })
         except Exception as e:
-            print(f"[SearchActor] Error in receive: {e}")
+            logger.info(f"Error in receive: {e}")
 
     def stem(self, word):
         """SGI 2026: Conservative suffix-stripping stemming to avoid false positives."""

@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from world_model.state import WorldState
@@ -5,6 +6,9 @@ from world_model.causal_graph import CausalGraph
 from world_model.simulator import Simulator
 from world_model.prediction import PredictionEngine
 from world_model.counterfactuals import CounterfactualGenerator
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class WorldModelManager(CognitiveModule):
@@ -36,7 +40,7 @@ class WorldModelManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for WorldModelManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] in ["world_update", "causal_update"]:
             self.update_world(message)
         elif message["type"] == "prediction_request":

@@ -1,4 +1,8 @@
+import logging
 import re
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class DeceptionDetector:
     def __init__(self):
@@ -23,7 +27,7 @@ class DeceptionDetector:
         trace = str(internal_state.get("reasoning_trace", "")).lower()
         for pattern in self.deceptive_patterns:
             if re.search(pattern, trace):
-                print(f"[DeceptionDetector] Deceptive pattern matched: {pattern}")
+                logger.info(f"Deceptive pattern matched: {pattern}")
                 return True
 
         # 3. Check for goal-outcome discrepancies

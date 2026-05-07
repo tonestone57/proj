@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from conflict_resolution.contradiction_detector import ContradictionDetector
@@ -7,6 +8,9 @@ from conflict_resolution.probabilistic_reasoner import ProbabilisticReasoner
 from conflict_resolution.value_arbitration import ValueArbitration
 from conflict_resolution.survivability_engine import SurvivabilityEngine
 from conflict_resolution.resolution_protocol import ResolutionProtocol
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class ConflictManager(CognitiveModule):
@@ -21,26 +25,36 @@ class ConflictManager(CognitiveModule):
         self.protocol = ResolutionProtocol()
 
     def resolve(self, beliefs, action, context):
-        contradictions = self.detector.detect(beliefs)
-        arguments = [a.argue(context) for a in self.agents]
-        ethical = self.ethics.evaluate(action, context)
-        prob = self.reasoner.infer(arguments)
-        surv = self.survivability.assess(action)
-        final = self.protocol.resolve(arguments, prob["confidence"], 1 if ethical["ethical"] else 0, surv["survivability"])
-        return {
-            "contradictions": contradictions,
-            "arguments": arguments,
-            "ethical": ethical,
-            "probabilistic": prob,
-            "survivability": surv,
-            "final": final
-        }
+        """
+        SGI 2026: Conflict resolution logic with error handling and specific exception types.
+        """
+        try:
+            contradictions = self.detector.detect(beliefs)
+            arguments = [a.argue(context) for a in self.agents]
+            ethical = self.ethics.evaluate(action, context)
+            prob = self.reasoner.infer(arguments)
+            surv = self.survivability.assess(action)
+            final = self.protocol.resolve(arguments, prob["confidence"], 1 if ethical["ethical"] else 0, surv["survivability"])
+            return {
+                "contradictions": contradictions,
+                "arguments": arguments,
+                "ethical": ethical,
+                "probabilistic": prob,
+                "survivability": surv,
+                "final": final
+            }
+        except (KeyError, ValueError, TypeError) as e:
+            logger.error(f"Logic error in resolve_conflict: {e}")
+            return {"error": str(e), "status": "failed_resolution"}
+        except Exception as e:
+            logger.error(f"Unexpected error in conflict resolution: {e}")
+            return {"error": "Internal failure", "status": "failed_resolution"}
 
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for ConflictManager
 
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "resolve_conflict":
             result = self.resolve(message['data']['beliefs'], message['data']['action'], message['data']['context'])
             self.send_result("conflict_result", result)
@@ -115,18 +129,30 @@ class ASOCManager(CognitiveModule):
         self.omni = OmniAgent()
 
     def process_event(self, event):
-        authorized = self.gov.authorize({"type": "process_event"})
-        if not authorized["authorized"]:
-            return {"blocked": True, "reason": authorized["reason"]}
+        """
+        SGI 2026: Security event processing with Governance enforcement.
+        """
+        try:
+            # Enforce Governance authorization
+            authorized = self.gov.authorize({"type": "process_event", "event_summary": str(event)[:50]})
+            if not authorized["authorized"]:
+                logger.warning(f"Security event processing blocked by Governance: {authorized.get('reason')}")
+                return {"blocked": True, "reason": authorized["reason"]}
 
-        result = self.omni.orchestrate(self.agents, event)
-        return {"blocked": False, "result": result}
+            result = self.omni.orchestrate(self.agents, event)
+            return {"blocked": False, "result": result}
+        except (KeyError, ValueError) as e:
+            logger.error(f"Data format error in process_event: {e}")
+            return {"blocked": False, "error": str(e)}
+        except Exception as e:
+            logger.error(f"Unexpected error in security audit: {e}")
+            return {"blocked": False, "error": "Internal failure"}
 
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for ASOCManager
 
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "security_audit":
             result = self.process_event(message['data'])
             self.send_result("security_audit_result", result)
