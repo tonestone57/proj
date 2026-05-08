@@ -236,7 +236,7 @@ class MemoryManager(CognitiveModule):
         """
         SGI 2026: Persists search results to the Wisdom Cache (LanceDB).
         """
-        logger.error(f"Archiving search results for: {query[:30]}...")
+        logger.info(f"Archiving search results for: {query[:30]}...")
         if not query or not results: return
 
         # In a real system, this would write to LanceDB.
@@ -247,7 +247,7 @@ class MemoryManager(CognitiveModule):
         self.wisdom_cache_metadata[summary] = time.time()
 
     def trigger_sleep_cycle(self, current_tick=0):
-        logger.error(f"Starting Sleep Cycle (Tick {current_tick})...")
+        logger.info(f"Starting Sleep Cycle (Tick {current_tick})...")
 
         # SGI 2026: Weight Saliency Pruning
         # Move Wisdom Cache entries not accessed in > 250 cycles to Deep Archive (LLM-Zip)
@@ -333,7 +333,7 @@ class MemoryManager(CognitiveModule):
                 preserved_history.append(msg)
             else:
                 pruned_count += 1
-        logger.error(f"Pruned {pruned_count} low-saliency memories.")
+        logger.info(f"Pruned {pruned_count} low-saliency memories.")
         logger.error("Archiving remaining raw logs to long-term storage (LanceDB) using Zstd-19.")
 
     def synthesize_knowledge(self, patterns):

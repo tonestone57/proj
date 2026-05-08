@@ -10,14 +10,14 @@ logger = logging.getLogger(__name__)
 class InternalCritic(CognitiveModule):
     def __init__(self, workspace=None, scheduler=None, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        logger.error(f"Initialized with Shared Model Provider.")
+        logger.info(f"Initialized with Shared Model Provider.")
 
     def critique_code(self, code, context=None):
         """
         SGI 2026 Reflector/Judge logic.
         Performs detailed critique and assigns a quality score.
         """
-        logger.error(f"Critiquing code snippet...")
+        logger.info(f"Critiquing code snippet...")
         issues = []
         score = 1.0
 

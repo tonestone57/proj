@@ -46,8 +46,8 @@ class ConflictManager(CognitiveModule):
         except (KeyError, ValueError, TypeError) as e:
             logger.error(f"Logic error in resolve_conflict: {e}")
             return {"error": str(e), "status": "failed_resolution"}
-        except Exception as e:
-            logger.error(f"Unexpected error in conflict resolution: {e}")
+        except Exception:
+            logger.exception("Unexpected error in conflict resolution")
             return {"error": "Internal failure", "status": "failed_resolution"}
 
     def receive(self, message):
@@ -144,8 +144,8 @@ class ASOCManager(CognitiveModule):
         except (KeyError, ValueError) as e:
             logger.error(f"Data format error in process_event: {e}")
             return {"blocked": False, "error": str(e)}
-        except Exception as e:
-            logger.error(f"Unexpected error in security audit: {e}")
+        except Exception:
+            logger.exception("Unexpected error in security audit")
             return {"blocked": False, "error": "Internal failure"}
 
     def receive(self, message):
