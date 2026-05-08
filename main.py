@@ -421,6 +421,11 @@ async def cognitive_cycle():
 
                 await hub.safe_delegate(actor_h, t_type, payload)
 
+            elif entropy < THRESHOLD_CONSOLIDATE:
+                logger.info(f"Low Entropy ({entropy:.4f}): Triggering Sleep Cycle & Memory Consolidation.")
+                # Trigger background consolidation: refactoring, indexing, synthetic data gen
+                await hub.safe_delegate(actors['memory_manager'], "trigger_sleep_cycle", {"tick": tick})
+
         # SGI 2026: Proactive Active Inference for Self-Improvement
         if tick % 5 == 0:
             await hub.safe_delegate(actors['meta_manager'], "active_inference_trigger", None)

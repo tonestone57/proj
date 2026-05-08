@@ -22,3 +22,4 @@ openai
 pebble
 lancedb
 pyarrow
+sympy
