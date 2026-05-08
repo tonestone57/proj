@@ -1,3 +1,4 @@
+import z3
 import logging
 import math
 import re
@@ -90,7 +91,6 @@ class ReasonerActor(CognitiveModule):
     def verify_logic(self, code, mission_critical=False):
         logger.info(f"Verifying logic...")
         try:
-            import z3
             s = z3.Solver()
             if mission_critical:
                 x = z3.Int('x')

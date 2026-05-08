@@ -337,7 +337,7 @@ class MemoryManager(CognitiveModule):
         logger.info("Archiving remaining raw logs to long-term storage (LanceDB) using Zstd-19.")
 
     def synthesize_knowledge(self, patterns):
-        logger.error(f"Synthesizing new Knowledge Base entries for patterns: {patterns}")
+        logger.info(f"Synthesizing new Knowledge Base entries for patterns: {patterns}")
         for pattern in patterns:
             kb_entry = f"# Synthesized Lesson: {pattern}\n\nThis entry was automatically generated during a sleep cycle."
             self.KnowledgeDistillation_Loop(kb_entry)
@@ -479,7 +479,7 @@ class MemoryManager(CognitiveModule):
             return [0] * len(channel_vector)
         scale = max_val / 127.0
         quantized = [round(x / scale) for x in channel_vector]
-        logger.error(f"Per-Channel Scaling applied. Scale: {scale:.4f}")
+        logger.info(f"Per-Channel Scaling applied. Scale: {scale:.4f}")
         return quantized
 
     def perform_ast_serialization(self, code):

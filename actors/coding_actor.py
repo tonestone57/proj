@@ -1,8 +1,10 @@
+import os
+import subprocess
+import tempfile
 import ast
 import contextlib
 import io
 import logging
-import os
 import ray
 import re
 import sys
@@ -302,7 +304,6 @@ class CodingActorBase(CognitiveModule):
 
         # Prepend standard SGI 2026 imports and resource limits
         imports = """
-import os
 import resource
 import math
 
@@ -321,7 +322,6 @@ import bisect
 import itertools
 import functools
 import operator
-import re
 import typing
 import numpy as np
 import pandas as pd
@@ -329,7 +329,6 @@ import dataclasses
 import string
 import traceback
 import gc
-import sys
 
 # Inject common names into global scope for convenience
 from collections import deque, Counter, defaultdict, OrderedDict

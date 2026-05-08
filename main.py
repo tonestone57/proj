@@ -403,11 +403,15 @@ async def cognitive_cycle():
                 else:
                     await hub.safe_delegate(actors['coder'], "code_execution", "print('Proactive self-test')")
             elif entropy < THRESHOLD_CONSOLIDATE:
-                logger.info(f"Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
+                logger.info(f"Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement & Consolidation...")
 
                 if tick % 10 == 0:
                     hub.hot_reload_system()
 
+                # SGI 2026: Trigger Sleep Cycle & Memory Consolidation
+                await hub.safe_delegate(actors['memory_manager'], "trigger_sleep_cycle", {"tick": tick})
+
+                # SGI 2026: Rotate through autonomous tasks
                 task_idx = tick % len(hub.autonomous_task_registry)
                 actor_h, t_type, payload = hub.autonomous_task_registry[task_idx]
 
@@ -419,11 +423,6 @@ async def cognitive_cycle():
                     if "timestamp" in payload: payload["timestamp"] = time.time()
 
                 await hub.safe_delegate(actor_h, t_type, payload)
-
-            elif entropy < THRESHOLD_CONSOLIDATE:
-                logger.info(f"Low Entropy ({entropy:.4f}): Triggering Sleep Cycle & Memory Consolidation.")
-                # Trigger background consolidation: refactoring, indexing, synthetic data gen
-                await hub.safe_delegate(actors['memory_manager'], "trigger_sleep_cycle", {"tick": tick})
 
         # SGI 2026: Proactive Active Inference for Self-Improvement
         if tick % 5 == 0:

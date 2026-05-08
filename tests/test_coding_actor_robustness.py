@@ -39,12 +39,6 @@ class TestCodingActorRobustness(unittest.TestCase):
 
         original_code = "def fib(n):\n    if n <= 1: return n\n    return fib(n-1) + fib(n-2)"
 
-        # We need to call iterative_transform. It's not a remote method in CodingActor (it inherits it)
-        # But CodingActor is @ray.remote, so we use .remote()
-
-        # However, iterative_transform is not decorated with .remote in the base class if called directly.
-        # But since the class is decorated, all its methods are remote.
-
         # We need to find recursive funcs first or let it detect them
         transformed = ray.get(actor.iterative_transform.remote(original_code))
 
