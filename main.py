@@ -365,7 +365,6 @@ async def cognitive_cycle():
             logger.info("High System Entropy detected. Generating new strategy via Planner.")
             await hub.safe_delegate(actors['planner'], "goal", "Optimize system performance and reduce entropy")
 
-
         # SGI 2026: Intrinsic Motivation Evaluation
         actors['motivation'].receive.remote({
             "type": "motivation_evaluation",
