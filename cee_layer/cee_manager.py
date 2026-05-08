@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from cee_layer.emotion_generator import EmotionGenerator
@@ -6,6 +7,9 @@ from cee_layer.emotion_regulator import EmotionRegulator
 from cee_layer.ethical_evaluator import EthicalEvaluator
 from cee_layer.cognitive_affective_bridge import CognitiveAffectiveBridge
 from cee_layer.moral_weighting import MoralWeighting
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class CEEManager(CognitiveModule):
@@ -37,7 +41,7 @@ class CEEManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for CEEManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "stimulus_processing":
             result = self.process(message['data']['stimuli'], message['data']['reasoning_score'], message['data']['action'], message['data']['context'])
             self.send_result("stimulus_result", result)

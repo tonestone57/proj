@@ -1,4 +1,8 @@
+import logging
 import json
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class WorldState:
     def __init__(self):
@@ -39,7 +43,7 @@ class WorldState:
         """
         Identifies discrepancies between predicted and observed states.
         """
-        print("[WorldState] Identifying reality gaps...")
+        logger.info("Identifying reality gaps...")
         gap = {}
         for key in observation:
             if key not in prediction:
@@ -52,14 +56,14 @@ class WorldState:
         """
         Serializes current state to JSON string for persistence.
         """
-        print("[WorldState] Serializing state for persistence...")
+        logger.info("Serializing state for persistence...")
         return json.dumps(self.snapshot())
 
     def deserialize_state(self, state_json):
         """
         Restores state from JSON string.
         """
-        print("[WorldState] Restoring state from persistence...")
+        logger.info("Restoring state from persistence...")
         data = json.loads(state_json)
         self.internal_state = data.get("internal", {})
         self.external_state = data.get("external", {})
@@ -68,7 +72,7 @@ class WorldState:
         """
         Saves a snapshot of the current state with a given ID.
         """
-        print(f"[WorldState] Saving checkpoint: {checkpoint_id}")
+        logger.info(f"Saving checkpoint: {checkpoint_id}")
         self.checkpoints[checkpoint_id] = self.snapshot()
 
     def rewind_to_checkpoint(self, checkpoint_id):
@@ -76,12 +80,12 @@ class WorldState:
         Restores state from a saved checkpoint.
         """
         if checkpoint_id in self.checkpoints:
-            print(f"[WorldState] Rewinding to checkpoint: {checkpoint_id}")
+            logger.info(f"Rewinding to checkpoint: {checkpoint_id}")
             data = self.checkpoints[checkpoint_id]
             self.internal_state = data["internal"].copy()
             self.external_state = data["external"].copy()
         else:
-            print(f"[WorldState] Error: Checkpoint {checkpoint_id} not found.")
+            logger.info(f"Error: Checkpoint {checkpoint_id} not found.")
 
 class VMStateDigitalTwin:
     """
@@ -96,14 +100,14 @@ class VMStateDigitalTwin:
         self.branches = {}
 
     def start(self):
-        print(f"[VMDigitalTwin:{self.vm_id}] Starting microVM...")
+        logger.info(f"Starting microVM...")
         self.status = "running"
 
     def branch(self, branch_id):
         """
         Simulates branching the VM state for speculative execution.
         """
-        print(f"[VMDigitalTwin:{self.vm_id}] Branching state to {branch_id}")
+        logger.info(f"Branching state to {branch_id}")
         self.branches[branch_id] = {
             "status": self.status,
             "resources": self.resources.copy(),
@@ -111,5 +115,5 @@ class VMStateDigitalTwin:
         }
 
     def observe(self, effect):
-        print(f"[VMDigitalTwin:{self.vm_id}] Observing side effect: {effect}")
+        logger.info(f"Observing side effect: {effect}")
         self.side_effects.append(effect)

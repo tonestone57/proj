@@ -1,8 +1,12 @@
+import logging
 import ray
 import os
 import json
 import time
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class PlaybookManager(CognitiveModule):
@@ -35,14 +39,14 @@ class PlaybookManager(CognitiveModule):
             with open(self.playbook_path, "w") as f:
                 json.dump(self.playbook, f, indent=2)
         except Exception as e:
-            print(f"🚨 [PlaybookManager] Failed to save playbook: {e}")
+            logger.info(f"🚨 [PlaybookManager] Failed to save playbook: {e}")
 
     def learn_from_failure(self, task, implementation, critique):
         """
         ACE Stage: Treats the prompt as an evolving playbook.
         Updates instructions based on Reflector feedback.
         """
-        print(f"[PlaybookManager] ACE: Learning from failure for task: {task[:30]}...")
+        logger.info(f"ACE: Learning from failure for task: {task[:30]}...")
 
         if self.model_registry:
             prompt = (
@@ -62,9 +66,9 @@ class PlaybookManager(CognitiveModule):
                 self.playbook["version"] += 0.1
                 self.playbook["last_updated"] = time.time()
                 self._save_playbook()
-                print(f"[PlaybookManager] Playbook evolved to version {self.playbook['version']:.1f}")
+                logger.info(f"Playbook evolved to version {self.playbook['version']:.1f}")
             except Exception as e:
-                print(f"[PlaybookManager] ACE learning failed: {e}")
+                logger.info(f"ACE learning failed: {e}")
 
     def get_playbook_context(self):
         return f"SGI-Alpha Playbook (v{self.playbook['version']}): {self.playbook['global_instructions']}"

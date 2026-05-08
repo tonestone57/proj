@@ -1,12 +1,16 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class SocialReasoner(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None, episodic_memory=None):
         super().__init__(workspace, scheduler, model_registry)
         self.episodic_memory = episodic_memory
-        print(f"[SocialReasoner] Initialized.")
+        logger.info(f"Initialized.")
 
     def receive(self, message):
         if super().receive(message): return True

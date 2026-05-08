@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from economics.resource_model import Resource, Task
@@ -8,6 +9,9 @@ from economics.utility_engine import UtilityEngine
 from economics.fairness_engine import FairnessEngine
 from economics.optimizer import Optimizer
 from economics.orchestration_layer import OrchestrationLayer
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class EconomicManager(CognitiveModule):
@@ -24,13 +28,13 @@ class EconomicManager(CognitiveModule):
         """
         SGI 2026: Resolves resource contention among multiple agents.
         """
-        print(f"[EconomicManager] Resolving conflict for {len(tasks)} tasks...")
+        logger.info(f"Resolving conflict for {len(tasks)} tasks...")
         total_demand = sum(t.demand for t in tasks)
         proposals = self.optimizer.optimize(agents, {"available": total_demand})
         fairness_score = self.fairness_engine.fairness(proposals)
 
         if fairness_score < 0.6:
-            print("[EconomicManager] Low fairness detected. Re-allocating with greedy demand-first strategy.")
+            logger.info("Low fairness detected. Re-allocating with greedy demand-first strategy.")
             # SGI 2026: Greedy allocation by task demand to resolve conflict quickly
             sorted_tasks = sorted(tasks, key=lambda x: x.demand, reverse=True)
             greedy_allocation = {}
@@ -59,7 +63,7 @@ class EconomicManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for EconomicManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "allocation_request":
             result = self.allocate(message['data']['agents'], message['data']['task'], message['data']['context'])
             self.send_result("allocation_result", result)

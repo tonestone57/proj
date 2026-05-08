@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from self_model.identity_kernel import IdentityKernel
@@ -5,6 +6,9 @@ from self_model.autobiographical_memory import AutobiographicalMemory
 from self_model.temporal_self import TemporalSelf
 from self_model.continuity_metrics import ContinuityMetrics
 from self_model.reflective_endorsement import ReflectiveEndorsement
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class SelfManager(CognitiveModule):
@@ -21,7 +25,7 @@ class SelfManager(CognitiveModule):
         # SGI 2026: IdentityKernel consistency enforcement
         approval = self.approve_update(policy)
         if not approval.get("enforced", True):
-            print(f"🚨 [SelfManager] Self-update rejected by IdentityKernel: {approval.get('reason')}")
+            logger.info(f"🚨 [SelfManager] Self-update rejected by IdentityKernel: {approval.get('reason')}")
             return {"status": "rejected", "reason": approval.get("reason")}
 
         self.temporal.update_present(state)
@@ -41,7 +45,7 @@ class SelfManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for SelfManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "self_update":
             result = self.update_self(message['data']['state'], message['data']['policy'])
             self.send_result("self_update_result", result)

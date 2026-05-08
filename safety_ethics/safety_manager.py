@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from safety_ethics.risk_classifier import RiskClassifier
@@ -7,6 +8,9 @@ from safety_ethics.interpretability_monitor import InterpretabilityMonitor
 from safety_ethics.deception_detector import DeceptionDetector
 from safety_ethics.constraint_enforcer import ConstraintEnforcer
 from safety_ethics.shutdown_controller import ShutdownController
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class SafetyManager(CognitiveModule):
@@ -43,7 +47,7 @@ class SafetyManager(CognitiveModule):
             # Adaptive learning: lower threshold on repeated violations
             if self.violation_count > 3:
                 self.risk_threshold = max(0.1, self.risk_threshold - 0.05)
-                print(f"[SafetyManager] Repeated violations. Tightening risk threshold to {self.risk_threshold:.2f}")
+                logger.info(f"Repeated violations. Tightening risk threshold to {self.risk_threshold:.2f}")
             return {"approved": False, "reason": f"risk: {oversight.get('risk', 'high')}"}
 
         return {"approved": True, "reason": "safe"}
@@ -51,7 +55,7 @@ class SafetyManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for SafetyManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "safety_evaluation":
             result = self.evaluate(message['data']['action'], message['data']['internal_state'])
             self.send_result("safety_result", result)

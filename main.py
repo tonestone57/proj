@@ -19,7 +19,7 @@ from core.scheduler import Scheduler
 from core.drives import DriveEngine, PIDController
 from core.config import (
     CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME,
-    THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB, THRESHOLD_CONSOLIDATE
+    THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB, THRESHOLD_CONSOLIDATE, THRESHOLD_REPLAN
 )
 from core.model_registry import ModelRegistry
 
@@ -360,6 +360,11 @@ async def cognitive_cycle():
         entropy = drives.evaluate_state(state)
         logger.info(f"System Entropy: {entropy:.4f}")
 
+        # SGI 2026: Autonomous Drive Logic (Migration from heartbeat.py)
+        if entropy > THRESHOLD_REPLAN:
+            logger.info("High System Entropy detected. Generating new strategy via Planner.")
+            await hub.safe_delegate(actors['planner'], "goal", "Optimize system performance and reduce entropy")
+
         # SGI 2026: Intrinsic Motivation Evaluation
         actors['motivation'].receive.remote({
             "type": "motivation_evaluation",
@@ -395,11 +400,15 @@ async def cognitive_cycle():
                 else:
                     await hub.safe_delegate(actors['coder'], "code_execution", "print('Proactive self-test')")
             elif entropy < THRESHOLD_CONSOLIDATE:
-                logger.info(f"Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement...")
+                logger.info(f"Low Entropy ({entropy:.4f}): Initiating Autonomous Self-Improvement & Consolidation...")
 
                 if tick % 10 == 0:
                     hub.hot_reload_system()
 
+                # SGI 2026: Trigger Sleep Cycle & Memory Consolidation
+                await hub.safe_delegate(actors['memory_manager'], "trigger_sleep_cycle", {"tick": tick})
+
+                # SGI 2026: Rotate through autonomous tasks
                 task_idx = tick % len(hub.autonomous_task_registry)
                 actor_h, t_type, payload = hub.autonomous_task_registry[task_idx]
 

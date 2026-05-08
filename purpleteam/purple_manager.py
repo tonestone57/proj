@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from purpleteam.red_agent import RedAgent
@@ -7,6 +8,9 @@ from purpleteam.bas_engine import BASEngine
 from purpleteam.scoring_engine import ScoringEngine
 from purpleteam.selfplay_engine import SelfPlayEngine
 from purpleteam.remediation_engine import RemediationEngine
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class GovernanceAwareAgent:
     """Base class for governance-aware agents to reduce redundancy."""
@@ -89,7 +93,7 @@ class GovernanceIntegratedPurpleManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for GovernanceIntegratedPurpleManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "cycle_trigger":
             result = self.run_cycle(message['data']['state'])
             self.send_result("cycle_result", result)

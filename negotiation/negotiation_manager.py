@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from negotiation.negotiation_protocol import NegotiationProtocol
@@ -7,6 +8,9 @@ from negotiation.utility import UtilityFunction
 from negotiation.consensus_engine import ConsensusEngine
 from negotiation.treaty_graph import TreatyGraph
 from negotiation.compliance_engine import ComplianceEngine
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class NegotiationManager(CognitiveModule):
@@ -35,7 +39,7 @@ class NegotiationManager(CognitiveModule):
 
     def receive(self, message):
         if super().receive(message): return True
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "negotiation_request":
             result = self.negotiate(message['data']['issue'], message['data']['agents'])
             self.send_result("negotiation_result", result)

@@ -1,11 +1,15 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class Planner(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        print(f"[Planner] Initialized with Shared Model Provider.")
+        logger.info(f"Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if super().receive(message): return True
@@ -16,7 +20,7 @@ class Planner(CognitiveModule):
             self.scheduler.submit.remote(handle, {"type": "plan", "data": plan})
 
     def create_plan(self, goal):
-        print(f"[Planner] Creating plan for goal: {goal}")
+        logger.info(f"Creating plan for goal: {goal}")
         if self.model_registry:
             # SGI 2026: Intelligent task decomposition via Shared Model Provider
             prompt = f"Decompose this goal into actionable tasks: {goal}"

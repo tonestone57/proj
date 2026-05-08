@@ -1,6 +1,10 @@
+import logging
 import concurrent.futures
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class ConcurrencyManager(CognitiveModule):
@@ -16,7 +20,7 @@ class ConcurrencyManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         """Standard SGI message receiver."""
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "parallel_execution":
             result = self.run_parallel(message["data"]["agents"], message["data"]["input"])
             self.send_result("parallel_result", result)

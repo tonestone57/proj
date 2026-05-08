@@ -1,5 +1,9 @@
+import logging
 import math
 import time
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class PriorityEngine:
     def __init__(self):
@@ -17,7 +21,7 @@ class PriorityEngine:
         self.last_refill = now
 
         if self.tokens < 1:
-            print("⚠️ [PriorityEngine] Rate limit exceeded. Throttling message.")
+            logger.info("⚠️ [PriorityEngine] Rate limit exceeded. Throttling message.")
             return 0.1 # Minimal priority for throttled messages
 
         self.tokens -= 1

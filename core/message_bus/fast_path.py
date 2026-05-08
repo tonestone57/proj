@@ -1,4 +1,8 @@
+import logging
 import time
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class FastPathLZ4:
     """
@@ -16,7 +20,7 @@ class FastPathLZ4:
         # Simulate flash-optimized sub-millisecond latency
         time.sleep(max(0, self.latency_target - (time.perf_counter() - start_time)))
 
-        print(f"[FastPathLZ4] Compressed in {(time.perf_counter() - start_time)*1000:.4f}ms")
+        logger.info(f"Compressed in {(time.perf_counter() - start_time)*1000:.4f}ms")
         return compressed
 
     def decompress(self, compressed_data):
@@ -27,5 +31,5 @@ class FastPathLZ4:
         # Simulate flash-optimized sub-millisecond latency
         time.sleep(max(0, self.latency_target - (time.perf_counter() - start_time)))
 
-        print(f"[FastPathLZ4] Decompressed in {(time.perf_counter() - start_time)*1000:.4f}ms")
+        logger.info(f"Decompressed in {(time.perf_counter() - start_time)*1000:.4f}ms")
         return decompressed

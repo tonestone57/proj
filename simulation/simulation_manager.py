@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from simulation.sim_core import SimulationCore
@@ -6,6 +7,9 @@ from simulation.interaction_protocol import InteractionProtocol
 from simulation.governance_interventions import GovernanceInterventions
 from simulation.metrics_engine import MetricsEngine
 from simulation.replay_buffer import ReplayBuffer
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class SimulationManager(CognitiveModule):
@@ -36,14 +40,14 @@ class SimulationManager(CognitiveModule):
 
         # SGI 2026: Simulation Manager also performs proactive safety checks on the environment
         if obs.get("threat_level", 0) > 80:
-             print("[SimulationManager] 🚨 Critical threat level detected in simulation!")
+             logger.info("🚨 Critical threat level detected in simulation!")
 
         return {"events_processed": len(events), "agents_notified": len(self.agents or [])}
 
     async def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for SimulationManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "simulation_step":
             result = await self.step()
             self.send_result("simulation_result", result)
@@ -61,10 +65,10 @@ class SimulationManager(CognitiveModule):
             blocked = self.gov.apply(interaction)
 
             if not blocked["blocked"]:
-                print(f"[SimulationManager] Action approved for {agent}: {action.get('type')}")
+                logger.info(f"Action approved for {agent}: {action.get('type')}")
                 self.replay.record(interaction)
                 self.metrics.score(interaction)
                 # Apply action to environment
                 self.core.schedule(action, delay=1)
             else:
-                print(f"[SimulationManager] 🛡️ Action BLOCKED by Governance for {agent}: {blocked.get('reason')}")
+                logger.info(f"🛡️ Action BLOCKED by Governance for {agent}: {blocked.get('reason')}")

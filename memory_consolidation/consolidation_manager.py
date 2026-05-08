@@ -1,3 +1,4 @@
+import logging
 import ray
 import asyncio
 from core.base import CognitiveModule
@@ -5,6 +6,9 @@ from memory_consolidation.hippocampal_replay import HippocampalReplay
 from memory_consolidation.generative_trainer import GenerativeTrainer
 from memory_consolidation.consolidation_scheduler import ConsolidationScheduler
 from memory_consolidation.schema_manager import SchemaManager
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class ConsolidationManager(CognitiveModule):
@@ -58,7 +62,7 @@ class ConsolidationManager(CognitiveModule):
     async def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for ConsolidationManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "consolidation_trigger":
             result = await self.consolidate()
             self.send_result("consolidation_result", result)

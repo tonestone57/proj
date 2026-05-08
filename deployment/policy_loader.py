@@ -1,4 +1,8 @@
+import logging
 import time
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 class PolicyLoader:
     def __init__(self):
@@ -6,7 +10,7 @@ class PolicyLoader:
 
     def load(self, name, policy_data):
         # SGI 2026: Dynamic policy hot-reloading
-        print(f"[PolicyLoader] Loading policy: {name} (v{policy_data.get('version', '1.0')})")
+        logger.info(f"Loading policy: {name} (v{policy_data.get('version', '1.0')})")
 
         entry = {
             "data": policy_data,

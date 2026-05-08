@@ -1,7 +1,10 @@
+import os
+import subprocess
+import tempfile
+import ast
 import contextlib
 import io
 import logging
-import os
 import ray
 import re
 import sys
@@ -75,7 +78,6 @@ class CodingActorBase(CognitiveModule):
         """
         Uses AST analysis to identify recursive function calls.
         """
-        import ast
         try:
             tree = ast.parse(code)
         except SyntaxError:
@@ -152,7 +154,15 @@ class CodingActorBase(CognitiveModule):
                     transformed = transformed.split("```python")[1].split("```")[0].strip()
                 elif "```" in transformed:
                     transformed = transformed.split("```")[1].strip()
-                return transformed
+
+                # SGI 2026: Validation - Ensure the transformed code is valid Python
+                try:
+                    ast.parse(transformed)
+                    return transformed
+                except SyntaxError:
+                    logger.warning(f"Refined code has syntax errors. Falling back to original.")
+                    return code
+
             except Exception as e:
                 logger.error(f"Refactoring failed: {e}")
                 return code
@@ -295,6 +305,8 @@ class CodingActorBase(CognitiveModule):
         # Prepend standard SGI 2026 imports and resource limits
         imports = """
 import os
+import re
+import sys
 import resource
 import math
 
@@ -313,7 +325,6 @@ import bisect
 import itertools
 import functools
 import operator
-import re
 import typing
 import numpy as np
 import pandas as pd
@@ -321,7 +332,6 @@ import dataclasses
 import string
 import traceback
 import gc
-import sys
 
 # Inject common names into global scope for convenience
 from collections import deque, Counter, defaultdict, OrderedDict

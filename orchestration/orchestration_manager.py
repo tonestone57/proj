@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from orchestration.event_router import EventRouter
@@ -6,6 +7,9 @@ from orchestration.concurrency_manager import ConcurrencyManager
 from orchestration.group_chat_coordinator import GroupChatCoordinator
 from orchestration.interrupt_handler import InterruptHandler
 from orchestration.state_manager import StateManager
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class OrchestrationManager(CognitiveModule):
@@ -44,7 +48,7 @@ class OrchestrationManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for OrchestrationManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "event_handle":
             result = self.handle_event(message['data']['event'])
             self.send_result("event_result", result)

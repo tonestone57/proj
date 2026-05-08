@@ -1,5 +1,9 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class VisionModule(CognitiveModule):
@@ -19,7 +23,7 @@ class VisionModule(CognitiveModule):
         Implementation of NeuralLVC / CoPE for Video/Vision data.
         Achieves up to 93% reduction in token usage for VideoLMs.
         """
-        print("[VisionModule] Applying NeuralLVC/CoPE compression...")
+        logger.info("Applying NeuralLVC/CoPE compression...")
         # Simulate massive token reduction
         original_tokens = 1000
         compressed_tokens = int(original_tokens * 0.07) # 93% reduction

@@ -1,11 +1,15 @@
+import logging
 import ray
 from core.base import CognitiveModule
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class MetaReasoner(CognitiveModule):
     def __init__(self, workspace, scheduler, model_registry=None):
         super().__init__(workspace, scheduler, model_registry)
-        print(f"[MetaReasoner] Initialized with Shared Model Provider.")
+        logger.info(f"Initialized with Shared Model Provider.")
 
     def receive(self, message):
         if super().receive(message): return True
@@ -14,7 +18,7 @@ class MetaReasoner(CognitiveModule):
             self.send_result("evaluation_result", result)
 
     def evaluate_reasoning(self, trace):
-        print(f"[MetaReasoner] Evaluating reasoning trace via Shared Model Provider...")
+        logger.info(f"Evaluating reasoning trace via Shared Model Provider...")
         if self.model_registry:
             # SGI 2026: Semantic quality evaluation via LLM inference
             prompt = f"Critically evaluate this reasoning chain for logical consistency and depth. Return a JSON with 'score' (0-1) and 'feedback'. Trace: {trace}"

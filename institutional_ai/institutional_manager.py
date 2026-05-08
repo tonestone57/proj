@@ -1,3 +1,4 @@
+import logging
 from core.base import CognitiveModule
 import ray
 from institutional_ai.governance_graph import GovernanceGraph
@@ -7,6 +8,9 @@ from institutional_ai.sanction_engine import SanctionEngine
 from institutional_ai.incentive_engine import IncentiveEngine
 from institutional_ai.oversight_agents import OversightAgent
 from institutional_ai.real_time_control import RealTimeControl
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class InstitutionalManager(CognitiveModule):
@@ -49,7 +53,7 @@ class InstitutionalManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         """Standard SGI message receiver."""
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "evaluate_action":
             result = self.evaluate(message['data']['agent_id'], message['data']['action'])
             self.send_result("institutional_result", result)

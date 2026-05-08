@@ -1,3 +1,4 @@
+import logging
 import ray
 import asyncio
 from core.base import CognitiveModule
@@ -8,6 +9,9 @@ from blueteam.deception_layer import DeceptionLayer
 from blueteam.firewall_agent import FirewallAgent
 from blueteam.dlp_agent import DLPAgent
 from blueteam.cyber_range import CyberRange
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote # SGI 2026: Standardized Ray Actor
 class BlueTeamManager(CognitiveModule):
@@ -42,7 +46,7 @@ class BlueTeamManager(CognitiveModule):
     async def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for BlueTeamManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "defense_request":
             result = await self.defend(message['data']['traffic'])
             self.send_result("defense_result", result)

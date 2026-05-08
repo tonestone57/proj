@@ -1,3 +1,4 @@
+import logging
 import ray
 from core.base import CognitiveModule
 from console.approval_gateway import ApprovalGateway
@@ -7,6 +8,9 @@ from console.confidence_monitor import ConfidenceMonitor
 from console.action_queue import ActionQueue
 from console.audit_log import AuditLog
 from console.human_interface import HumanInterface
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 @ray.remote
 class ConsoleManager(CognitiveModule):
@@ -48,7 +52,7 @@ class ConsoleManager(CognitiveModule):
     def receive(self, message):
         if super().receive(message): return True
         # Standard SGI 2026 message handling for ConsoleManager
-        print(f"[{self.__class__.__name__}] Received message: {message['type']}")
+        logger.info(f"Received message: {message['type']}")
         if message["type"] == "review_request":
             result = self.review_action(message['data']['action_id'], message['data']['action_result'])
             self.send_result("review_result", result)

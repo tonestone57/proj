@@ -1,7 +1,11 @@
+import logging
 import yaml
 import os
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Dict, Optional
+
+# Standard SGI 2026 Logging
+logger = logging.getLogger(__name__)
 
 # Pydantic Models for Schema Validation
 class SystemIdentity(BaseModel):
@@ -90,7 +94,7 @@ CONFIG_PATH = "config.yaml"
 try:
     SGI_SETTINGS = SGIConfig.load(CONFIG_PATH)
 except (FileNotFoundError, ValidationError, ValueError) as e:
-    print(f"[Config] Error loading config: {e}")
+    logger.info(f"Error loading config: {e}")
     # Fallback or exit? For autonomous system, we might want to exit or use defaults if possible.
     # For now, let's assume config.yaml must exist and be valid.
     raise
