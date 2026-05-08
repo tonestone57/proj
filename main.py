@@ -361,7 +361,6 @@ async def cognitive_cycle():
         logger.info(f"System Entropy: {entropy:.4f}")
 
         # SGI 2026: Autonomous Drive Logic (Migration from heartbeat.py)
-        from core.config import THRESHOLD_REPLAN
         if entropy > THRESHOLD_REPLAN:
             logger.info("High System Entropy detected. Generating new strategy via Planner.")
             await hub.safe_delegate(actors['planner'], "goal", {

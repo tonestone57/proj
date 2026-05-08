@@ -1,3 +1,4 @@
+import ast
 import contextlib
 import io
 import logging
@@ -75,7 +76,6 @@ class CodingActorBase(CognitiveModule):
         """
         Uses AST analysis to identify recursive function calls.
         """
-        import ast
         try:
             tree = ast.parse(code)
         except SyntaxError:
@@ -154,7 +154,6 @@ class CodingActorBase(CognitiveModule):
                     transformed = transformed.split("```")[1].strip()
 
                 # SGI 2026: Validation - Ensure the transformed code is valid Python
-                import ast
                 try:
                     ast.parse(transformed)
                     return transformed
