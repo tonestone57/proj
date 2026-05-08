@@ -499,7 +499,7 @@ class MemoryManager(CognitiveModule):
                 if "=" in line:
                     ops.append("OP_ASSIGN")
         serialized_ast = "->".join(ops) if ops else "OP_GENERIC_NODE"
-        logger.error(f"Serialized AST size: {len(serialized_ast)} bytes")
+        logger.info(f"Serialized AST size: {len(serialized_ast)} bytes")
         return serialized_ast
 
     def AST_Aware_Chunking(self, code):

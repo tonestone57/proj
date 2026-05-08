@@ -173,7 +173,7 @@ class SGIHub:
                     "beliefs": state,
                     "action": message["type"],
                     "context": "scheduler_conflict"
-
+                })
 
             # SGI 2026: RLAIF Feedback Loop
             if message["type"] == "critique_result":
@@ -186,13 +186,13 @@ class SGIHub:
                     self.workspace.broadcast.remote({
                         "type": "ai_feedback",
                         "data": {"preferred": code, "rejected": "None", "context": "critique_loop"}
-
+                    })
                 elif score < 0.4:
                     # Negative feedback
                     self.workspace.broadcast.remote({
                         "type": "ai_feedback",
                         "data": {"preferred": "Previous Implementation", "rejected": code, "context": "critique_loop"}
-
+                    })
 
             self.workspace.broadcast.remote(message)
             # Close the TaskGraph loop
@@ -363,7 +363,7 @@ async def cognitive_cycle():
         # SGI 2026: Autonomous Drive Logic (Migration from heartbeat.py)
         if entropy > THRESHOLD_REPLAN:
             logger.info("High System Entropy detected. Generating new strategy via Planner.")
-            await hub.safe_delegate(actors['planner'], "goal", "Optimize system performance and reduce entropy") #
+            await hub.safe_delegate(actors['planner'], "goal", "Optimize system performance and reduce entropy")
 
 
         # SGI 2026: Intrinsic Motivation Evaluation

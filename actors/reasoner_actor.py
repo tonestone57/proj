@@ -59,10 +59,10 @@ class ReasonerActor(CognitiveModule):
         # SGI 2026: Pre-process query for SymPy compatibility
         # Replace pythonic logical operators and boolean literals
         processed_query = re.sub(r'\band\b', '&', query, flags=re.IGNORECASE)
-        processed_query = re.sub(r'\bignore_me_or\b', '|', processed_query, flags=re.IGNORECASE)
-        processed_query = re.sub(r'\bignore_me_not\b', '~', processed_query, flags=re.IGNORECASE)
-        processed_query = re.sub(r'\bignore_me_true\b', 'True', processed_query, flags=re.IGNORECASE)
-        processed_query = re.sub(r'\bignore_me_false\b', 'False', processed_query, flags=re.IGNORECASE)
+        processed_query = re.sub(r'\bor\b', '|', processed_query, flags=re.IGNORECASE)
+        processed_query = re.sub(r'\bnot\b', '~', processed_query, flags=re.IGNORECASE)
+        processed_query = re.sub(r'\btrue\b', 'True', processed_query, flags=re.IGNORECASE)
+        processed_query = re.sub(r'\bfalse\b', 'False', processed_query, flags=re.IGNORECASE)
 
         # Basic sanitization: block potential attribute access or dangerous calls
         if "__" in processed_query or "import" in processed_query:
