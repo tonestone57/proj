@@ -304,6 +304,9 @@ class CodingActorBase(CognitiveModule):
 
         # Prepend standard SGI 2026 imports and resource limits
         imports = """
+import os
+import re
+import sys
 import resource
 import math
 
