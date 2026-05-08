@@ -88,6 +88,7 @@ class ReasonerActor(CognitiveModule):
             logger.error(f"Unexpected error in symbolic reasoning: {e}")
             return f"Error: Internal reasoning failure."
 
+
     def verify_logic(self, code, mission_critical=False):
         logger.info(f"Verifying logic...")
         try:
