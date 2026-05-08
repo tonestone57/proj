@@ -19,7 +19,7 @@ from core.scheduler import Scheduler
 from core.drives import DriveEngine, PIDController
 from core.config import (
     CPU_CORES_MAX, MAX_THREADS, TICK_INTERVAL, SYSTEM_NAME,
-    THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB, THRESHOLD_CONSOLIDATE
+    THERMAL_THRESHOLD_C, LOW_MEMORY_THRESHOLD_MB, THRESHOLD_CONSOLIDATE, THRESHOLD_REPLAN
 )
 from core.model_registry import ModelRegistry
 
